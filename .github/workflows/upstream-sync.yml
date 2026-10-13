@@ -35,6 +35,7 @@ jobs:
 
       - name: Rebuild main from upstream and squash branches
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
@@ -79,10 +80,13 @@ jobs:
               exit 1
             fi
             git checkout --theirs -- src/router/MainRoutes.tsx
-            if ! git diff "$COMPAT_BASE" "$COMPAT_TIP" -- src/router/MainRoutes.tsx | git apply --index; then
+            # `git apply --index` fails here: `checkout --theirs` leaves the path
+            # unmerged (stages 1/2/3). Apply to the worktree, then stage it.
+            if ! git diff "$COMPAT_BASE" "$COMPAT_TIP" -- src/router/MainRoutes.tsx | git apply; then
               echo '::error::api-keys-route compatibility patch no longer applies'
               exit 1
             fi
+            git add src/router/MainRoutes.tsx
           fi
           git commit -m "merge patch/extract-client-api-keys branch"
 
@@ -94,7 +98,10 @@ jobs:
 
           # patch/client-api-key-models descends from patch/extract-client-api-keys, so
           # integrate only its own delta. Squashing it re-adds ApiKeysPage and conflicts.
-          git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way
+          if ! git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way; then
+            echo '::error::client-api-key-models seam-diff did not apply'
+            exit 1
+          fi
           if ! git diff --quiet --diff-filter=U --; then
             echo '::error::client-api-key-models seam-diff left conflicts'
             exit 1
