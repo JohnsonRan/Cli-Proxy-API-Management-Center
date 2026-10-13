@@ -35,11 +35,19 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
    - **Scope**:
      - Dynamically inspect upstream baseline tag, squash patch count, and commit hash in `vite.config.ts`.
 
+5. **`patch/update-management-panel`**
+   - **Goal**: Let the system page trigger an on-demand management panel asset update.
+   - **Scope**:
+     - Add `versionApi.updatePanel()` calling `POST /server/update-panel`.
+     - Add an "Update panel" button on the system page version tile.
+     - Reload after a successful asset update. Already-latest and failure states use notifications.
+     - Localize the button and result messages in all 6 locales.
+
 ## Rebuild & Validation Procedure
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning
+git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel
 
 git checkout -B main upstream/main
 
@@ -57,6 +65,9 @@ git commit -m "merge patch/extract-client-api-keys branch"
 
 git merge --squash origin/patch/downstream-versioning
 git commit -m "merge patch/downstream-versioning branch"
+
+git merge --squash origin/patch/update-management-panel
+git commit -m "merge patch/update-management-panel branch"
 
 bun install --frozen-lockfile
 bun run type-check

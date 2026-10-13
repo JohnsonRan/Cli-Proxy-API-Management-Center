@@ -39,7 +39,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning
+          git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel
           git reset --hard upstream/main
 
           if ! git merge --squash origin/ci; then
@@ -69,6 +69,9 @@ jobs:
 
           git merge --squash origin/patch/downstream-versioning
           git commit -m "merge patch/downstream-versioning branch"
+
+          git merge --squash origin/patch/update-management-panel
+          git commit -m "merge patch/update-management-panel branch"
 
       - name: Validate build and tests
         run: |
