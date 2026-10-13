@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,8 +34,41 @@ import {
   readApiKeyNames,
   saveApiKeyName,
 } from '@/features/config/apiKeyNames';
+import {
+  normalizeExcludedRules,
+  type ExcludedModelCandidate,
+  type ExcludedModelsCatalogState,
+} from '@/components/excludedModels';
 import { apiKeysApi, ClientApiKeyItem } from '@/services/api/apiKeys';
+import { modelsApi } from '@/services/api/models';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+
+function useProxyModelCatalog(enabled: boolean) {
+  const [candidates, setCandidates] = useState<ExcludedModelCandidate[]>([]);
+  const [catalogState, setCatalogState] = useState<ExcludedModelsCatalogState>('loading');
+  const loadedRef = useRef(false);
+
+  const load = useCallback(async () => {
+    setCatalogState('loading');
+    try {
+      const items = await modelsApi.listCatalog();
+      setCandidates(items.map((item) => ({ id: item.id, displayName: item.display_name })));
+      setCatalogState('ready');
+      loadedRef.current = true;
+    } catch {
+      loadedRef.current = false;
+      setCatalogState('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || loadedRef.current) return;
+    void load();
+  }, [enabled, load]);
+
+  return { candidates, catalogState, retry: load };
+}
 import { generateSecureApiKey } from '@/utils/apiKey';
 import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -66,9 +99,10 @@ export function ApiKeysPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [keyInput, setKeyInput] = useState('');
-  const [modelsInput, setModelsInput] = useState('');
-  const [excludedModelsInput, setExcludedModelsInput] = useState('');
+  const [allowedModels, setAllowedModels] = useState<string[]>([]);
+  const [excludedModels, setExcludedModels] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
+  const modelCatalog = useProxyModelCatalog(modalOpen);
 
   // Delete Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -158,8 +192,8 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
-    setModelsInput('');
-    setExcludedModelsInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
     setModalOpen(true);
   };
@@ -171,8 +205,8 @@ export function ApiKeysPage() {
     setNameInput(latestNames[apiKeyNameFingerprint(apiBase, item.apiKey)] ?? '');
     setKeyInput(item.apiKey);
     const activeModels = item.models ?? item.allowedModels ?? [];
-    setModelsInput(activeModels.join('\n'));
-    setExcludedModelsInput((item.excludedModels ?? []).join('\n'));
+    setAllowedModels(normalizeExcludedRules(activeModels));
+    setExcludedModels(normalizeExcludedRules(item.excludedModels ?? []));
     setFormError('');
     setModalOpen(true);
   };
@@ -182,8 +216,8 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
-    setModelsInput('');
-    setExcludedModelsInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
   };
 
@@ -203,18 +237,9 @@ export function ApiKeysPage() {
       return;
     }
 
-    const models = modelsInput
-      .split(/[\n,]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const excludedModels = excludedModelsInput
-      .split(/[\n,]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
     const nextItem: ClientApiKeyItem = {
       apiKey: trimmedKey,
-      models: models.length > 0 ? models : undefined,
+      models: allowedModels.length > 0 ? allowedModels : undefined,
       excludedModels: excludedModels.length > 0 ? excludedModels : undefined,
     };
 
@@ -248,7 +273,7 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeyItems, editingIndex, fetchConfig, keyInput, modelsInput, excludedModelsInput, nameInput, showNotification, t]);
+  }, [allowedModels, apiBase, apiKeyItems, editingIndex, excludedModels, fetchConfig, keyInput, nameInput, showNotification, t]);
 
   const openDeleteModal = (index: number) => {
     setTargetDeleteIndex(index);
@@ -640,40 +665,29 @@ export function ApiKeysPage() {
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="apiKeyModelsInput">
-            {t('api_keys_page.models_label')}
-          </label>
-          <textarea
-            id="apiKeyModelsInput"
-            className="input"
-            rows={2}
-            value={modelsInput}
-            onChange={(e) => setModelsInput(e.target.value)}
-            placeholder={t('api_keys_page.models_placeholder')}
-            disabled={saving}
-          />
-          <div className="hint">
-            {t('api_keys_page.models_hint')}
-          </div>
-        </div>
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.models_label')}
+          hint={t('api_keys_page.models_hint')}
+          tone="allow"
+          value={allowedModels}
+          onChange={setAllowedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
 
-        <div className="form-group">
-          <label htmlFor="apiKeyExcludedModelsInput">
-            {t('api_keys_page.excluded_models_label')}
-          </label>
-          <input
-            id="apiKeyExcludedModelsInput"
-            className="input"
-            value={excludedModelsInput}
-            onChange={(e) => setExcludedModelsInput(e.target.value)}
-            placeholder={t('api_keys_page.excluded_models_placeholder')}
-            disabled={saving}
-          />
-          <div className="hint">
-            {t('api_keys_page.excluded_models_hint')}
-          </div>
-        </div>
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.excluded_models_label')}
+          hint={t('api_keys_page.excluded_models_hint')}
+          tone="exclude"
+          value={excludedModels}
+          onChange={setExcludedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
       </Modal>
 
       {/* 删除确认弹窗 */}
