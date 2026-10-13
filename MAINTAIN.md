@@ -2,6 +2,10 @@
 
 This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-API-Management-Center](https://github.com/router-for-me/Cli-Proxy-API-Management-Center) following the `downstream-fork-maintain` workflow.
 
+## Upstream Investigation
+
+Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-API-Management-Center` issues and pull requests were searched for equivalent work (model allow/deny rule pickers on the client-key page, embeddings/rerank endpoint toggles, promotional-section removal, client-key page extraction from providers). No upstream issue or PR was found that already delivers these patches, so each was implemented downstream instead of consuming an open PR. Re-run this search before changing any patch and update this section with the links and the conclusion.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -85,7 +89,10 @@ git commit -m "merge patch/remove-promotional-sections branch"
 # from tmp/patch/api-keys-route; abort on any other conflict shape.
 git merge --squash origin/patch/extract-client-api-keys || {
   git checkout --theirs -- src/router/MainRoutes.tsx
-  git diff origin/patch/extract-client-api-keys origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx | git apply --index
+  # `git apply --index` cannot be used here: `checkout --theirs` leaves the path
+  # unmerged (stages 1/2/3), so apply to the worktree and stage it afterwards.
+  git diff origin/patch/extract-client-api-keys origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx | git apply
+  git add src/router/MainRoutes.tsx
 }
 git commit -m "merge patch/extract-client-api-keys branch"
 
@@ -96,7 +103,8 @@ git merge --squash origin/patch/update-management-panel
 git commit -m "merge patch/update-management-panel branch"
 
 # client-api-key-models descends from extract-client-api-keys: apply only its delta.
-git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way
+git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way || { echo 'seam-diff did not apply; aborting'; exit 1; }
+git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
 git add -A
 git commit -m "merge patch/client-api-key-models branch"
 
