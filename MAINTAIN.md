@@ -43,11 +43,20 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
      - Reload after a successful asset update. Already-latest and failure states use notifications.
      - Localize the button and result messages in all 6 locales.
 
+6. **`patch/client-api-key-models`**
+   - **Goal**: Support viewing and editing per-client API key model permissions (`models` whitelist and `excluded-models` blacklist) in `ApiKeysPage` and visual configuration.
+   - **Scope**:
+     - Support object client API key entries (`api-key`, `models`, `excluded-models`) alongside bare strings in `apiKeysApi` (`src/services/api/apiKeys.ts`).
+     - Expose "Available Models" column in `ApiKeysPage` table displaying model whitelist tags and exclusion count badges.
+     - Add Allowed Models and Excluded Models fields to `ApiKeysPage` Add/Edit modal.
+     - Preserve custom object structure and model restrictions when parsing and serializing `access.api-keys` in `useVisualConfig.ts`.
+     - Complete localized translation keys across all 6 locales and unit tests in `tests/clientApiKeys.test.ts`.
+
 ## Rebuild & Validation Procedure
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel
+git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
 
 git checkout -B main upstream/main
 
@@ -68,6 +77,9 @@ git commit -m "merge patch/downstream-versioning branch"
 
 git merge --squash origin/patch/update-management-panel
 git commit -m "merge patch/update-management-panel branch"
+
+git merge --squash origin/patch/client-api-key-models
+git commit -m "merge patch/client-api-key-models branch"
 
 bun install --frozen-lockfile
 bun run type-check
