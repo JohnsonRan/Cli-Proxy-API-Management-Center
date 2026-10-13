@@ -2,8 +2,11 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -14,13 +17,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -32,10 +35,32 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Compute downstream version
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git 2>/dev/null || true
+          git fetch upstream main --tags 2>/dev/null || true
+          commit_sha="$(git rev-parse --short=7 HEAD)"
+          upstream_base="upstream/main"
+          upstream_tag="$(git tag -l "v*" --merged "${upstream_base}" --sort=-v:refname | grep -v "\+" | head -n 1 || echo "v1.26.2")"
+          if [ -z "${upstream_tag}" ]; then
+            upstream_tag="v1.26.2"
+          fi
+          patch_count="$(git rev-list --count "${upstream_base}..HEAD" 2>/dev/null || echo "0")"
+          if [ "${patch_count}" != "0" ]; then
+            app_version="${upstream_tag}+${patch_count}-${commit_sha}"
+            release_tag="${upstream_tag}-${patch_count}-${commit_sha}"
+          else
+            app_version="${upstream_tag}-${commit_sha}"
+            release_tag="${upstream_tag}-${commit_sha}"
+          fi
+          echo "APP_VERSION=${app_version}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
+
       - name: Build all-in-one HTML
         run: bun run build
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.APP_VERSION }}
 
       - name: Prepare release assets
         run: |
@@ -46,23 +71,26 @@ jobs:
       - name: Generate release notes
         run: |
           set -euo pipefail
-          current_tag="${GITHUB_REF_NAME}"
-          previous_tag="$(git tag --list 'v*' --sort=-v:refname | grep -v "^${current_tag}$" | head -n 1 || true)"
+          current_ref="${GITHUB_REF_NAME}"
+          previous_tag="$(git tag --list 'v*' --sort=-v:refname | grep -v "^${current_ref}$" | head -n 1 || true)"
           if [ -n "${previous_tag}" ]; then
-            range="${previous_tag}..${current_tag}"
+            range="${previous_tag}..HEAD"
           else
-            range="${current_tag}"
+            range="HEAD"
           fi
 
           : > release-notes.md
-          git log --pretty=format:"- %h %s" "${range}" >> release-notes.md
+          git log -n 20 --pretty=format:"- %h %s" "${range}" >> release-notes.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.APP_VERSION }}
           files: dist/management.html
           body_path: release-notes.md
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
