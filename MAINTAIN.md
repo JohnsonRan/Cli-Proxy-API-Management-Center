@@ -23,7 +23,8 @@ Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-A
    - **Scope**:
      - Remove `quickStartNavItem` (APIKEY.FUN) from `MainLayout.tsx` sidebar.
      - Remove `quickFillGroups` ("快速接入") sponsor group from `ProviderCategoryList.tsx`.
-     - Redirect `/quick-start` route in `MainRoutes.tsx` to `/ai-providers`.
+     - Remove the promotional `/quick-start` route from `MainRoutes.tsx`; unmatched paths fall through to the existing `/` catch-all.
+     - Drop the `apikeyFun` route hint in `ProviderSheet.tsx` so no user-visible text points at the removed route.
 
 3. **`patch/extract-client-api-keys`**
    - **Goal**: Move Client API Keys (`access.api-keys`) out of the Config panel into a dedicated navigation page.
@@ -62,7 +63,7 @@ Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-A
 - **`tmp/patch/api-keys-route`**
   - **Depends on**: `patch/remove-promotional-sections`, then `patch/extract-client-api-keys`.
   - **Order**: its own integration commit (`merge tmp/patch/api-keys-route branch`) immediately after the `merge patch/extract-client-api-keys branch` commit.
-  - **Combined behavior**: `/api-keys` renders `ApiKeysPage` (extract) while `/quick-start` keeps redirecting to `/ai-providers` (remove-promotional).
+  - **Combined behavior**: `/api-keys` renders `ApiKeysPage` (extract) while `/quick-start` stays unregistered (remove-promotional) and falls through to the `/` catch-all.
   - **Retire when**: `patch/extract-client-api-keys` and `patch/remove-promotional-sections` no longer edit the same `MainRoutes.tsx` lines, or upstream merges an equivalent result.
   - Base and tip are recorded as `origin/patch/extract-client-api-keys` and `origin/tmp/patch/api-keys-route`. After the extract commit the orchestrator compares `src/router/MainRoutes.tsx` against the compat tip unconditionally: when they differ it applies `git diff <base> <tip> -- src/router/MainRoutes.tsx` and fails closed if the delta no longer applies; when they already match it skips the commit and warns that the compat patch is empty and must be retired. The unconditional comparison means a merge that stops conflicting can no longer drop the compatibility change silently.
 

@@ -65,10 +65,10 @@ jobs:
           git merge --squash origin/patch/remove-promotional-sections
           git commit -m "merge patch/remove-promotional-sections branch"
 
-          # The extract patch re-adds the promotional quick-start route that
-          # remove-promotional-sections redirects, so both edits land on the same
-          # lines. Resolve with the reviewed combination on tmp/patch/api-keys-route
-          # and fail closed if the shape is anything else.
+          # remove-promotional-sections deletes the promotional /quick-start route
+          # while extract-client-api-keys rewrites the adjacent /api-keys line, so
+          # both edits land on the same lines. Resolve with the reviewed combination
+          # on tmp/patch/api-keys-route and fail closed if the shape is anything else.
           COMPAT_BASE=$(git rev-parse origin/patch/extract-client-api-keys)
           COMPAT_TIP=$(git rev-parse origin/tmp/patch/api-keys-route)
           if ! git merge --squash origin/patch/extract-client-api-keys; then
@@ -86,9 +86,10 @@ jobs:
           fi
           git commit -m "merge patch/extract-client-api-keys branch"
 
-          # The extract patch re-adds the promotional quick-start route that
-          # remove-promotional-sections redirects, so both edits land on the same
-          # lines. Apply the reviewed combination from tmp/patch/api-keys-route as
+          # remove-promotional-sections deletes the promotional /quick-start route
+          # while extract-client-api-keys rewrites the adjacent /api-keys line, so
+          # both edits land on the same lines. Apply the reviewed combination from
+          # tmp/patch/api-keys-route as
           # its own countable, independently revertable integration commit.
           if ! git diff --quiet "$COMPAT_TIP" -- src/router/MainRoutes.tsx; then
             if ! git diff "$COMPAT_BASE" "$COMPAT_TIP" -- src/router/MainRoutes.tsx | git apply; then
