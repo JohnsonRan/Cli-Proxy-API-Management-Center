@@ -299,6 +299,49 @@
   }
 }
 
+.modelTagList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.modelTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+  font-family: $font-mono;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.modelExcludedTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, $error-color 15%, transparent);
+  color: $error-color;
+  font-family: $font-mono;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: help;
+}
+
+.allModelsBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: $radius-sm;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 /* ---------- 弹窗表单 ---------- */
 
 .modalKeyHeader {

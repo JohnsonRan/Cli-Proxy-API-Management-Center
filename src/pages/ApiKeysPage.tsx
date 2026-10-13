@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,8 +34,41 @@ import {
   readApiKeyNames,
   saveApiKeyName,
 } from '@/features/config/apiKeyNames';
-import { apiKeysApi } from '@/services/api/apiKeys';
+import {
+  normalizeExcludedRules,
+  type ExcludedModelCandidate,
+  type ExcludedModelsCatalogState,
+} from '@/components/excludedModels';
+import { apiKeysApi, ClientApiKeyItem } from '@/services/api/apiKeys';
+import { modelsApi } from '@/services/api/models';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+
+function useProxyModelCatalog(enabled: boolean) {
+  const [candidates, setCandidates] = useState<ExcludedModelCandidate[]>([]);
+  const [catalogState, setCatalogState] = useState<ExcludedModelsCatalogState>('loading');
+  const loadedRef = useRef(false);
+
+  const load = useCallback(async () => {
+    setCatalogState('loading');
+    try {
+      const items = await modelsApi.listCatalog();
+      setCandidates(items.map((item) => ({ id: item.id, displayName: item.display_name })));
+      setCatalogState('ready');
+      loadedRef.current = true;
+    } catch {
+      loadedRef.current = false;
+      setCatalogState('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || loadedRef.current) return;
+    void load();
+  }, [enabled, load]);
+
+  return { candidates, catalogState, retry: load };
+}
 import { generateSecureApiKey } from '@/utils/apiKey';
 import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -50,7 +83,8 @@ export function ApiKeysPage() {
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
 
-  const [apiKeys, setApiKeys] = useState<string[]>([]);
+  const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
+  const apiKeys = useMemo(() => apiKeyItems.map((item) => item.apiKey), [apiKeyItems]);
   const [names, setNames] = useState<Record<string, string>>(() => readApiKeyNames(apiBase));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,7 +99,10 @@ export function ApiKeysPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [keyInput, setKeyInput] = useState('');
+  const [allowedModels, setAllowedModels] = useState<string[]>([]);
+  const [excludedModels, setExcludedModels] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
+  const modelCatalog = useProxyModelCatalog(modalOpen);
 
   // Delete Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -80,8 +117,8 @@ export function ApiKeysPage() {
   const loadKeys = useCallback(async () => {
     setLoading(true);
     try {
-      const keys = await apiKeysApi.list();
-      setApiKeys(keys);
+      const items = await apiKeysApi.listItems();
+      setApiKeyItems(items);
       setNames(readApiKeyNames(apiBase));
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
@@ -115,16 +152,17 @@ export function ApiKeysPage() {
   // Filtered rows
   const filteredRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const rows = apiKeys.map((key, index) => {
+    const rows = apiKeyItems.map((item, index) => {
+      const key = item.apiKey;
       const name = names[apiKeyNameFingerprint(apiBase, key)] || '';
-      return { key, index, name };
+      return { item, key, index, name };
     });
 
     if (!q) return rows;
     return rows.filter(({ key, name }) => {
       return name.toLowerCase().includes(q) || key.toLowerCase().includes(q);
     });
-  }, [apiBase, apiKeys, names, searchQuery]);
+  }, [apiBase, apiKeyItems, names, searchQuery]);
 
   // Actions
   const toggleReveal = useCallback((key: string) => {
@@ -154,16 +192,21 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
     setModalOpen(true);
   };
 
-  const openEditModal = (key: string, index: number) => {
+  const openEditModal = (item: ClientApiKeyItem, index: number) => {
     const latestNames = readApiKeyNames(apiBase);
     setNames(latestNames);
     setEditingIndex(index);
-    setNameInput(latestNames[apiKeyNameFingerprint(apiBase, key)] ?? '');
-    setKeyInput(key);
+    setNameInput(latestNames[apiKeyNameFingerprint(apiBase, item.apiKey)] ?? '');
+    setKeyInput(item.apiKey);
+    const activeModels = item.models ?? item.allowedModels ?? [];
+    setAllowedModels(normalizeExcludedRules(activeModels));
+    setExcludedModels(normalizeExcludedRules(item.excludedModels ?? []));
     setFormError('');
     setModalOpen(true);
   };
@@ -173,6 +216,8 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
   };
 
@@ -192,17 +237,23 @@ export function ApiKeysPage() {
       return;
     }
 
+    const nextItem: ClientApiKeyItem = {
+      apiKey: trimmedKey,
+      models: allowedModels.length > 0 ? allowedModels : undefined,
+      excludedModels: excludedModels.length > 0 ? excludedModels : undefined,
+    };
+
     setSaving(true);
     try {
-      let nextKeys: string[];
+      let nextItems: ClientApiKeyItem[];
       if (editingIndex !== null && editingIndex >= 0) {
-        const oldKey = apiKeys[editingIndex];
-        nextKeys = apiKeys.map((k, i) => (i === editingIndex ? trimmedKey : k));
+        const oldKey = apiKeyItems[editingIndex].apiKey;
+        nextItems = apiKeyItems.map((k, i) => (i === editingIndex ? nextItem : k));
         if (oldKey !== trimmedKey) {
           saveApiKeyName(apiBase, oldKey, '');
         }
       } else {
-        nextKeys = [...apiKeys, trimmedKey];
+        nextItems = [...apiKeyItems, nextItem];
       }
 
       if (!saveApiKeyName(apiBase, trimmedKey, nameInput)) {
@@ -211,9 +262,9 @@ export function ApiKeysPage() {
         return;
       }
 
-      await apiKeysApi.replace(nextKeys);
+      await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
-      setApiKeys(nextKeys);
+      setApiKeyItems(nextItems);
       setNames(readApiKeyNames(apiBase));
       closeModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
@@ -222,7 +273,7 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeys, editingIndex, fetchConfig, keyInput, nameInput, showNotification, t]);
+  }, [allowedModels, apiBase, apiKeyItems, editingIndex, excludedModels, fetchConfig, keyInput, nameInput, showNotification, t]);
 
   const openDeleteModal = (index: number) => {
     setTargetDeleteIndex(index);
@@ -238,18 +289,18 @@ export function ApiKeysPage() {
     if (
       targetDeleteIndex === null ||
       targetDeleteIndex < 0 ||
-      targetDeleteIndex >= apiKeys.length
+      targetDeleteIndex >= apiKeyItems.length
     ) {
       return;
     }
-    const keyToDelete = apiKeys[targetDeleteIndex];
+    const keyToDelete = apiKeyItems[targetDeleteIndex].apiKey;
     setSaving(true);
     try {
-      const nextKeys = apiKeys.filter((_, i) => i !== targetDeleteIndex);
+      const nextItems = apiKeyItems.filter((_, i) => i !== targetDeleteIndex);
       saveApiKeyName(apiBase, keyToDelete, '');
-      await apiKeysApi.replace(nextKeys);
+      await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
-      setApiKeys(nextKeys);
+      setApiKeyItems(nextItems);
       setNames(readApiKeyNames(apiBase));
       closeDeleteModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
@@ -258,7 +309,7 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeys, fetchConfig, showNotification, t, targetDeleteIndex]);
+  }, [apiBase, apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
 
   const deleteTargetKey =
     targetDeleteIndex !== null && targetDeleteIndex >= 0 ? apiKeys[targetDeleteIndex] : '';
@@ -404,9 +455,10 @@ export function ApiKeysPage() {
             cols={
               <>
                 <col style={{ width: '56px' }} />
-                <col style={{ minWidth: '160px', width: '22%' }} />
-                <col style={{ minWidth: '260px' }} />
-                <col style={{ width: '120px' }} />
+                <col style={{ minWidth: '130px', width: '18%' }} />
+                <col style={{ minWidth: '220px' }} />
+                <col style={{ minWidth: '150px', width: '22%' }} />
+                <col style={{ width: '110px' }} />
                 <col style={{ width: '130px' }} />
               </>
             }
@@ -416,15 +468,18 @@ export function ApiKeysPage() {
                 <TableHead>{t('api_keys_page.table_index')}</TableHead>
                 <TableHead>{t('api_keys_page.table_name')}</TableHead>
                 <TableHead>{t('api_keys_page.table_key')}</TableHead>
+                <TableHead>{t('api_keys_page.table_models')}</TableHead>
                 <TableHead>{t('api_keys_page.table_strength')}</TableHead>
                 <TableHead alignRight>{t('api_keys_page.table_actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRows.map(({ key, index, name }) => {
+              {filteredRows.map(({ item, key, index, name }) => {
                 const isRevealed = revealedKeys.has(key);
                 const isCopied = copiedKey === key;
                 const { tier } = evaluateApiKeyStrength(key);
+                const activeModels = item.models ?? item.allowedModels ?? [];
+                const activeExcluded = item.excludedModels ?? [];
 
                 return (
                   <TableRow key={`${key}-${index}`}>
@@ -471,6 +526,30 @@ export function ApiKeysPage() {
                     </TableCell>
 
                     <TableCell>
+                      {activeModels.length > 0 ? (
+                        <div className={styles.modelTagList}>
+                          {activeModels.map((m) => (
+                            <span key={m} className={styles.modelTag}>
+                              {m}
+                            </span>
+                          ))}
+                          {activeExcluded.length > 0 && (
+                            <span
+                              className={styles.modelExcludedTag}
+                              title={`Excluded: ${activeExcluded.join(', ')}`}
+                            >
+                              -{activeExcluded.length}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={styles.allModelsBadge}>
+                          {t('api_keys_page.all_models')}
+                        </span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
                       <span className={`${styles.strengthBadge} ${styles[tier]}`}>
                         <span className={styles.strengthDot} />
                         {t(`config_management.visual.api_keys.strength.${tier}`)}
@@ -482,7 +561,7 @@ export function ApiKeysPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEditModal(key, index)}
+                          onClick={() => openEditModal(item, index)}
                           disabled={saving}
                           title={t('api_keys_page.edit_key')}
                         >
@@ -585,6 +664,30 @@ export function ApiKeysPage() {
             </div>
           )}
         </div>
+
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.models_label')}
+          hint={t('api_keys_page.models_hint')}
+          tone="allow"
+          value={allowedModels}
+          onChange={setAllowedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
+
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.excluded_models_label')}
+          hint={t('api_keys_page.excluded_models_hint')}
+          tone="exclude"
+          value={excludedModels}
+          onChange={setExcludedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
       </Modal>
 
       {/* 删除确认弹窗 */}
