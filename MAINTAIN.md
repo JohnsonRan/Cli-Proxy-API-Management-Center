@@ -51,6 +51,7 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
      - Add Allowed Models and Excluded Models fields to `ApiKeysPage` Add/Edit modal.
      - Preserve custom object structure and model restrictions when parsing and serializing `access.api-keys` in `useVisualConfig.ts`.
      - Complete localized translation keys across all 6 locales and unit tests in `tests/clientApiKeys.test.ts`.
+     - Edit per-key allow and deny rules with the excluded-models picker, using `GET /v8/management/models` so the list is not filtered by the key being edited.
 
 ## Rebuild & Validation Procedure
 
