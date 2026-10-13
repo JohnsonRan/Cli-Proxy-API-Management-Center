@@ -61,12 +61,12 @@ Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-A
 
 - **`tmp/patch/api-keys-route`**
   - **Depends on**: `patch/remove-promotional-sections`, then `patch/extract-client-api-keys`.
-  - **Order**: applied during the `patch/extract-client-api-keys` integration step, immediately after its squash merge.
+  - **Order**: its own integration commit (`merge tmp/patch/api-keys-route branch`) immediately after the `merge patch/extract-client-api-keys branch` commit.
   - **Combined behavior**: `/api-keys` renders `ApiKeysPage` (extract) while `/quick-start` keeps redirecting to `/ai-providers` (remove-promotional).
   - **Retire when**: `patch/extract-client-api-keys` and `patch/remove-promotional-sections` no longer edit the same `MainRoutes.tsx` lines, or upstream merges an equivalent result.
-  - Base and tip are recorded as `origin/patch/extract-client-api-keys` and `origin/tmp/patch/api-keys-route`; the CI sync orchestrator applies `git diff <base> <tip> -- src/router/MainRoutes.tsx` and fails closed on any other conflict shape.
+  - Base and tip are recorded as `origin/patch/extract-client-api-keys` and `origin/tmp/patch/api-keys-route`. After the extract commit the orchestrator compares `src/router/MainRoutes.tsx` against the compat tip unconditionally: when they differ it applies `git diff <base> <tip> -- src/router/MainRoutes.tsx` and fails closed if the delta no longer applies; when they already match it skips the commit and warns that the compat patch is empty and must be retired. The unconditional comparison means a merge that stops conflicting can no longer drop the compatibility change silently.
 
-`patch/client-api-key-models` is branched from `patch/extract-client-api-keys`. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch.
+`patch/client-api-key-models` is branched from `patch/extract-client-api-keys`, and the two form a hard ordered pair: `extract-client-api-keys` must be integrated first and `client-api-key-models` can never be moved, retired, or reviewed on its own. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch.
 
 ## Rebuild & Validation Procedure
 
@@ -85,16 +85,23 @@ git commit -m "merge patch/embeddings-and-rerank branch"
 git merge --squash origin/patch/remove-promotional-sections
 git commit -m "merge patch/remove-promotional-sections branch"
 
-# On conflict, keep only ApiKeysPage and restore the quick-start redirects
-# from tmp/patch/api-keys-route; abort on any other conflict shape.
+# On conflict, take the extract patch's own MainRoutes.tsx; abort on any other
+# conflict shape. `git apply --index` cannot be used later on this path:
+# `checkout --theirs` leaves it unmerged (stages 1/2/3).
 git merge --squash origin/patch/extract-client-api-keys || {
   git checkout --theirs -- src/router/MainRoutes.tsx
-  # `git apply --index` cannot be used here: `checkout --theirs` leaves the path
-  # unmerged (stages 1/2/3), so apply to the worktree and stage it afterwards.
-  git diff origin/patch/extract-client-api-keys origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx | git apply
   git add src/router/MainRoutes.tsx
 }
 git commit -m "merge patch/extract-client-api-keys branch"
+
+# Compatibility patch, as its own countable integration commit.
+if ! git diff --quiet origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx; then
+  git diff origin/patch/extract-client-api-keys origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx | git apply || { echo 'compat no longer applies; aborting'; exit 1; }
+  git add src/router/MainRoutes.tsx
+  git commit -m "merge tmp/patch/api-keys-route branch"
+else
+  echo 'tmp/patch/api-keys-route is empty; retire the branch and this step'
+fi
 
 git merge --squash origin/patch/downstream-versioning
 git commit -m "merge patch/downstream-versioning branch"
@@ -114,3 +121,8 @@ bun test
 bun run build
 git push --force-with-lease origin HEAD:main
 ```
+
+## Downstream Policy
+
+- **No upstream pull requests.** This fork never opens pull requests against the upstream repository. Patches are maintained downstream indefinitely and are retired only when upstream lands an equivalent implementation on its own, detected by re-running the rebuild and finding that a patch has become empty or conflicting.
+- **`main` is intentionally unprotected.** The scheduled sync rebuilds and force-pushes `main`, so neither `main` branch carries branch protection. Safety comes from `--force-with-lease`, the `upstream-sync-main` concurrency group, fail-closed conflict handling, and validation before the push. Protect the `patch/*`, `tmp/patch/*`, and `ci` branches against deletion instead; `main` is a derived artifact that nothing else may be based on.
