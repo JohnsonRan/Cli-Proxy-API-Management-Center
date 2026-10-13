@@ -198,7 +198,7 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
     expect(markup).toContain('GrokChat usage');
     expect(markup).toContain('Prepaid');
     expect(markup).toContain('$2.50');
-    expect(markup).toContain('$0.00 / $0.00');
+    expect(markup.replace(/US\$/g, '$')).toContain('$0.00 / $0.00');
   });
 
   test('renders product contributions as text with only one shared weekly meter', () => {
@@ -255,7 +255,7 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
       )
     );
     expect(markup).toContain('>90%<');
-    expect(markup).toContain('$135.00 / $150.00');
+    expect(markup.replace(/US\$/g, '$')).toContain('$135.00 / $150.00');
     expect(markup).not.toContain('$15.00 / $150.00');
     expect(markup).toContain('width:90%');
   });
