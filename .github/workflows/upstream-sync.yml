@@ -39,7 +39,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
+          git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models tmp/patch/api-keys-route
           git reset --hard upstream/main
 
           if ! git merge --squash origin/ci; then
@@ -64,7 +64,26 @@ jobs:
           git merge --squash origin/patch/remove-promotional-sections
           git commit -m "merge patch/remove-promotional-sections branch"
 
-          git merge --squash origin/patch/extract-client-api-keys
+          # The extract patch re-adds the promotional quick-start route that
+          # remove-promotional-sections redirects, so both edits land on the same
+          # lines. Resolve with the reviewed combination on tmp/patch/api-keys-route
+          # and fail closed if the shape is anything else.
+          COMPAT_BASE=$(git rev-parse origin/patch/extract-client-api-keys)
+          COMPAT_TIP=$(git rev-parse origin/tmp/patch/api-keys-route)
+          if ! git merge --squash origin/patch/extract-client-api-keys; then
+            mapfile -t compat_conflicts < <(git diff --name-only --diff-filter=U)
+            if (( ${#compat_conflicts[@]} != 1 )) || [[ ${compat_conflicts[0]} != src/router/MainRoutes.tsx ]]; then
+              printf '::error::Unexpected extract-client-api-keys conflicts:'
+              printf ' %q' "${compat_conflicts[@]}"
+              printf '\n'
+              exit 1
+            fi
+            git checkout --theirs -- src/router/MainRoutes.tsx
+            if ! git diff "$COMPAT_BASE" "$COMPAT_TIP" -- src/router/MainRoutes.tsx | git apply --index; then
+              echo '::error::api-keys-route compatibility patch no longer applies'
+              exit 1
+            fi
+          fi
           git commit -m "merge patch/extract-client-api-keys branch"
 
           git merge --squash origin/patch/downstream-versioning
