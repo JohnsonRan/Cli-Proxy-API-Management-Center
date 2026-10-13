@@ -82,8 +82,9 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
      - `src/components/ui/Button.tsx` marks the wrapper span it already renders as `btn-label`.
      - `src/styles/components.scss` lays that class out as `inline-flex` with a gap and a stable line height, and makes `.btn svg` a block that cannot shrink. The rule targets the class rather than every span, so the round loading spinner is unaffected.
      - Remove the `.empty-action` duplicate of that rule.
-     - `tests/buttonIconLayout.test.ts` guards the wrapper class, the row layout and the retired workaround, and fails on the pre-fix tree.
-   - **Note**: The defect is upstream's own, and upstream works around it per call site (`.empty-action`, the auth-files card, the plugins pages). No other patch touches `Button.tsx` or `styles/components.scss`, so this patch's position in the integration order does not matter and it is integrated last. The feature-local workarounds outside `.empty-action` are deliberately left alone; unifying them is not part of this patch.
+     - `tests/buttonIconLayout.test.ts` guards the wrapper class, the row layout, the retired workaround and the converted files, and fails on the pre-fix tree.
+     - Delete the remaining per-call-site copies of that layout, which the base rule made redundant and which disagreed with it: `.actions :global(.btn > span)` and `.actions :global(.btn svg)` in `AuthFileCard.module.scss`, and the `:global(.btn > span)` overrides in `PluginsPage.module.scss` (two) and `PluginStorePage.module.scss` (two). Only the auth-files card changes visibly — its labelled button moves from a 6px gap and a 14px line box to the standard 8px gap and 39px height — and its icon buttons are pinned to 30px by `.iconButton`.
+   - **Note**: The defect is upstream's own, and upstream worked around it per call site (`.empty-action`, the auth-files card, the plugins pages); this patch centralises the layout and removes those copies. No other patch touches `Button.tsx`, `styles/components.scss` or the three converted feature stylesheets, so this patch's position in the integration order does not matter and it is integrated last.
 
 ## Temporary Compatibility Patches
 
