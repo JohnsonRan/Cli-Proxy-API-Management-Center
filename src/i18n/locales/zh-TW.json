@@ -752,6 +752,20 @@
     "rules_match_none": "未比對到清單中的任何模型",
     "rules_reserved": "「*」會停用整個 provider，請改用「已停用」開關"
   },
+  "model_rules": {
+    "allow": {
+      "trigger_summary": "已允許 {{excluded}} · {{available}} 未選",
+      "trigger_empty": "未限制（全部模型）",
+      "meter_aria": "共 {{total}} 個模型，已允許 {{excluded}} 個",
+      "search_aria": "搜尋要允許的模型",
+      "footer_count": "{{excluded}} / {{total}} 已允許",
+      "select_all": "全部允許",
+      "clear_aria": "清空已選模型（保留萬用字元規則）",
+      "chip_remove": "取消允許 {{rule}}",
+      "wildcard_locked": "由規則 {{rule}} 允許，請在下方修改該規則",
+      "also_wildcard": "另由 {{rule}} 比對"
+    }
+  },
   "oauth_model_alias": {
     "editor_description": "為供應商的模型設定呼叫別名，統一用戶端使用的模型名稱。",
     "edit_title": "編輯 {{provider}} 的模型別名",
