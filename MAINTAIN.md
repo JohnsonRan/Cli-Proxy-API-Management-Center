@@ -4,7 +4,16 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
 
 ## Upstream Investigation
 
-Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-API-Management-Center` issues and pull requests were searched for equivalent work (model allow/deny rule pickers on the client-key page, embeddings/rerank endpoint toggles, promotional-section removal, client-key page extraction from providers). No upstream issue or PR was found that already delivers these patches, so each was implemented downstream instead of consuming an open PR. Re-run this search before changing any patch and update this section with the links and the conclusion.
+Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-API-Management-Center` issues and pull requests were searched for equivalent work (model allow/deny rule pickers on the client-key page, embeddings/rerank endpoint toggles, promotional-section removal, client-key page extraction from providers). No upstream issue or PR was found that already delivers these patches, so each was implemented downstream instead of consuming an open PR.
+
+Re-run on 2026-10-14, before the api-keys table rework and `patch/button-icon-layout`, searching open and closed issues and pull requests:
+
+- Client-key naming: [#378](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/378) (display names) and [#476](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/476) (share client key names through CPA metadata) are both CLOSED, and issue [#458](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/458) (name API keys) is CLOSED. Upstream has no shared-name mechanism, so the local notes file stays downstream-owned and the page keeps reporting only locally noted keys.
+- Client-key scope: [#424](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/424) (allowed provider prefixes, CLOSED) scopes a key by provider rather than by model, so it does not overlap the model allow/deny picker this fork carries.
+- Per-key usage: [#367](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/367) (per-key usage accounting dashboard, CLOSED) means a column counting real per-key traffic has no upstream implementation to build on and would need the backend to attribute requests to `access.api-keys` first. It stays a proposed follow-up, not part of any patch here.
+- Button icon/label layout: no issue and no pull request matches the shared `.btn` baseline defect or its `.empty-action` workaround.
+
+Conclusion unchanged: no active upstream issue or PR covers the client-key page rework or the button layout fix, so both stay downstream. Re-run this search before changing any patch and update this section with the links and the conclusion.
 
 ## Patch Branches
 
@@ -64,6 +73,17 @@ Before this fork's patches were implemented, upstream `router-for-me/Cli-Proxy-A
      - Preserve custom object structure and model restrictions when parsing and serializing `access.api-keys` in `useVisualConfig.ts`.
      - Complete localized translation keys across all 6 locales and unit tests in `tests/clientApiKeys.test.ts`.
      - Edit per-key allow and deny rules with the excluded-models picker, using `GET /v8/management/models` so the list is not filtered by the key being edited.
+     - Render the model scope so it cannot mislead or grow: always show the exclusion count (an exclusion-only key used to render as "全部模型"), cap the allow-list at three chips plus a `+N more` counter, and ellipsize long ids. The logic lives in `src/utils/apiKeyScope.ts` with `tests/apiKeyScope.test.ts`.
+     - Drop the `#` and strength columns, replace the 安全达标率 metric with 受限密钥, make the row actions icon-only with aria-labels, give the search input and its clear button accessible names, truncate a revealed key instead of stretching the row, and stop the copy feedback from cancelling itself.
+
+8. **`patch/button-icon-layout`**
+   - **Goal**: Lay out a button's icon and label on one centered row, so the icon size no longer shifts the label position or the button height.
+   - **Scope**:
+     - `src/components/ui/Button.tsx` marks the wrapper span it already renders as `btn-label`.
+     - `src/styles/components.scss` lays that class out as `inline-flex` with a gap and a stable line height, and makes `.btn svg` a block that cannot shrink. The rule targets the class rather than every span, so the round loading spinner is unaffected.
+     - Remove the `.empty-action` duplicate of that rule.
+     - `tests/buttonIconLayout.test.ts` guards the wrapper class, the row layout and the retired workaround, and fails on the pre-fix tree.
+   - **Note**: The defect is upstream's own, and upstream works around it per call site (`.empty-action`, the auth-files card, the plugins pages). No other patch touches `Button.tsx` or `styles/components.scss`, so this patch's position in the integration order does not matter and it is integrated last. The feature-local workarounds outside `.empty-action` are deliberately left alone; unifying them is not part of this patch.
 
 ## Temporary Compatibility Patches
 
@@ -75,7 +95,7 @@ None. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
+git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout
 
 git checkout -B main upstream/main
 
@@ -108,6 +128,10 @@ git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models
 git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
 git add -A
 git commit -m "merge patch/client-api-key-models branch"
+
+# button-icon-layout touches files no other patch edits, so it is integrated last.
+git merge --squash origin/patch/button-icon-layout
+git commit -m "merge patch/button-icon-layout branch"
 
 bun install --frozen-lockfile
 bun run type-check

@@ -40,7 +40,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
+          git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout
           git reset --hard upstream/main
 
           if ! git merge --squash origin/ci; then
@@ -99,6 +99,11 @@ jobs:
           fi
           git add -A
           git commit -m "merge patch/client-api-key-models branch"
+
+          # button-icon-layout touches Button.tsx and styles/components.scss, which no other
+          # patch edits, so its position in the order does not matter and it is integrated last.
+          git merge --squash origin/patch/button-icon-layout
+          git commit -m "merge patch/button-icon-layout branch"
 
       - name: Validate build and tests
         run: |
