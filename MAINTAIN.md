@@ -53,11 +53,20 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
      - Complete localized translation keys across all 6 locales and unit tests in `tests/clientApiKeys.test.ts`.
      - Edit per-key allow and deny rules with the excluded-models picker, using `GET /v8/management/models` so the list is not filtered by the key being edited.
 
+## Temporary Compatibility Patches
+
+- **`tmp/patch/api-keys-route`**
+  - **Depends on**: `patch/remove-promotional-sections`, then `patch/extract-client-api-keys`.
+  - **Order**: applied during the `patch/extract-client-api-keys` integration step, immediately after its squash merge.
+  - **Combined behavior**: `/api-keys` renders `ApiKeysPage` (extract) while `/quick-start` keeps redirecting to `/ai-providers` (remove-promotional).
+  - **Retire when**: `patch/extract-client-api-keys` and `patch/remove-promotional-sections` no longer edit the same `MainRoutes.tsx` lines, or upstream merges an equivalent result.
+  - Base and tip are recorded as `origin/patch/extract-client-api-keys` and `origin/tmp/patch/api-keys-route`; the CI sync orchestrator applies `git diff <base> <tip> -- src/router/MainRoutes.tsx` and fails closed on any other conflict shape.
+
 ## Rebuild & Validation Procedure
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
+git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models tmp/patch/api-keys-route
 
 git checkout -B main upstream/main
 
@@ -70,7 +79,12 @@ git commit -m "merge patch/embeddings-and-rerank branch"
 git merge --squash origin/patch/remove-promotional-sections
 git commit -m "merge patch/remove-promotional-sections branch"
 
-git merge --squash origin/patch/extract-client-api-keys
+# On conflict, keep only ApiKeysPage and restore the quick-start redirects
+# from tmp/patch/api-keys-route; abort on any other conflict shape.
+git merge --squash origin/patch/extract-client-api-keys || {
+  git checkout --theirs -- src/router/MainRoutes.tsx
+  git diff origin/patch/extract-client-api-keys origin/tmp/patch/api-keys-route -- src/router/MainRoutes.tsx | git apply --index
+}
 git commit -m "merge patch/extract-client-api-keys branch"
 
 git merge --squash origin/patch/downstream-versioning
