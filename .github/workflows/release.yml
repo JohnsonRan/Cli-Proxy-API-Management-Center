@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -32,10 +33,32 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Compute downstream version
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git 2>/dev/null || true
+          git fetch upstream main --tags 2>/dev/null || true
+          commit_sha="$(git rev-parse --short=7 HEAD)"
+          upstream_base="upstream/main"
+          upstream_tag="$(git tag -l "v*" --merged "${upstream_base}" --sort=-v:refname | grep -v "\+" | head -n 1 || echo "v1.26.2")"
+          if [ -z "${upstream_tag}" ]; then
+            upstream_tag="v1.26.2"
+          fi
+          patch_count="$(git rev-list --count "${upstream_base}..HEAD" 2>/dev/null || echo "0")"
+          if [ "${patch_count}" != "0" ]; then
+            app_version="${upstream_tag}+${patch_count}-${commit_sha}"
+            release_tag="${upstream_tag}-${patch_count}-${commit_sha}"
+          else
+            app_version="${upstream_tag}-${commit_sha}"
+            release_tag="${upstream_tag}-${commit_sha}"
+          fi
+          echo "APP_VERSION=${app_version}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
+
       - name: Build all-in-one HTML
         run: bun run build
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.APP_VERSION }}
 
       - name: Prepare release assets
         run: |
@@ -60,6 +83,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.APP_VERSION }}
           files: dist/management.html
           body_path: release-notes.md
           draft: false
