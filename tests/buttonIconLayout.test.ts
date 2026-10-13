@@ -59,4 +59,18 @@ describe('button icon and label layout', () => {
     expect(styles).not.toContain('.empty-action .btn > span');
     expect(styles).not.toContain('.empty-action .btn svg');
   });
+
+  test('leaves no per-page copy of the same workaround behind', () => {
+    const converted = [
+      '../src/features/authFiles/components/AuthFileCard.module.scss',
+      '../src/features/plugins/PluginsPage.module.scss',
+      '../src/features/plugins/PluginStorePage.module.scss',
+    ];
+
+    for (const path of converted) {
+      const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+      expect(source).not.toContain('.btn > span');
+      expect(source).not.toContain('.btn svg');
+    }
+  });
 });
