@@ -21,7 +21,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/settings', element: <Navigate to="/config" replace /> },
   { path: '/api-keys', element: <ApiKeysPage /> },
   { path: '/api-keys/*', element: <Navigate to="/api-keys" replace /> },
-  { path: '/quick-start', element: <ProvidersWorkbenchPage fixedBrand="apikeyFun" /> },
+  { path: '/quick-start', element: <ApiKeysPage /> },
   { path: '/quick-start/*', element: <Navigate to="/quick-start" replace /> },
   { path: '/ai-providers', element: <ProvidersWorkbenchPage /> },
   { path: '/ai-providers/*', element: <Navigate to="/ai-providers" replace /> },
