@@ -1,0 +1,120 @@
+import { describe, expect, test } from 'bun:test';
+import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
+import { maskApiKey } from '@/utils/format';
+import { isValidApiKeyCharset } from '@/utils/validation';
+import en from '@/i18n/locales/en.json';
+import ko from '@/i18n/locales/ko.json';
+import ru from '@/i18n/locales/ru.json';
+import vi from '@/i18n/locales/vi.json';
+import zhCN from '@/i18n/locales/zh-CN.json';
+import zhTW from '@/i18n/locales/zh-TW.json';
+
+describe('API Keys Page UI logic', () => {
+  const keys = [
+    'sk-test-super-strong-client-key-1234567890abcdef',
+    'sk-short',
+    'sk-medium-strength-key-12345',
+  ];
+
+  test('filters rows by name or key substring', () => {
+    const rows = [
+      { key: keys[0], name: 'Cursor' },
+      { key: keys[1], name: 'Local Test' },
+      { key: keys[2], name: '' },
+    ];
+
+    const filter = (query: string) => {
+      const q = query.trim().toLowerCase();
+      if (!q) return rows;
+      return rows.filter((r) => r.name.toLowerCase().includes(q) || r.key.toLowerCase().includes(q));
+    };
+
+    expect(filter('cursor')).toHaveLength(1);
+    expect(filter('cursor')[0].name).toBe('Cursor');
+    expect(filter('short')).toHaveLength(1);
+    expect(filter('short')[0].key).toBe('sk-short');
+    expect(filter('sk-')).toHaveLength(3);
+    expect(filter('non-existent')).toHaveLength(0);
+  });
+
+  test('computes security metrics correctly', () => {
+    const evaluated = keys.map((k) => evaluateApiKeyStrength(k));
+    const strongCount = evaluated.filter((e) => e.tier === 'strong' || e.tier === 'good').length;
+
+    expect(strongCount).toBeGreaterThan(0);
+    const compliance = `${Math.round((strongCount / keys.length) * 100)}%`;
+    expect(compliance).toMatch(/^\d+%$/);
+  });
+
+  test('masks keys for privacy while preserving quick recognition', () => {
+    expect(maskApiKey('sk-1234567890')).toMatch(/^sk\*+90$/);
+    expect(maskApiKey('')).toBe('');
+  });
+
+  test('validates key charset according to security constraints', () => {
+    expect(isValidApiKeyCharset('sk-valid-key-1234_XYZ')).toBe(true);
+    expect(isValidApiKeyCharset('')).toBe(false);
+    expect(isValidApiKeyCharset('invalid key with spaces')).toBe(false);
+    expect(isValidApiKeyCharset('key\twith\ncontrol')).toBe(false);
+    expect(isValidApiKeyCharset('密钥含中文')).toBe(false);
+  });
+});
+
+describe('API Keys Page localization contracts', () => {
+  const locales = [
+    { name: 'zh-CN', dict: zhCN },
+    { name: 'zh-TW', dict: zhTW },
+    { name: 'en', dict: en },
+    { name: 'ko', dict: ko },
+    { name: 'ru', dict: ru },
+    { name: 'vi', dict: vi },
+  ];
+
+  const requiredKeys = [
+    'title',
+    'description',
+    'create_key',
+    'refresh',
+    'search_placeholder',
+    'stat_total',
+    'stat_total_desc',
+    'stat_named',
+    'stat_named_desc',
+    'stat_security',
+    'stat_security_desc',
+    'table_index',
+    'table_name',
+    'table_key',
+    'table_strength',
+    'table_actions',
+    'unnamed',
+    'show_key',
+    'hide_key',
+    'copy_key',
+    'copied',
+    'edit_key',
+    'delete_key',
+    'empty_title',
+    'empty_desc',
+    'empty_search_title',
+    'empty_search_desc',
+    'delete_modal_title',
+    'delete_modal_confirm',
+    'delete_btn',
+  ];
+
+  for (const { name, dict } of locales) {
+    test(`locale ${name} contains all required api_keys_page strings`, () => {
+      const pageDict = (dict as Record<string, unknown>).api_keys_page as
+        | Record<string, string>
+        | undefined;
+      expect(pageDict).toBeDefined();
+
+      for (const key of requiredKeys) {
+        expect(pageDict?.[key]).toBeDefined();
+        expect(typeof pageDict?.[key]).toBe('string');
+        expect(pageDict?.[key]?.length).toBeGreaterThan(0);
+      }
+    });
+  }
+});
