@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -70,12 +78,21 @@ function useProxyModelCatalog(enabled: boolean) {
   return { candidates, catalogState, retry: load };
 }
 import { generateSecureApiKey } from '@/utils/apiKey';
-import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
+import { hasApiKeyModelRestrictions, summarizeApiKeyModelScope } from '@/utils/apiKeyScope';
 import { copyToClipboard } from '@/utils/clipboard';
 import { maskApiKey } from '@/utils/format';
 import { getErrorMessage } from '@/utils/helpers';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import styles from './ApiKeysPage.module.scss';
+
+/** How long the copy button keeps its "copied" check mark before reverting. */
+const COPIED_FEEDBACK_MS = 1500;
+
+/** Metric value that occupies the same space while the first load is in flight. */
+function MetricValue({ loading, children }: PropsWithChildren<{ loading: boolean }>) {
+  if (loading) return <Skeleton width={56} height={22} rounded={6} />;
+  return <span className={styles.metricValue}>{children}</span>;
+}
 
 export function ApiKeysPage() {
   const { t } = useTranslation();
@@ -93,6 +110,7 @@ export function ApiKeysPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(() => new Set());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Add / Edit Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,23 +149,29 @@ export function ApiKeysPage() {
     void loadKeys();
   }, [loadKeys]);
 
+  // Drop the pending copy-feedback timer so it cannot fire after unmount.
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Compute metrics
   const totalKeys = apiKeys.length;
   const namedCount = useMemo(() => {
     return apiKeys.filter((k) => !!names[apiKeyNameFingerprint(apiBase, k)]).length;
   }, [apiBase, apiKeys, names]);
 
-  const strongCount = useMemo(() => {
-    return apiKeys.filter((k) => {
-      const { tier } = evaluateApiKeyStrength(k);
-      return tier === 'strong' || tier === 'good';
-    }).length;
-  }, [apiKeys]);
+  // Keys that narrow their model scope, by allow-list or by exclusions.
+  const restrictedCount = useMemo(
+    () => apiKeyItems.filter(hasApiKeyModelRestrictions).length,
+    [apiKeyItems]
+  );
 
-  const complianceRate = useMemo(() => {
-    if (totalKeys === 0) return '100%';
-    return `${Math.round((strongCount / totalKeys) * 100)}%`;
-  }, [strongCount, totalKeys]);
+  const metricsLoading = loading && apiKeyItems.length === 0;
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -177,13 +201,19 @@ export function ApiKeysPage() {
   const handleCopy = useCallback(
     async (key: string) => {
       const copied = await copyToClipboard(key);
-      if (copied) {
-        setCopiedKey(key);
-        setTimeout(() => setCopiedKey(null), 1500);
-        showNotification(t('api_keys_page.copied', '已复制'), 'success');
-      } else {
+      if (!copied) {
         showNotification(t('notification.copy_failed', '复制失败'), 'error');
+        return;
       }
+
+      // Restart the feedback window so a second copy does not clear its own check mark.
+      if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
+      setCopiedKey(key);
+      copiedTimerRef.current = setTimeout(() => {
+        copiedTimerRef.current = null;
+        setCopiedKey(null);
+      }, COPIED_FEEDBACK_MS);
+      showNotification(t('api_keys_page.copied', '已复制'), 'success');
     },
     [showNotification, t]
   );
@@ -358,7 +388,7 @@ export function ApiKeysPage() {
             <IconKey size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>{totalKeys}</span>
+            <MetricValue loading={metricsLoading}>{totalKeys}</MetricValue>
             <span className={styles.metricLabel}>{t('api_keys_page.stat_total')}</span>
             <span className={styles.metricDesc}>{t('api_keys_page.stat_total_desc')}</span>
           </div>
@@ -369,12 +399,10 @@ export function ApiKeysPage() {
             <IconFileText size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>
+            <MetricValue loading={metricsLoading}>
               {namedCount}
-              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 4 }}>
-                / {totalKeys}
-              </span>
-            </span>
+              <span className={styles.metricValueSuffix}>/ {totalKeys}</span>
+            </MetricValue>
             <span className={styles.metricLabel}>{t('api_keys_page.stat_named')}</span>
             <span className={styles.metricDesc}>{t('api_keys_page.stat_named_desc')}</span>
           </div>
@@ -385,9 +413,12 @@ export function ApiKeysPage() {
             <IconShield size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>{complianceRate}</span>
-            <span className={styles.metricLabel}>{t('api_keys_page.stat_security')}</span>
-            <span className={styles.metricDesc}>{t('api_keys_page.stat_security_desc')}</span>
+            <MetricValue loading={metricsLoading}>
+              {restrictedCount}
+              <span className={styles.metricValueSuffix}>/ {totalKeys}</span>
+            </MetricValue>
+            <span className={styles.metricLabel}>{t('api_keys_page.stat_restricted')}</span>
+            <span className={styles.metricDesc}>{t('api_keys_page.stat_restricted_desc')}</span>
           </div>
         </div>
       </section>
@@ -397,8 +428,10 @@ export function ApiKeysPage() {
         <div className={styles.searchWrapper}>
           <IconSearch size={16} className={styles.searchIcon} />
           <input
+            type="search"
             className={styles.searchInput}
             placeholder={t('api_keys_page.search_placeholder')}
+            aria-label={t('api_keys_page.search_aria')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -407,6 +440,8 @@ export function ApiKeysPage() {
               className={styles.clearSearchBtn}
               onClick={() => setSearchQuery('')}
               type="button"
+              aria-label={t('api_keys_page.clear_search')}
+              title={t('api_keys_page.clear_search')}
             >
               <IconX size={14} />
             </button>
@@ -454,22 +489,18 @@ export function ApiKeysPage() {
           <Table
             cols={
               <>
-                <col style={{ width: '56px' }} />
-                <col style={{ minWidth: '130px', width: '18%' }} />
+                <col style={{ minWidth: '130px', width: '14%' }} />
                 <col style={{ minWidth: '220px' }} />
-                <col style={{ minWidth: '150px', width: '22%' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '130px' }} />
+                <col style={{ minWidth: '240px', width: '36%' }} />
+                <col style={{ width: '96px' }} />
               </>
             }
           >
             <TableHeader>
               <TableRow>
-                <TableHead>{t('api_keys_page.table_index')}</TableHead>
                 <TableHead>{t('api_keys_page.table_name')}</TableHead>
                 <TableHead>{t('api_keys_page.table_key')}</TableHead>
                 <TableHead>{t('api_keys_page.table_models')}</TableHead>
-                <TableHead>{t('api_keys_page.table_strength')}</TableHead>
                 <TableHead alignRight>{t('api_keys_page.table_actions')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -477,18 +508,10 @@ export function ApiKeysPage() {
               {filteredRows.map(({ item, key, index, name }) => {
                 const isRevealed = revealedKeys.has(key);
                 const isCopied = copiedKey === key;
-                const { tier } = evaluateApiKeyStrength(key);
-                const activeModels = item.models ?? item.allowedModels ?? [];
-                const activeExcluded = item.excludedModels ?? [];
+                const scope = summarizeApiKeyModelScope(item);
 
                 return (
                   <TableRow key={`${key}-${index}`}>
-                    <TableCell>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                        #{index + 1}
-                      </span>
-                    </TableCell>
-
                     <TableCell>
                       {name ? (
                         <span className={styles.keyName}>{name}</span>
@@ -499,7 +522,7 @@ export function ApiKeysPage() {
 
                     <TableCell>
                       <div className={styles.keyCell}>
-                        <code className={styles.keyCode}>
+                        <code className={styles.keyCode} title={isRevealed ? key : undefined}>
                           {isRevealed ? key : maskApiKey(key)}
                         </code>
                         <button
@@ -507,6 +530,9 @@ export function ApiKeysPage() {
                           className={styles.iconBtn}
                           onClick={() => toggleReveal(key)}
                           title={t(isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key')}
+                          aria-label={t(
+                            isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
+                          )}
                         >
                           {isRevealed ? <IconEyeOff size={15} /> : <IconEye size={15} />}
                         </button>
@@ -515,6 +541,7 @@ export function ApiKeysPage() {
                           className={styles.iconBtn}
                           onClick={() => void handleCopy(key)}
                           title={t('api_keys_page.copy_key')}
+                          aria-label={t('api_keys_page.copy_key')}
                         >
                           {isCopied ? (
                             <IconCheck size={15} className={styles.copiedIcon} />
@@ -526,58 +553,63 @@ export function ApiKeysPage() {
                     </TableCell>
 
                     <TableCell>
-                      {activeModels.length > 0 ? (
-                        <div className={styles.modelTagList}>
-                          {activeModels.map((m) => (
-                            <span key={m} className={styles.modelTag}>
-                              {m}
-                            </span>
-                          ))}
-                          {activeExcluded.length > 0 && (
-                            <span
-                              className={styles.modelExcludedTag}
-                              title={`Excluded: ${activeExcluded.join(', ')}`}
-                            >
-                              -{activeExcluded.length}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className={styles.allModelsBadge}>
-                          {t('api_keys_page.all_models')}
-                        </span>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <span className={`${styles.strengthBadge} ${styles[tier]}`}>
-                        <span className={styles.strengthDot} />
-                        {t(`config_management.visual.api_keys.strength.${tier}`)}
-                      </span>
+                      <div className={styles.modelTagList}>
+                        {scope.allowed.length === 0 ? (
+                          <span className={styles.allModelsBadge}>
+                            {t('api_keys_page.all_models')}
+                          </span>
+                        ) : (
+                          <>
+                            {scope.visibleAllowed.map((model) => (
+                              <span key={model} className={styles.modelTag} title={model}>
+                                {model}
+                              </span>
+                            ))}
+                            {scope.hiddenAllowedCount > 0 && (
+                              <span
+                                className={styles.modelMoreTag}
+                                title={scope.allowed.join(', ')}
+                              >
+                                {t('excluded_models.chips_more', { n: scope.hiddenAllowedCount })}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {scope.excluded.length > 0 && (
+                          <span
+                            className={styles.modelExcludedTag}
+                            title={scope.excluded.join(', ')}
+                          >
+                            {t('api_keys_page.models_excluded_count', {
+                              n: scope.excluded.length,
+                            })}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell alignRight>
                       <div className={styles.rowActions}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
                           onClick={() => openEditModal(item, index)}
                           disabled={saving}
                           title={t('api_keys_page.edit_key')}
+                          aria-label={t('api_keys_page.edit_key')}
                         >
-                          <IconPencil size={14} />
-                          <span>{t('common.edit', '编辑')}</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={styles.deleteBtn}
+                          <IconPencil size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                           onClick={() => openDeleteModal(index)}
                           disabled={saving}
                           title={t('api_keys_page.delete_key')}
+                          aria-label={t('api_keys_page.delete_key')}
                         >
-                          <IconTrash2 size={14} />
-                        </Button>
+                          <IconTrash2 size={15} />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
