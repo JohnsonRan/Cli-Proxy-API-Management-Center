@@ -92,7 +92,14 @@ jobs:
           git merge --squash origin/patch/update-management-panel
           git commit -m "merge patch/update-management-panel branch"
 
-          git merge --squash origin/patch/client-api-key-models
+          # patch/client-api-key-models descends from patch/extract-client-api-keys, so
+          # integrate only its own delta. Squashing it re-adds ApiKeysPage and conflicts.
+          git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::client-api-key-models seam-diff left conflicts'
+            exit 1
+          fi
+          git add -A
           git commit -m "merge patch/client-api-key-models branch"
 
       - name: Validate build and tests

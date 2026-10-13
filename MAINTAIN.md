@@ -62,6 +62,8 @@ This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-A
   - **Retire when**: `patch/extract-client-api-keys` and `patch/remove-promotional-sections` no longer edit the same `MainRoutes.tsx` lines, or upstream merges an equivalent result.
   - Base and tip are recorded as `origin/patch/extract-client-api-keys` and `origin/tmp/patch/api-keys-route`; the CI sync orchestrator applies `git diff <base> <tip> -- src/router/MainRoutes.tsx` and fails closed on any other conflict shape.
 
+`patch/client-api-key-models` is branched from `patch/extract-client-api-keys`. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch.
+
 ## Rebuild & Validation Procedure
 
 ```bash
@@ -93,7 +95,9 @@ git commit -m "merge patch/downstream-versioning branch"
 git merge --squash origin/patch/update-management-panel
 git commit -m "merge patch/update-management-panel branch"
 
-git merge --squash origin/patch/client-api-key-models
+# client-api-key-models descends from extract-client-api-keys: apply only its delta.
+git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way
+git add -A
 git commit -m "merge patch/client-api-key-models branch"
 
 bun install --frozen-lockfile
