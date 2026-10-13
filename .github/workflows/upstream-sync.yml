@@ -40,7 +40,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models tmp/patch/api-keys-route
+          git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models
           git reset --hard upstream/main
 
           if ! git merge --squash origin/ci; then
@@ -62,45 +62,18 @@ jobs:
           git merge --squash origin/patch/embeddings-and-rerank
           git commit -m "merge patch/embeddings-and-rerank branch"
 
+          git merge --squash origin/patch/fix-xai-quota-test
+          git commit -m "merge patch/fix-xai-quota-test branch"
+
           git merge --squash origin/patch/remove-promotional-sections
           git commit -m "merge patch/remove-promotional-sections branch"
 
-          # remove-promotional-sections deletes the promotional /quick-start route
-          # while extract-client-api-keys rewrites the adjacent /api-keys line, so
-          # both edits land on the same lines. Resolve with the reviewed combination
-          # on tmp/patch/api-keys-route and fail closed if the shape is anything else.
-          COMPAT_BASE=$(git rev-parse origin/patch/extract-client-api-keys)
-          COMPAT_TIP=$(git rev-parse origin/tmp/patch/api-keys-route)
-          if ! git merge --squash origin/patch/extract-client-api-keys; then
-            mapfile -t compat_conflicts < <(git diff --name-only --diff-filter=U)
-            if (( ${#compat_conflicts[@]} != 1 )) || [[ ${compat_conflicts[0]} != src/router/MainRoutes.tsx ]]; then
-              printf '::error::Unexpected extract-client-api-keys conflicts:'
-              printf ' %q' "${compat_conflicts[@]}"
-              printf '\n'
-              exit 1
-            fi
-            # Keep the extract patch's own version here; the compatibility delta is
-            # applied as its own integration commit below.
-            git checkout --theirs -- src/router/MainRoutes.tsx
-            git add src/router/MainRoutes.tsx
-          fi
+          # extract-client-api-keys owns the /quick-start and /api-keys route lines, and
+          # remove-promotional-sections deliberately leaves MainRoutes.tsx alone, so this
+          # squash merges without conflicts. A conflict here means the two patches have
+          # started editing the same region again.
+          git merge --squash origin/patch/extract-client-api-keys
           git commit -m "merge patch/extract-client-api-keys branch"
-
-          # remove-promotional-sections deletes the promotional /quick-start route
-          # while extract-client-api-keys rewrites the adjacent /api-keys line, so
-          # both edits land on the same lines. Apply the reviewed combination from
-          # tmp/patch/api-keys-route as
-          # its own countable, independently revertable integration commit.
-          if ! git diff --quiet "$COMPAT_TIP" -- src/router/MainRoutes.tsx; then
-            if ! git diff "$COMPAT_BASE" "$COMPAT_TIP" -- src/router/MainRoutes.tsx | git apply; then
-              echo '::error::api-keys-route compatibility patch no longer applies'
-              exit 1
-            fi
-            git add src/router/MainRoutes.tsx
-            git commit -m "merge tmp/patch/api-keys-route branch"
-          else
-            echo '::warning::tmp/patch/api-keys-route is now empty; retire the branch and this step'
-          fi
 
           git merge --squash origin/patch/downstream-versioning
           git commit -m "merge patch/downstream-versioning branch"
@@ -110,6 +83,12 @@ jobs:
 
           # patch/client-api-key-models descends from patch/extract-client-api-keys, so
           # integrate only its own delta. Squashing it re-adds ApiKeysPage and conflicts.
+          # This branch must contain the extract tip: otherwise the diff also reverts the
+          # newer extract commits instead of applying only this patch's own work.
+          if ! git merge-base --is-ancestor origin/patch/extract-client-api-keys origin/patch/client-api-key-models; then
+            echo '::error::client-api-key-models is behind extract-client-api-keys; the seam-diff would revert extract work'
+            exit 1
+          fi
           if ! git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way; then
             echo '::error::client-api-key-models seam-diff did not apply'
             exit 1
