@@ -755,6 +755,20 @@
     "rules_match_none": "matches no model in the list",
     "rules_reserved": "“*” disables the whole provider — use the Disabled switch instead"
   },
+  "model_rules": {
+    "allow": {
+      "trigger_summary": "{{excluded}} allowed · {{available}} not selected",
+      "trigger_empty": "No restriction — all models",
+      "meter_aria": "{{excluded}} of {{total}} models allowed",
+      "search_aria": "Search models to allow",
+      "footer_count": "{{excluded}} / {{total}} allowed",
+      "select_all": "Allow all",
+      "clear_aria": "Clear selected models (wildcard rules are kept)",
+      "chip_remove": "Remove {{rule}} from the allow list",
+      "wildcard_locked": "Allowed by rule {{rule}} — edit the rule below",
+      "also_wildcard": "Also matched by {{rule}}"
+    }
+  },
   "oauth_model_alias": {
     "mapping_row": "Alias mapping {{number}}",
     "remove_mapping": "Delete alias mapping {{number}}",
