@@ -396,7 +396,7 @@
     "disable_cooling_label": "停用指數冷卻（disable_cooling）",
     "disable_cooling_hint": "開啟後，僅目前憑證會略過失敗後的冷卻與指數退避；其他憑證不受影響。",
     "websockets_label": "WebSockets（websockets）",
-    "websockets_hint": "為該憑證開啟 Responses API 的 websocket 傳輸。",
+    "websockets_hint": "為該憑證開啟 Responses API 的 websocket 傳輸。對 Codex 憑證，HTTP/SSE 用戶端也會走上游 WebSocket，且優先於全域設定。",
     "using_api_label": "使用官方 API（using_api）",
     "using_api_hint": "開啟後使用 xAI 官方 API；關閉時使用 Grok CLI chat-proxy。",
     "policy_alias_name": "模型別名",
@@ -1262,6 +1262,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "串流啟動緩衝逾時",
           "hint": "可選的緩衝時間上限，例如 20s。預設 0，表示不限制時間，但仍受影格數與位元組數預算限制。僅在收到上游影格時檢查，並非所有網路停滯情況的硬性截止時間；回應標頭仍可能等待轉換後的輸出。"
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "HTTP 用戶端使用 WebSocket 上游",
+          "hint": "即使用戶端透過 HTTP/SSE 連線，Codex OAuth 憑證也走上游 WebSocket 傳輸，遇到 426 自動回退 HTTP。/responses/compact 與圖片請求仍走 HTTP。憑證自身的 WebSockets 設定優先於此項。預設關閉。"
         },
         "codexOptimizeMultiAgentV2": {
           "label": "多代理 v2 最佳化",
