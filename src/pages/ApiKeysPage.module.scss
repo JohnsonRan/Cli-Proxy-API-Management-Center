@@ -103,6 +103,13 @@
   line-height: 1.2;
 }
 
+.metricValueSuffix {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+
 .metricLabel {
   font-size: 13px;
   font-weight: 600;
@@ -158,6 +165,13 @@
 
   &:focus {
     border-color: var(--primary-color);
+  }
+
+  /* The toolbar renders its own clear button. */
+  &::-webkit-search-cancel-button,
+  &::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
@@ -215,6 +229,11 @@
 }
 
 .keyCode {
+  display: inline-block;
+  max-width: min(280px, 42vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: $font-mono;
   font-size: 13px;
   padding: 3px 8px;
@@ -223,6 +242,7 @@
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   letter-spacing: 0.02em;
+  vertical-align: middle;
   user-select: all;
 }
 
@@ -244,44 +264,24 @@
     color: var(--text-primary);
     border-color: var(--border-color);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background: transparent;
+    color: var(--text-tertiary);
+  }
+}
+
+.iconBtnDanger {
+  &:hover:not(:disabled) {
+    color: $error-color;
+    border-color: color-mix(in srgb, $error-color 40%, transparent);
+  }
 }
 
 .copiedIcon {
   color: $success-color;
-}
-
-.strengthBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: $radius-full;
-  line-height: 1.4;
-
-  &.strong,
-  &.good {
-    color: $success-color;
-    background: rgba($success-color, 0.1);
-  }
-
-  &.fair {
-    color: #d97706;
-    background: rgba(217, 119, 6, 0.1);
-  }
-
-  &.weak {
-    color: $error-color;
-    background: rgba($error-color, 0.1);
-  }
-}
-
-.strengthDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
 }
 
 .rowActions {
@@ -291,12 +291,68 @@
   gap: $spacing-xs;
 }
 
-.deleteBtn {
-  color: var(--text-secondary);
+.modelTagList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
 
-  &:hover {
-    color: $error-color;
-  }
+.modelTag {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+  font-family: $font-mono;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.modelExcludedTag {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, $error-color 15%, transparent);
+  color: $error-color;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.modelMoreTag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.allModelsBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $radius-sm;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* ---------- 弹窗表单 ---------- */
