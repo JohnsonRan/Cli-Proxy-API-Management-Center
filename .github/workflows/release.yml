@@ -7,9 +7,20 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+  # Upstream Sync pushes main with GITHUB_TOKEN, which does not trigger push events.
+  workflow_run:
+    workflows:
+      - 'Upstream Sync'
+    types:
+      - completed
+
+concurrency:
+  group: build-and-release
+  cancel-in-progress: false
 
 jobs:
   build-and-release:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     permissions:
@@ -19,6 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -39,14 +51,15 @@ jobs:
         run: |
           set -euo pipefail
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git 2>/dev/null || true
-          git fetch upstream main --tags 2>/dev/null || true
+          git fetch upstream main --tags
           commit_sha="$(git rev-parse --short=7 HEAD)"
           upstream_base="upstream/main"
-          upstream_tag="$(git tag -l "v*" --merged "${upstream_base}" --sort=-v:refname | grep -v "\+" | head -n 1 || echo "v1.26.2")"
+          upstream_tag="$(git tag -l "v*" --merged "${upstream_base}" --sort=-v:refname | grep -v "+" | head -n 1 || true)"
           if [ -z "${upstream_tag}" ]; then
-            upstream_tag="v1.26.2"
+            echo "::error::No upstream release tag is reachable from ${upstream_base}"
+            exit 1
           fi
-          patch_count="$(git rev-list --count "${upstream_base}..HEAD" 2>/dev/null || echo "0")"
+          patch_count="$(git rev-list --count "${upstream_base}..HEAD")"
           if [ "${patch_count}" != "0" ]; then
             app_version="${upstream_tag}+${patch_count}-${commit_sha}"
             release_tag="${upstream_tag}-${patch_count}-${commit_sha}"
@@ -57,18 +70,35 @@ jobs:
           echo "APP_VERSION=${app_version}" >> "$GITHUB_ENV"
           echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
 
+      - name: Skip an already released commit
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The tag embeds the commit, so an existing release means this exact main was
+          # already published (an unchanged sync, or a push and a sync for one commit).
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build all-in-one HTML
+        if: steps.existing.outputs.skip != 'true'
         run: bun run build
         env:
           VERSION: ${{ env.APP_VERSION }}
 
       - name: Prepare release assets
+        if: steps.existing.outputs.skip != 'true'
         run: |
           cd dist
           mv index.html management.html
           ls -lh management.html
 
       - name: Generate release notes
+        if: steps.existing.outputs.skip != 'true'
         run: |
           set -euo pipefail
           current_ref="${GITHUB_REF_NAME}"
@@ -83,6 +113,7 @@ jobs:
           git log -n 20 --pretty=format:"- %h %s" "${range}" >> release-notes.md
 
       - name: Create Release
+        if: steps.existing.outputs.skip != 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}

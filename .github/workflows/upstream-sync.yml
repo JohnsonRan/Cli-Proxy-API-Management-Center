@@ -40,7 +40,8 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout
+          git fetch origin ci patch/embeddings-and-rerank patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle
+          echo "PREVIOUS_MAIN=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
           git reset --hard upstream/main
 
           if ! git merge --squash origin/ci; then
@@ -105,6 +106,15 @@ jobs:
           git merge --squash origin/patch/button-icon-layout
           git commit -m "merge patch/button-icon-layout branch"
 
+          # Version-free obfuscation key; the core shim stops injecting into bundles
+          # that carry its cpa_obfuscation_ua_migrated marker.
+          git merge --squash origin/patch/secure-storage-stable-key
+          git commit -m "merge patch/secure-storage-stable-key branch"
+
+          # Needs the core patch/responses-ws-sse-incremental setting.
+          git merge --squash origin/patch/websocket-upstream-toggle
+          git commit -m "merge patch/websocket-upstream-toggle branch"
+
       - name: Validate build and tests
         run: |
           bun install --frozen-lockfile
@@ -112,9 +122,21 @@ jobs:
           bun test
           bun run build
 
+      - name: Skip unchanged result
+        id: changed
+        run: |
+          set -euo pipefail
+          if [[ "$(git rev-parse 'HEAD^{tree}')" == "$(git rev-parse "${PREVIOUS_MAIN}^{tree}")" ]]; then
+            echo "Rebuilt tree matches main; nothing to publish."
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Push rebuilt main
+        if: steps.changed.outputs.push == 'true'
         env:
           PUSH_TOKEN: ${{ secrets.SYNC_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           git remote set-url origin "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force-with-lease origin HEAD:main
+          git push --force-with-lease="main:${PREVIOUS_MAIN}" origin HEAD:main
