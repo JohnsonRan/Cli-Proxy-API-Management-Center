@@ -10,6 +10,7 @@ import {
   buildOpenAIChatCompletionsEndpoint,
   buildOpenAIEmbeddingsEndpoint,
   buildRerankEndpoint,
+  buildSystemOneEndpoint,
 } from '@/components/providers/utils';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
@@ -209,6 +210,7 @@ export function useConnectivityTest(
       const selectedModelEntry = models.find(
         (m) => (m.name ?? '').trim() === model || (m.alias ?? '').trim() === model
       );
+      const isSystemOne = selectedModelEntry?.systemone === true;
       const isEmbedding =
         selectedModelEntry?.embedding === true ||
         (!selectedModelEntry?.rerank &&
@@ -219,7 +221,16 @@ export function useConnectivityTest(
       let endpoint: string;
       let requestPayload: unknown;
 
-      if (isEmbedding) {
+      if (isSystemOne) {
+        endpoint = buildSystemOneEndpoint(trimmedBase);
+        requestPayload = {
+          model,
+          state: 'Hello',
+          questions: {
+            greeting: { type: 'noul', instructions: 'Is this a greeting?' },
+          },
+        };
+      } else if (isEmbedding) {
         endpoint = buildOpenAIEmbeddingsEndpoint(trimmedBase);
         requestPayload = {
           model,
