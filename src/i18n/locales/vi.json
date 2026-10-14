@@ -354,7 +354,7 @@
     "use_siwc_label": "Sử dụng SIWC (use_siwc)",
     "use_siwc_hint": "Sử dụng thông tin xác thực SIWC đã liên kết khi bật. Tắt chỉ vô hiệu hóa SIWC và giữ nguyên dữ liệu liên kết. Hoàn tất liên kết trước khi bật.",
     "websockets_label": "WebSocket (websockets)",
-    "websockets_hint": "Bật truyền tải websocket của Responses API cho credential này.",
+    "websockets_hint": "Bật truyền tải websocket của Responses API cho credential này. Với credential Codex, tùy chọn này cũng chuyển client HTTP/SSE sang WebSocket upstream và được ưu tiên hơn cài đặt toàn cục.",
     "using_api_label": "Dùng API chính thức (using_api)",
     "using_api_hint": "Dùng API xAI chính thức khi bật; dùng chat-proxy Grok CLI khi tắt.",
     "note_label": "Ghi chú",
@@ -1479,6 +1479,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "Timeout đệm khởi động stream",
           "hint": "Giới hạn thời gian đệm tùy chọn, ví dụ: 20s. Mặc định: 0 (không giới hạn thời gian; hạn mức frame và byte vẫn áp dụng). Được kiểm tra khi các frame từ upstream đến; không phải hạn chót cứng cho mọi trường hợp treo mạng. Header vẫn có thể phải chờ đầu ra đã được dịch."
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "WebSocket upstream cho client HTTP",
+          "hint": "Định tuyến credential Codex OAuth qua truyền tải WebSocket upstream ngay cả khi client kết nối qua HTTP/SSE, quay về HTTP khi gặp 426. /responses/compact và yêu cầu hình ảnh vẫn dùng HTTP. Cài đặt WebSockets riêng của credential được ưu tiên. Mặc định tắt."
         },
         "codexOptimizeMultiAgentV2": {
           "label": "Tối ưu hóa multi-agent v2",
