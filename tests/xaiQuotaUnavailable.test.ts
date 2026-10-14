@@ -30,6 +30,11 @@ const classes = bindQuotaClasses(
 const WEEKLY_PERIOD_START = '2026-09-17T13:32:42.093205+00:00';
 const WEEKLY_PERIOD_END = '2026-09-24T13:32:42.093205+00:00';
 
+// XaiQuotaBody builds USD strings with `Intl.NumberFormat(undefined, ...)`, so the
+// symbol follows the runtime locale: "$0.00" on en-US but "US$0.00" on zh-CN.
+// Normalize before asserting the amount so the expectation is locale-independent.
+const withoutUsdQualifier = (markup: string) => markup.replace(/US\$/g, '$');
+
 const weeklyConfig = (extra: XaiBillingConfig = {}): XaiBillingConfig => ({
   currentPeriod: {
     type: 'USAGE_PERIOD_TYPE_WEEKLY',
@@ -198,7 +203,7 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
     expect(markup).toContain('GrokChat usage');
     expect(markup).toContain('Prepaid');
     expect(markup).toContain('$2.50');
-    expect(markup).toContain('$0.00 / $0.00');
+    expect(withoutUsdQualifier(markup)).toContain('$0.00 / $0.00');
   });
 
   test('renders product contributions as text with only one shared weekly meter', () => {
@@ -255,8 +260,8 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
       )
     );
     expect(markup).toContain('>90%<');
-    expect(markup).toContain('$135.00 / $150.00');
-    expect(markup).not.toContain('$15.00 / $150.00');
+    expect(withoutUsdQualifier(markup)).toContain('$135.00 / $150.00');
+    expect(withoutUsdQualifier(markup)).not.toContain('$15.00 / $150.00');
     expect(markup).toContain('width:90%');
   });
 
