@@ -72,7 +72,15 @@ const resolveModelConfig = (model: string, models: ModelEntryInput[]) => {
 // invalidate earlier results just like a rename does.
 export const modelsSignature = (models: ModelEntryInput[]): string =>
   models
-    .map((it) => [it.name, it.alias ?? '', it.embedding ? 'e' : '', it.rerank ? 'r' : ''].join(':'))
+    .map((it) =>
+      [
+        it.name,
+        it.alias ?? '',
+        it.embedding ? 'e' : '',
+        it.rerank ? 'r' : '',
+        it.systemone ? 's' : '',
+      ].join(':')
+    )
     .join('|');
 
 const resolveBearerToken = (headers: Record<string, string>): string => {
