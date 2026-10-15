@@ -202,6 +202,10 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
   if (headers) payload.headers = headers;
   const models = serializeModelAliases(provider.models, true);
   if (models && models.length) payload.models = models;
+  // Off is the backend default: omit it so editing another field never materializes `false`.
+  if (provider.autoDiscoverModels === true) payload['auto-discover-models'] = true;
+  const excluded = provider.excludedModels?.map((rule) => rule.trim()).filter(Boolean);
+  if (excluded && excluded.length) payload['excluded-models'] = excluded;
   if (provider.priority !== undefined) payload.priority = provider.priority;
   if (provider.disableCooling !== undefined) payload['disable-cooling'] = provider.disableCooling;
   return payload;

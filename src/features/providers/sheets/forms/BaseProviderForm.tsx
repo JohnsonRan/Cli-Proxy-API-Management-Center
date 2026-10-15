@@ -97,6 +97,9 @@ function buildInitialForm(
       models: [emptyModel()],
       headers: [emptyHeader()],
       excludedModelsText: '',
+      autoDiscoverModels: PROVIDER_DESCRIPTORS[brand].supportsAutoDiscoverModels
+        ? false
+        : undefined,
       websockets: brand === 'codex' || brand === 'xai' ? false : undefined,
       cloak: isClaudeLikeBrand(brand)
         ? { mode: '', strictMode: false, sensitiveWordsText: '', cacheUserId: false }
@@ -144,7 +147,8 @@ function buildInitialForm(
       headers: cfg.headers
         ? Object.entries(cfg.headers).map(([k, v]) => ({ key: k, value: String(v) }))
         : [emptyHeader()],
-      excludedModelsText: '',
+      excludedModelsText: (cfg.excludedModels ?? []).join('\n'),
+      autoDiscoverModels: cfg.autoDiscoverModels === true,
       testModel: '',
       apiKeyEntries: cfg.apiKeyEntries?.length
         ? cfg.apiKeyEntries.map((entry) => ({
@@ -848,6 +852,24 @@ export function BaseProviderForm({
           hint={`${existingModelNames.size}`}
         >
           <div className={styles.entriesList}>
+            {descriptor.supportsAutoDiscoverModels ? (
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  className={styles.checkboxBox}
+                  checked={form.autoDiscoverModels === true}
+                  disabled={mutating}
+                  aria-describedby={`${fid}-auto-discover-hint`}
+                  onChange={(e) => updateField('autoDiscoverModels', e.target.checked)}
+                />
+                <span className={styles.checkboxText}>
+                  <span>{t('providersPage.form.autoDiscoverModels')}</span>
+                  <small id={`${fid}-auto-discover-hint`}>
+                    {t('providersPage.form.autoDiscoverModelsHint')}
+                  </small>
+                </span>
+              </label>
+            ) : null}
             {discovery.available ? (
               <div className={styles.entriesToolbar}>
                 <button
@@ -901,7 +923,8 @@ export function BaseProviderForm({
               disabled={mutating}
               // `'*'` = 该 provider 已停用，唯一所有者是下面的 Disabled 开关。
               // 传进来后 picker 双向过滤它，用户手打 `*` 也会被拦下并解释原因。
-              reservedRules={DISABLE_ALL_RULES}
+              // OpenAI 兼容用独立的 disabled 字段，`*` 在那里是普通的「隐藏全部」规则。
+              reservedRules={brand === 'openaiCompatibility' ? undefined : DISABLE_ALL_RULES}
               reservedRuleMessage={t('providersPage.form.excludedDisabledNote')}
             />
           </div>
