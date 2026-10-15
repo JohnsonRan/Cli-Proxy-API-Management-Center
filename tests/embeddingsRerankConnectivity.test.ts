@@ -3,6 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { apiCallApi, type ApiCallRequest } from '../src/services/api/apiCall';
 import {
+  modelsSignature,
   useConnectivityTest,
   type UseConnectivityTestArgs,
   type ConnectivityErrorMessages,
@@ -108,5 +109,15 @@ describe('OpenAI-compatible embedding and rerank connectivity test routing', () 
     expect(parsedData.model).toBe('deepseek-ai/DeepSeek-V3');
     expect(parsedData.messages).toBeDefined();
     expect(parsedData.input).toBeUndefined();
+  });
+});
+
+describe('connectivity result invalidation', () => {
+  test('changes the models signature when an endpoint flag changes', () => {
+    const base = modelsSignature([{ name: 'bge-m3', alias: 'bge' }]);
+
+    expect(modelsSignature([{ name: 'bge-m3', alias: 'bge', embedding: true }])).not.toBe(base);
+    expect(modelsSignature([{ name: 'bge-m3', alias: 'bge', rerank: true }])).not.toBe(base);
+    expect(modelsSignature([{ name: 'bge-m3', alias: 'bge', embedding: false }])).toBe(base);
   });
 });
