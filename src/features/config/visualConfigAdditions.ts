@@ -31,6 +31,12 @@ export const ADDITION_FIELDS = [
     path: 'multimedia.video-result-auth-cache-ttl'.split('.'),
     kind: 'string',
   },
+  // Rendered in the logging section next to usage-statistics-enabled.
+  {
+    key: 'usageExcludeEmbeddings',
+    path: 'observability.usage.exclude-embeddings'.split('.'),
+    kind: 'boolean',
+  },
   {
     key: 'claudeHeaderTimezone',
     path: 'upstream.claude.header-defaults.timezone'.split('.'),
