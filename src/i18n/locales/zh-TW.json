@@ -2326,7 +2326,7 @@
     "stat_named_desc": "設定中已備註的金鑰",
     "name_hint": "儲存在伺服器設定（access.api-keys）中，所有面板共用。清空此欄位可移除名稱。",
     "stat_restricted": "受限金鑰",
-    "stat_restricted_desc": "已限制模型範圍的金鑰",
+    "stat_restricted_desc": "受模型規則或供應商作用域限制的金鑰",
     "table_name": "備註名稱",
     "table_key": "API 金鑰",
     "table_models": "模型範圍",
@@ -2352,6 +2352,26 @@
     "empty_search_desc": "請嘗試更換搜尋關鍵字。",
     "delete_modal_title": "刪除用戶端金鑰",
     "delete_modal_confirm": "確定要刪除此金鑰嗎？依賴該金鑰的用戶端將立即失效。",
-    "delete_btn": "確認刪除"
+    "delete_btn": "確認刪除",
+    "scopes": {
+      "title": "供應商作用域",
+      "description": "client.key-scopes：依前綴把金鑰限制在指定供應商的憑證上",
+      "hint": "以該前綴開頭的金鑰只能看到並使用這些供應商；比對最長前綴，完整金鑰也可作為前綴。請求其他模型回傳 400 model_not_found；Codex 網路搜尋與語音需在清單中包含 codex。填寫供應商鍵（claude、codex、gemini、xai…）、OpenAI 相容項目名稱或執行器外掛 ID；anthropic、openai、chatgpt、muse、grok 為別名。未符合任何規則的金鑰不受限。Home 模式下不生效。",
+      "empty": "尚無規則：所有用戶端金鑰皆可使用全部供應商。",
+      "prefix_label": "金鑰前綴",
+      "providers_label": "供應商",
+      "providers_placeholder": "輸入供應商後按 Enter",
+      "add_rule": "新增規則",
+      "remove_rule": "刪除規則",
+      "remove_provider": "移除 {{provider}}",
+      "save": "儲存作用域",
+      "reset": "捨棄變更",
+      "tag": "僅 {{providers}}",
+      "matched_prefix": "符合的金鑰前綴：{{prefix}}",
+      "modal_note": "此金鑰符合供應商作用域「{{prefix}}」，僅可使用：{{providers}}。",
+      "error_prefix_required": "請填寫金鑰前綴。",
+      "error_providers_required": "至少新增一個供應商；沒有供應商的規則會被後端忽略。",
+      "error_prefix_duplicate": "已有規則使用此前綴，只有第一條生效。"
+    }
   }
 }
