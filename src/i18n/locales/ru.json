@@ -1458,6 +1458,10 @@
           "bootstrap_hint": "Повторы до первого байта; 0, отрицательное целое число или пустое поле отключает повторы при запуске стрима",
           "nonstream_keepalive": "Интервал keepalive для нестиминговых ответов (сек)",
           "nonstream_keepalive_hint": "Отправлять пустые строки каждые N секунд для непотоковых ответов; 0, отрицательное целое число или пустое поле отключает keepalive",
+          "codex_app_keepalive_seconds": "Интервал keepalive приложения Codex (сек)",
+          "codex_app_keepalive_hint": "Официальные клиенты Codex на SSE /v1/responses получают событие codex.client.keepalive после такого периода тишины апстрима, так как SSE-комментарии не сбрасывают таймаут простоя потока Codex. Пусто, 0 или отрицательное значение — значение по умолчанию 30 секунд.",
+          "disable_codex_app_keepalive": "Отключить keepalive приложения Codex",
+          "disable_codex_app_keepalive_hint": "Не отправлять клиентам Codex события codex.client.keepalive. Обычные SSE-комментарии keepalive не затрагиваются.",
           "disabled": "Отключено"
         },
         "payload": {

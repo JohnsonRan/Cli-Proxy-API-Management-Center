@@ -1482,6 +1482,10 @@
           "bootstrap_hint": "串流傳輸首包前的重試次數；設為 0、負整數或留空表示停用啟動重試",
           "nonstream_keepalive": "非串流 Keepalive 間隔（秒）",
           "nonstream_keepalive_hint": "非串流回應時每隔 N 秒發送空行；設定為 0、負整數或留空表示停用保活",
+          "codex_app_keepalive_seconds": "Codex 應用層保活間隔（秒）",
+          "codex_app_keepalive_hint": "官方 Codex 用戶端走 /v1/responses SSE 時，上游靜默這麼久後傳送 codex.client.keepalive 事件；SSE 註解無法重置 Codex 的串流閒置逾時。留空、0 或負數使用預設 30 秒。",
+          "disable_codex_app_keepalive": "停用 Codex 應用層保活",
+          "disable_codex_app_keepalive_hint": "不再向 Codex 用戶端傳送 codex.client.keepalive 事件。一般 SSE 保活註解不受影響。",
           "disabled": "已停用"
         },
         "payload": {
