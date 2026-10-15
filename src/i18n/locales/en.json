@@ -2109,6 +2109,7 @@
         "headers": "Headers"
       },
       "websocketsTag": "WebSockets",
+      "autoDiscoverTag": "Auto-discover",
       "cloakTag": "Cloak",
       "cliProfileTag": "CLI Profile",
       "empty": "No resources yet, click \"New\" to add.",
@@ -2238,6 +2239,8 @@
       "addHeader": "Add header",
       "excludedSection": "Excluded models",
       "excludedDisabledNote": "“*” means the whole provider is disabled — use the Disabled switch above instead.",
+      "autoDiscoverModels": "Auto-discover models (auto-discover-models)",
+      "autoDiscoverModelsHint": "The backend fetches this provider's /models list and adds it underneath the custom models below, which keep priority. Lists older than 30 minutes refresh in the background; a failed refresh keeps the last list. Hide unwanted models under Excluded models.",
       "cloakSection": "Cloak settings",
       "cloakMode": "Mode",
       "cloakStrict": "Strict mode",

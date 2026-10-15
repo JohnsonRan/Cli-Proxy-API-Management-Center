@@ -72,6 +72,7 @@ export interface ProviderResourceFlags {
   cloakEnabled?: boolean;
   claudeCodeCliProfile?: boolean;
   websockets?: boolean;
+  autoDiscoverModels?: boolean;
   protocols?: string[];
 }
 
@@ -198,6 +199,8 @@ export interface ProviderEntryFormInput extends ProviderBehaviorOptions {
   models: ModelEntryInput[];
   headers: Array<{ key: string; value: string }>;
   excludedModelsText: string;
+  /** OpenAI 兼容专属：后端自动拉取 /models（auto-discover-models） */
+  autoDiscoverModels?: boolean;
 
   /** Codex 专属 */
   websockets?: boolean;
