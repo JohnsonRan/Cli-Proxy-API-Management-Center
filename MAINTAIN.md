@@ -15,6 +15,11 @@ Re-run on 2026-10-14, before the api-keys table rework and `patch/button-icon-la
 
 Re-run on 2026-10-14 before `patch/systemone-endpoint`, searching open and closed issues and pull requests for `systemone`, `typesafe`, `jev`, `decision endpoint` and `connectivity test endpoint`: no results in this repository. The core repository has [router-for-me/CLIProxyAPI#6012](https://github.com/router-for-me/CLIProxyAPI/issues/6012) ("Support TypeSafe Jev (System One decisions API)"), closed as COMPLETED on 2026-09-22, yet upstream core `main` (`5fc580b1`, checked 2026-10-15) contains no `systemone` field or route. Upstream ships nothing to consume, so the System One model flag stays downstream.
 
+Re-run on 2026-10-15 before `patch/client-key-provider-scope`, `patch/codex-app-keepalive`, `patch/openai-compat-model-discovery` and `patch/usage-exclude-embeddings`, searching open and closed issues and pull requests for `key-scopes`, `key scope provider`, `allowed providers`, `provider prefix api key`, `auto-discover`, `models discovery openai compatibility`, `excluded-models openai`, `codex keepalive`, `keepalive`, `exclude-embeddings`, `embeddings usage` and `embedding`:
+
+- Provider scopes: only [#424](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/424) (allowed provider prefixes, CLOSED, not merged) is related. Upstream core has no `client.key-scopes`, so there is no upstream setting to edit; the rules card targets the downstream core patch.
+- Codex app keepalive, OpenAI-compatible discovery/exclusions and embedding usage exclusion: no matching issue or pull request ([#115](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/115) is an unrelated, CLOSED report about the streaming block being dropped on save).
+
 Conclusion unchanged: no active upstream issue or PR covers the client-key page rework or the button layout fix, so both stay downstream. Re-run this search before changing any patch and update this section with the links and the conclusion.
 
 ## Patch Branches
@@ -100,7 +105,7 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
      - Remove the `.empty-action` duplicate of that rule.
      - `tests/buttonIconLayout.test.ts` guards the wrapper class, the row layout, the retired workaround and the converted files, and fails on the pre-fix tree.
      - Delete the remaining per-call-site copies of that layout, which the base rule made redundant and which disagreed with it: `.actions :global(.btn > span)` and `.actions :global(.btn svg)` in `AuthFileCard.module.scss`, and the `:global(.btn > span)` overrides in `PluginsPage.module.scss` (two) and `PluginStorePage.module.scss` (two). Only the auth-files card changes visibly — its labelled button moves from a 6px gap and a 14px line box to the standard 8px gap and 39px height — and its icon buttons are pinned to 30px by `.iconButton`.
-   - **Note**: The defect is upstream's own, and upstream worked around it per call site (`.empty-action`, the auth-files card, the plugins pages); this patch centralises the layout and removes those copies. No other patch touches `Button.tsx`, `styles/components.scss` or the three converted feature stylesheets, so this patch's position in the integration order does not matter and it is integrated last.
+   - **Note**: The defect is upstream's own, and upstream worked around it per call site (`.empty-action`, the auth-files card, the plugins pages); this patch centralises the layout and removes those copies. No other patch touches `Button.tsx`, `styles/components.scss` or the three converted feature stylesheets, so this patch's position in the integration order does not matter.
 
 10. **`patch/secure-storage-stable-key`**
    - **Goal**: Keep saved connections and management keys readable across browser updates.
@@ -114,6 +119,32 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
     - **Scope**: Advanced settings gain `oauth.providers.codex.enable-websocket-upstream`; the credential WebSockets hint explains that, for Codex credentials, it also bridges HTTP/SSE clients and overrides the global switch. Localized in all 6 locales.
     - **Cross-repo**: Needs the core patch `patch/responses-ws-sse-incremental`, which adds the setting and the downstream per-credential semantics.
 
+12. **`patch/client-key-provider-scope`**
+    - **Goal**: Edit `client.key-scopes` provider scopes for client API keys on the API keys page.
+    - **Scope**:
+      - `src/services/api/keyScopes.ts` reads and replaces the list through `/config/client/key-scopes`; an emptied list is deleted instead of saved as `[]`.
+      - `src/utils/keyScope.ts` mirrors the core matcher: the longest key prefix wins, rules without a prefix or providers are skipped, and the core provider aliases (anthropic, openai, chatgpt, muse, grok) resolve the same way.
+      - `ClientKeyScopesCard` edits rules with free-form provider chips plus suggestions (the provider keys core registers credentials under, such as `gemini-interactions` for the Interactions API, plus openai-compatibility entry names); only a picked suggestion commits while typing and blocks saving rules the core would ignore or shadow. Each key row shows the scope it matches, the edit dialog explains the scope of the typed key, and scoped keys count as restricted.
+      - Localized in all 6 locales; tests in `tests/clientKeyScopes.test.ts`.
+    - **Stacked**: Branched from `patch/client-api-key-models` and integrated right after it through a seam-diff (see below).
+    - **Cross-repo**: Needs the core patch `patch/client-key-provider-scope`. Against a core without it the backend rejects or ignores the field.
+
+13. **`patch/codex-app-keepalive`**
+    - **Goal**: Edit the Codex application keepalive for official Codex clients on `/v1/responses` SSE.
+    - **Scope**: The streaming section gains `requests.streaming.codex-app-keepalive-seconds` (empty, 0 or negative keeps the core default of 30 seconds, so any integer is accepted) and `requests.streaming.disable-codex-app-keepalive` through the visual-config additions; the interval is locked while the keepalive is disabled. Localized in all 6 locales; tests in `tests/codexAppKeepaliveConfig.test.ts`.
+    - **Cross-repo**: Needs the core patch `patch/codex-app-keepalive`.
+
+14. **`patch/openai-compat-model-discovery`**
+    - **Goal**: Edit `auto-discover-models` and `excluded-models` on openai-compatibility entries.
+    - **Scope**: Read and save both fields, add the discovery switch to the models section (descriptor `supportsAutoDiscoverModels`), enable the existing excluded-models picker for the brand, count exclusions and tag discovering providers in the list. The switch is only written when on, so untouched entries keep their YAML. These entries have their own `disabled` field, so `*` is kept as an ordinary hide-all exclusion rather than reserved for the Disabled switch. Localized in all 6 locales; tests in `tests/openaiCompatModelDiscovery.test.ts`.
+    - **Cross-repo**: Needs the core patch `patch/openai-compat-model-discovery`.
+
+15. **`patch/usage-exclude-embeddings`**
+    - **Goal**: Keep `/v1/embeddings` requests out of usage statistics from the panel.
+    - **Scope**: The logging section gains `observability.usage.exclude-embeddings` right after `usage-statistics-enabled`, through the visual-config additions. Rerank requests are still counted. Localized in all 6 locales; tests in `tests/usageExcludeEmbeddings.test.ts`.
+    - **Note**: Kept apart from `patch/embeddings-and-rerank` so that branch, and `patch/systemone-endpoint` stacked on it, do not need a rebase.
+    - **Cross-repo**: Needs the core patch `patch/embeddings-and-rerank` (setting added in core `2cca4366`).
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -124,13 +155,15 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 `patch/client-api-key-models` is branched from `patch/extract-client-api-keys`, and the two form a hard ordered pair: `extract-client-api-keys` must be integrated first and `client-api-key-models` can never be moved, retired, or reviewed on its own. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch. This branch must always contain the extract tip: while it does not, the same diff also reverts the newer extract commits, so the sync workflow fails closed unless `extract-client-api-keys` is an ancestor of `client-api-key-models`.
 
+`patch/client-key-provider-scope` extends that chain: it is branched from `patch/client-api-key-models`, integrated right after it with `git diff origin/patch/client-api-key-models origin/patch/client-key-provider-scope | git apply --3way`, and the sync fails closed unless `client-api-key-models` is an ancestor of it. Rebase it whenever `client-api-key-models` moves.
+
 `patch/systemone-endpoint` is stacked on `patch/embeddings-and-rerank` the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
 
 ## Rebuild & Validation Procedure
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings
 
 git checkout -B main upstream/main
 
@@ -171,7 +204,14 @@ git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; abortin
 git add -A
 git commit -m "merge patch/client-api-key-models branch"
 
-# button-icon-layout touches files no other patch edits, so it is integrated last.
+# client-key-provider-scope descends from client-api-key-models: apply only its delta.
+git merge-base --is-ancestor origin/patch/client-api-key-models origin/patch/client-key-provider-scope || { echo 'client-key-provider-scope is behind client-api-key-models; aborting'; exit 1; }
+git diff origin/patch/client-api-key-models origin/patch/client-key-provider-scope | git apply --3way || { echo 'seam-diff did not apply; aborting'; exit 1; }
+git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
+git add -A
+git commit -m "merge patch/client-key-provider-scope branch"
+
+# button-icon-layout touches files no other patch edits, so its position does not matter.
 git merge --squash origin/patch/button-icon-layout
 git commit -m "merge patch/button-icon-layout branch"
 
@@ -180,6 +220,15 @@ git commit -m "merge patch/secure-storage-stable-key branch"
 
 git merge --squash origin/patch/websocket-upstream-toggle
 git commit -m "merge patch/websocket-upstream-toggle branch"
+
+git merge --squash origin/patch/codex-app-keepalive
+git commit -m "merge patch/codex-app-keepalive branch"
+
+git merge --squash origin/patch/openai-compat-model-discovery
+git commit -m "merge patch/openai-compat-model-discovery branch"
+
+git merge --squash origin/patch/usage-exclude-embeddings
+git commit -m "merge patch/usage-exclude-embeddings branch"
 
 bun install --frozen-lockfile
 bun run type-check
