@@ -108,6 +108,7 @@ const headersFromEntries = (
  * `'*'` 是「该 provider 已停用」的编码，其唯一所有者是 `form.disabled`：
  * 载入时 `stripDisableAllModelsRule` 把它剥进该 flag，保存时仅凭该 flag 重新追加。
  * 因此这里必须过滤掉用户在文本里手打的 `'*'`——排除模型的编辑面永远不该能开关停用。
+ * OpenAI 兼容例外：它有独立的 `disabled` 字段，`'*'` 只是「隐藏全部模型」规则，原样保留。
  * 导出仅为让 tests/providerExcludedModelsDisableRule.test.ts 钉住这个不变量。
  */
 export const buildExcludedModels = (
@@ -116,10 +117,12 @@ export const buildExcludedModels = (
   brand: ProviderBrand
 ): string[] | undefined => {
   const list = parseTextList(textValue);
-  const filtered = list.filter((v) => v !== '*');
+  // OpenAI-compatible entries carry a separate `disabled` field, so their `*` is an
+  // ordinary "hide every model" rule and is kept as written.
   if (brand === 'openaiCompatibility') {
-    return filtered.length ? filtered : undefined;
+    return list.length ? list : undefined;
   }
+  const filtered = list.filter((v) => v !== '*');
   if (disabled) {
     return withDisableAllModelsRule(filtered);
   }
@@ -193,7 +196,8 @@ const buildProviderKeyConfig = (
   return next;
 };
 
-const buildOpenAIConfig = (
+/** Exported for tests/openaiCompatModelDiscovery.test.ts. */
+export const buildOpenAIConfig = (
   input: ProviderEntryFormInput,
   existing?: OpenAIProviderConfig | null
 ): OpenAIProviderConfig => {
@@ -226,6 +230,12 @@ const buildOpenAIConfig = (
     ...(input.runtimePolicy ? buildRuntimePolicy(input.runtimePolicy) : {}),
     headers: Object.keys(headers).length ? headers : undefined,
     models: models.length ? models : undefined,
+    autoDiscoverModels: input.autoDiscoverModels === true,
+    excludedModels: buildExcludedModels(
+      input.excludedModelsText,
+      input.disabled,
+      'openaiCompatibility'
+    ),
     priority: input.priority,
   };
 };

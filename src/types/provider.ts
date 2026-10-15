@@ -109,6 +109,10 @@ export interface OpenAIProviderConfig extends ProviderRuntimePolicy, ProviderBeh
   disabled?: boolean;
   headers?: Record<string, string>;
   models?: ModelAlias[];
+  /** Backend merges the provider's /models list under `models` (auto-discover-models). */
+  autoDiscoverModels?: boolean;
+  /** Exact names or wildcards hidden from this provider's models (excluded-models). */
+  excludedModels?: string[];
   priority?: number;
   disableCooling?: boolean;
   authIndex?: string;
