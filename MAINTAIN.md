@@ -13,7 +13,7 @@ Re-run on 2026-10-14, before the api-keys table rework and `patch/button-icon-la
 - Per-key usage: [#367](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/367) (per-key usage accounting dashboard, CLOSED) means a column counting real per-key traffic has no upstream implementation to build on and would need the backend to attribute requests to `access.api-keys` first. It stays a proposed follow-up, not part of any patch here.
 - Button icon/label layout: no issue and no pull request matches the shared `.btn` baseline defect or its `.empty-action` workaround.
 
-Re-run on 2026-10-14 before `patch/systemone-endpoint`, searching open and closed issues and pull requests for `systemone`, `typesafe`, `jev`, `decision endpoint` and `connectivity test endpoint`: no results, so the System One model flag stays downstream.
+Re-run on 2026-10-14 before `patch/systemone-endpoint`, searching open and closed issues and pull requests for `systemone`, `typesafe`, `jev`, `decision endpoint` and `connectivity test endpoint`: no results in this repository. The core repository has [router-for-me/CLIProxyAPI#6012](https://github.com/router-for-me/CLIProxyAPI/issues/6012) ("Support TypeSafe Jev (System One decisions API)"), closed as COMPLETED on 2026-09-22, yet upstream core `main` (`5fc580b1`, checked 2026-10-15) contains no `systemone` field or route. Upstream ships nothing to consume, so the System One model flag stays downstream.
 
 Conclusion unchanged: no active upstream issue or PR covers the client-key page rework or the button layout fix, so both stay downstream. Re-run this search before changing any patch and update this section with the links and the conclusion.
 
@@ -24,8 +24,8 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
    - **Scope**:
      - Export `buildOpenAIEmbeddingsEndpoint` and `buildRerankEndpoint` in `src/components/providers/utils.ts`.
      - Add `embedding?: boolean` and `rerank?: boolean` to `ModelAlias` and `ModelEntryInput`.
-     - Expose `[x] 允许向量端点` and `[x] 允许重排端点` in `ModelEntriesEditor.tsx` with collapsed badges.
-     - Route connectivity test in `useConnectivityTest.ts` to `/embeddings` (with `{model, input}`) and `/rerank` (with `{model, query, documents}`).
+     - Expose `[x] 标记为向量模型` and `[x] 标记为重排模型` in `ModelEntriesEditor.tsx` with collapsed badges. The backend treats both flags as metadata (connectivity-test endpoint and listed output modality; routing does not read them), so the copy marks the model rather than claiming to allow an endpoint.
+     - Route connectivity test in `useConnectivityTest.ts` to `/embeddings` (with `{model, input}`) and `/rerank` (with `{model, query, documents}`). `modelsSignature` includes the flags, so toggling one clears earlier test results.
      - Save both flags for OpenAI-compatible models in `serializeModelAliases` (`src/services/api/providers.ts`); before this they were dropped on save.
      - Add comprehensive unit tests in `tests/embeddingsRerankConnectivity.test.ts` and `tests/embeddingsRerankPersistence.test.ts`.
      - Complete localized translation keys across all 6 locales.
@@ -34,8 +34,8 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
    - **Goal**: Mark TypeSafe System One decision models and test them against `/systemone` instead of `/chat/completions`.
    - **Scope**:
      - Add `systemone?: boolean` to `ModelAlias` and `ModelEntryInput`; read, save and clear it like `embedding` and `rerank`.
-     - Expose `[x] 允许决策端点` in `ModelEntriesEditor.tsx` with a collapsed badge, localized in all 6 locales.
-     - Route the OpenAI-compatible connectivity test for flagged models to `<base-url>/systemone` with a minimal Noul question. Decision-only upstreams such as Command Code reject `/chat/completions` with 400.
+     - Expose `[x] 标记为决策模型` in `ModelEntriesEditor.tsx` with a collapsed badge, localized in all 6 locales. Like `embedding` and `rerank`, the core treats the flag as metadata and routing does not read it.
+     - Route the OpenAI-compatible connectivity test for flagged models to `<base-url>/systemone` with a minimal Noul question. Decision-only upstreams such as Command Code reject `/chat/completions` with 400. The flag is part of `modelsSignature`, so toggling it clears earlier test results.
      - Tests in `tests/systemOneConnectivity.test.ts`.
    - **Stacked**: Branched from `patch/embeddings-and-rerank` and integrated right after it through a seam-diff (see below).
    - **Cross-repo**: Needs the core patch `patch/systemone-endpoint` (`systemone` model field and `POST /v1/systemone`). Against a core without it the flag is dropped on save.
@@ -118,9 +118,13 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
 
 None. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
 
-`patch/systemone-endpoint` is branched from `patch/embeddings-and-rerank` in the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
+## Stacked Patch Pairs
+
+These pairs are not compatibility patches: the second branch descends from the first and is integrated as a seam-diff against it.
 
 `patch/client-api-key-models` is branched from `patch/extract-client-api-keys`, and the two form a hard ordered pair: `extract-client-api-keys` must be integrated first and `client-api-key-models` can never be moved, retired, or reviewed on its own. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch. This branch must always contain the extract tip: while it does not, the same diff also reverts the newer extract commits, so the sync workflow fails closed unless `extract-client-api-keys` is an ancestor of `client-api-key-models`.
+
+`patch/systemone-endpoint` is stacked on `patch/embeddings-and-rerank` the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
 
 ## Rebuild & Validation Procedure
 
