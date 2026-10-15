@@ -6,6 +6,7 @@ import { apiCallApi, type ApiCallRequest } from '@/services/api/apiCall';
 import { providersApi } from '@/services/api/providers';
 import { normalizeProviderGroups } from '@/services/api/transformers';
 import {
+  modelsSignature,
   useConnectivityTest,
   type ConnectivityErrorMessages,
   type UseConnectivityTestArgs,
@@ -118,4 +119,9 @@ test('OpenAI-compatible systemone flag is read, saved, and can be cleared', asyn
     models: [{ ...config.models![0], systemone: false }],
   });
   expect(stored.models).toEqual([{ name: 'typesafe/jev', alias: 'jev' }]);
+});
+
+test('a System One flag change invalidates earlier connectivity results', () => {
+  const base = modelsSignature([{ name: 'typesafe/jev', alias: 'jev' }]);
+  expect(modelsSignature([{ name: 'typesafe/jev', alias: 'jev', systemone: true }])).not.toBe(base);
 });
