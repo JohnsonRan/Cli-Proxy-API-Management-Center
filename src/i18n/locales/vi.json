@@ -1257,6 +1257,10 @@
           "bootstrap_hint": "Số lần thử lại khi khởi động stream (trước byte đầu tiên)",
           "nonstream_keepalive": "Khoảng keepalive phi stream (giây)",
           "nonstream_keepalive_hint": "Gửi dòng trống mỗi N giây cho phản hồi phi stream để tránh timeout nhàn rỗi, đặt 0 hoặc để trống để tắt",
+          "codex_app_keepalive_seconds": "Khoảng keepalive ứng dụng Codex (giây)",
+          "codex_app_keepalive_hint": "Client Codex chính thức dùng SSE /v1/responses sẽ nhận sự kiện codex.client.keepalive sau khoảng im lặng này từ upstream, vì chú thích SSE không đặt lại thời gian chờ rảnh của luồng Codex. Để trống, 0 hoặc số âm dùng mặc định 30 giây.",
+          "disable_codex_app_keepalive": "Tắt keepalive ứng dụng Codex",
+          "disable_codex_app_keepalive_hint": "Ngừng gửi sự kiện codex.client.keepalive tới client Codex. Chú thích keepalive SSE thông thường không bị ảnh hưởng.",
           "disabled": "Đã tắt"
         },
         "payload": {

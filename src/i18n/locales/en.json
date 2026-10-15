@@ -1465,6 +1465,10 @@
           "bootstrap_hint": "Retries before the first byte; 0, a negative integer, or an empty field disables bootstrap retries",
           "nonstream_keepalive": "Non-stream Keepalive Interval (seconds)",
           "nonstream_keepalive_hint": "Send blank lines every N seconds for non-streaming responses; 0, a negative integer, or an empty field disables keepalive",
+          "codex_app_keepalive_seconds": "Codex app keepalive interval (seconds)",
+          "codex_app_keepalive_hint": "Official Codex clients on /v1/responses SSE receive a codex.client.keepalive event after this much upstream silence, because SSE comments do not reset Codex's stream idle timeout. Empty, 0 or a negative value uses the default of 30 seconds.",
+          "disable_codex_app_keepalive": "Disable Codex app keepalive",
+          "disable_codex_app_keepalive_hint": "Stop sending codex.client.keepalive events to Codex clients. Regular SSE keepalive comments are unaffected.",
           "disabled": "Disabled"
         },
         "payload": {

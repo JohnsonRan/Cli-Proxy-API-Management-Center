@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { CONFIG_TAB_ICONS, SECTION_INDEX_LABELS } from '../../constants';
 import type { ConfigSectionProps } from '../../types';
 import { SectionCard } from '../SectionCard';
-import { SettingList, TextSetting } from '../fields/FieldPrimitives';
+import { SettingList, TextSetting, ToggleSetting } from '../fields/FieldPrimitives';
 import { getValidationMessage } from '../blocks/shared';
 
 const Icon = CONFIG_TAB_ICONS.streaming;
@@ -83,6 +83,33 @@ export function SectionStreaming({
           disabled={disabled}
           error={nonstreamKeepaliveError}
           adornment={isNonstreamKeepaliveOff ? disabledBadge : undefined}
+        />
+      </SettingList>
+
+      {/* Codex 应用层保活：只作用于官方 Codex 客户端的 /v1/responses SSE。 */}
+      <SettingList>
+        <TextSetting
+          fieldId="codexAppKeepaliveSeconds"
+          size="sm"
+          label={t('config_management.visual.sections.streaming.codex_app_keepalive_seconds')}
+          description={t('config_management.visual.sections.streaming.codex_app_keepalive_hint')}
+          type="number"
+          placeholder="30"
+          value={values.codexAppKeepaliveSeconds}
+          onChange={(codexAppKeepaliveSeconds) => onChange({ codexAppKeepaliveSeconds })}
+          disabled={disabled || values.disableCodexAppKeepalive}
+          error={getValidationMessage(t, validationErrors?.codexAppKeepaliveSeconds)}
+          adornment={values.disableCodexAppKeepalive ? disabledBadge : undefined}
+        />
+        <ToggleSetting
+          fieldId="disableCodexAppKeepalive"
+          label={t('config_management.visual.sections.streaming.disable_codex_app_keepalive')}
+          description={t(
+            'config_management.visual.sections.streaming.disable_codex_app_keepalive_hint'
+          )}
+          checked={values.disableCodexAppKeepalive}
+          disabled={disabled}
+          onChange={(disableCodexAppKeepalive) => onChange({ disableCodexAppKeepalive })}
         />
       </SettingList>
     </SectionCard>
