@@ -1396,6 +1396,8 @@
           "error_logs_max_files": "错误日志保留文件数",
           "usage_statistics_enabled": "启用内存用量统计",
           "usage_statistics_enabled_desc": "启用内存中的请求用量聚合",
+          "usage_exclude_embeddings": "用量统计排除向量请求",
+          "usage_exclude_embeddings_desc": "/v1/embeddings 请求不计入用量统计（用量队列），仍会出现在请求日志和应用日志中。重排请求照常统计。Home 模式下不生效。",
           "redis_usage_retention": "Redis 用量队列保留秒数",
           "redis_usage_retention_hint": "RESP 接口 LPOP/RPOP 用量队列的内存保留时间，最大 3600 秒",
           "antigravity_sensitive_words": "敏感词混淆",
