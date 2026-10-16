@@ -270,6 +270,7 @@ function CallbackStep({
       >
         <input
           id={inputId}
+          type={isCommandCode ? 'password' : 'text'}
           className={`input ${styles.callbackInput}`}
           value={state.callbackUrl || ''}
           onChange={(event) => onCallbackChange(event.target.value)}
