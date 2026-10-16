@@ -155,6 +155,7 @@ describe('v8 YAML search paths', () => {
     ['wsAuth', 'oauth.providers.aistudio.ws-auth'],
     ['codexHeaderUserAgent', 'oauth.providers.codex.header-defaults.user-agent'],
     ['codexOptimizeMultiAgentV2', 'client.codex.optimize-multi-agent-v2'],
+    ['codexEnableWebsocketUpstream', 'oauth.providers.codex.enable-websocket-upstream'],
     ['codexResponseSteering', 'upstream.codex.response-steering'],
     ['claudeHeaderUserAgent', 'upstream.claude.header-defaults.user-agent'],
     ['xaiInjectXSearch', 'upstream.xai.inject-x-search'],
