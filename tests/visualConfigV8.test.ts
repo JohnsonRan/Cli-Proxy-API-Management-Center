@@ -169,6 +169,7 @@ describe('v8 scalar read/write path parity', () => {
     'errorLogsMaxFiles',
     'logsMaxTotalSizeMb',
     'redisUsageQueueRetentionSeconds',
+    'quotaApiCacheTtlSeconds',
     'requestRetry',
     'maxRetryCredentials',
     'maxRetryInterval',
