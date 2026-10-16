@@ -1396,8 +1396,6 @@
           "usage_statistics_enabled_desc": "Aggregate request usage statistics in memory",
           "redis_usage_retention": "Redis Usage Queue Retention (seconds)",
           "redis_usage_retention_hint": "In-memory retention for RESP LPOP/RPOP usage output, max 3600 seconds",
-          "quota_api_enabled": "Client quota endpoint (GET /v1/usage)",
-          "quota_api_enabled_desc": "Let any valid client API key read the quota of every enabled Codex, Claude, Antigravity and xAI OAuth credential, in the Sub2API /v1/usage format used by clients such as CC Switch. Credentials appear as \"<provider>#<n>\" without account details.",
           "quota_api_cache_ttl": "Quota cache (seconds)",
           "quota_api_cache_ttl_hint": "How long upstream quota results are reused. Empty or 0 uses 300 seconds; values below 30 are raised to 30.",
           "antigravity_sensitive_words": "Sensitive Word Obfuscation",
@@ -2402,6 +2400,17 @@
       "error_prefix_required": "Enter a key prefix.",
       "error_providers_required": "Add at least one provider; the backend ignores a rule without providers.",
       "error_prefix_duplicate": "Another rule already uses this prefix; only the first one applies."
+    },
+    "quota_credentials": {
+      "label": "Quota visibility (GET /v1/usage)",
+      "hint": "This key can read the upstream quota of the selected OAuth credentials through GET /v1/usage. Nothing is selected by default, and a key with no selection gets an empty list.",
+      "tag": "Quota: {{n}} credentials",
+      "loading": "Loading credentials…",
+      "load_failed": "Could not load the credentials.",
+      "retry": "Retry",
+      "empty": "No Codex, Claude, Antigravity or xAI OAuth credentials.",
+      "missing": "(removed)",
+      "disabled": "(disabled)"
     }
   }
 }

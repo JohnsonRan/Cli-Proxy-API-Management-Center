@@ -26,12 +26,7 @@ export const ADDITION_FIELDS = [
     path: 'routing.cooldown.transient-error-cooldown-seconds'.split('.'),
     kind: 'integer',
   },
-  // Client GET /v1/usage quota endpoint, rendered in the logging section.
-  {
-    key: 'quotaApiEnabled',
-    path: 'observability.quota-api.enabled'.split('.'),
-    kind: 'boolean',
-  },
+  // Client GET /v1/usage quota cache, rendered in the logging section.
   // Empty or 0 keeps the 300s default; core raises values below 30s to 30s.
   {
     key: 'quotaApiCacheTtlSeconds',
