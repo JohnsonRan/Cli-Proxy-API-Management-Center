@@ -74,7 +74,12 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
       'transientErrorCooldownSeconds',
       'videoResultAuthCacheTTL',
     ],
-    logging: ['errorLogsMaxFiles', 'logsMaxTotalSizeMb', 'redisUsageQueueRetentionSeconds'],
+    logging: [
+      'errorLogsMaxFiles',
+      'logsMaxTotalSizeMb',
+      'redisUsageQueueRetentionSeconds',
+      'quotaApiCacheTtlSeconds',
+    ],
     streaming: [
       'streaming.keepaliveSeconds',
       'streaming.bootstrapRetries',
@@ -172,6 +177,8 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   logsMaxTotalSizeMb: ['logsMaxTotalSizeMb'],
   errorLogsMaxFiles: ['errorLogsMaxFiles'],
   redisUsageQueueRetentionSeconds: ['redisUsageQueueRetentionSeconds'],
+  quotaApiEnabled: ['quotaApiEnabled'],
+  quotaApiCacheTtlSeconds: ['quotaApiCacheTtlSeconds'],
   usageStatisticsEnabled: ['usageStatisticsEnabled'],
   // ── streaming ─────────────────────────────────────────────────────────────
   streamingKeepaliveSeconds: ['streaming.keepaliveSeconds'],
