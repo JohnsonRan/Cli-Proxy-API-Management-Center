@@ -943,7 +943,7 @@
     "kimi_ai_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực:",
     "commandcode_oauth_title": "Đăng nhập Command Code",
     "commandcode_oauth_button": "Bắt đầu đăng nhập Command Code",
-    "commandcode_oauth_hint": "Đăng nhập Command Code (commandcode.ai) trong trình duyệt và lưu API key làm tệp xác thực. Máy chủ từ xa: Studio gửi key tới http://127.0.0.1:54546/callback nhưng trình duyệt không chuyển được tới máy chủ, hãy gửi thủ công bên dưới. Mô hình có tiền tố commandcode/; không hỗ trợ mô hình Claude và gói Go.",
+    "commandcode_oauth_hint": "Đăng nhập Command Code (commandcode.ai) trong trình duyệt và lưu API key làm tệp xác thực. Máy chủ từ xa: Studio gửi key tới http://127.0.0.1:54546/callback nhưng trình duyệt không chuyển được tới máy chủ, hãy gửi thủ công bên dưới. Không hỗ trợ mô hình Claude và gói Go.",
     "commandcode_callback_hint": "Nếu trang không kết nối được 127.0.0.1:54546, mở DevTools → Network, chọn yêu cầu callback và dán giá trị apiKey trong payload (hoặc mã nguồn payload). URL callback đầy đủ kèm tham số cũng được chấp nhận.",
     "commandcode_callback_placeholder": "API key, payload apiKey=…&state=… hoặc URL callback",
     "commandcode_callback_invalid": "Hãy nhập API key, payload callback hoặc URL callback có chứa apiKey.",
