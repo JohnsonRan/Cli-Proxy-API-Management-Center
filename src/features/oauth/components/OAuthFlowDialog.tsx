@@ -224,17 +224,22 @@ function CallbackStep({
   const feedbackId = useId();
   const isXai = providerId === 'xai';
   const isDevin = providerId === 'devin';
+  const isCommandCode = providerId === 'commandcode';
   const disabled = !state.url || (isDevin && (state.cancelling || state.status !== 'waiting'));
   const hintKey = isXai
     ? 'auth_login.xai_callback_hint'
     : isDevin
       ? 'auth_login.devin_callback_hint'
-      : 'auth_login.oauth_callback_hint';
+      : isCommandCode
+        ? 'auth_login.commandcode_callback_hint'
+        : 'auth_login.oauth_callback_hint';
   const placeholderKey = isXai
     ? 'auth_login.xai_callback_placeholder'
     : isDevin
       ? 'auth_login.devin_callback_placeholder'
-      : 'auth_login.oauth_callback_placeholder';
+      : isCommandCode
+        ? 'auth_login.commandcode_callback_placeholder'
+        : 'auth_login.oauth_callback_placeholder';
 
   const feedback = state.callbackValidation
     ? { tone: 'error' as const, message: state.callbackValidation }
