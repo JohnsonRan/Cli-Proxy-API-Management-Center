@@ -33,6 +33,12 @@ const serializeModelAliases = (models?: ModelAlias[], includeOpenAIFields = fals
           if (includeOpenAIFields && model.image) {
             payload.image = true;
           }
+          if (includeOpenAIFields && model.embedding) {
+            payload.embedding = true;
+          }
+          if (includeOpenAIFields && model.rerank) {
+            payload.rerank = true;
+          }
           return payload;
         })
         .filter(Boolean)
