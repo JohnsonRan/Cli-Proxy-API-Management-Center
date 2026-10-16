@@ -118,7 +118,8 @@ export function ApiKeysPage() {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
-  const clearConfigCache = useConfigStore((state) => state.clearCache);
+  const clearCache = useConfigStore((state) => state.clearCache);
+  const updateConfigValue = useConfigStore((state) => state.updateConfigValue);
   const openaiCompatibility = useConfigStore((state) => state.config?.openaiCompatibility);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
@@ -234,7 +235,7 @@ export function ApiKeysPage() {
           }
         );
         setGlobalModelRules(saved);
-        clearConfigCache('api-keys');
+        clearCache('api-keys');
         void fetchConfig(true).catch(() => undefined);
         showNotification(t('common.saved_success', '保存成功'), 'success');
         return true;
@@ -244,7 +245,7 @@ export function ApiKeysPage() {
         return false;
       }
     },
-    [clearConfigCache, fetchConfig, globalModelRules, showNotification, t]
+    [clearCache, fetchConfig, globalModelRules, showNotification, t]
   );
 
   // Drop the pending copy-feedback timer so it cannot fire after unmount.
@@ -359,9 +360,10 @@ export function ApiKeysPage() {
   };
 
   const refreshConfigAfterSave = useCallback(
-    async (assertConnection: () => void) => {
-      // Drop the pre-write snapshot and any in-flight read before refreshing committed state.
-      clearConfigCache();
+    async (assertConnection: () => void, apiKeys: string[]) => {
+      // Record the committed keys and invalidate cached/in-flight reads, keeping the rest of
+      // the config snapshot so a failed refresh does not blank unrelated consumers.
+      updateConfigValue('api-keys', apiKeys);
       try {
         await fetchConfig(true);
         assertConnection();
@@ -378,7 +380,7 @@ export function ApiKeysPage() {
         );
       }
     },
-    [clearConfigCache, fetchConfig, showNotification, t]
+    [fetchConfig, showNotification, t, updateConfigValue]
   );
 
   const handleSave = useCallback(async () => {
@@ -422,7 +424,10 @@ export function ApiKeysPage() {
       setApiKeyItems(nextItems);
       setQuotaKeys(nextQuota);
       closeModal();
-      await refreshConfigAfterSave(assertConnection);
+      await refreshConfigAfterSave(
+        assertConnection,
+        nextItems.map((item) => item.apiKey)
+      );
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -475,7 +480,10 @@ export function ApiKeysPage() {
       setApiKeyItems(nextItems);
       setQuotaKeys(nextQuota);
       closeDeleteModal();
-      await refreshConfigAfterSave(assertConnection);
+      await refreshConfigAfterSave(
+        assertConnection,
+        nextItems.map((item) => item.apiKey)
+      );
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
     } finally {
