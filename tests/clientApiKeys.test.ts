@@ -20,6 +20,7 @@ describe('client API keys model permissions', () => {
     const item = parseClientApiKeyItem(raw);
     expect(item).toEqual({
       apiKey: 'sk-custom',
+      name: undefined,
       models: ['gpt-4o', 'gpt-4o-mini'],
       allowedModels: undefined,
       excludedModels: ['*-preview'],
@@ -44,5 +45,25 @@ describe('client API keys model permissions', () => {
       models: ['gpt-4o', 'claude-*'],
       'excluded-models': ['*-preview'],
     });
+  });
+
+  test('parses and trims the config display name', () => {
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', name: '  Alice  ' }).name).toBe('Alice');
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', name: '   ' }).name).toBeUndefined();
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', name: 42 }).name).toBeUndefined();
+  });
+
+  test('serializes a name-only key as a mapping entry', () => {
+    expect(serializeClientApiKeyItem({ apiKey: 'sk-a', name: ' Alice ' })).toEqual({
+      'api-key': 'sk-a',
+      name: 'Alice',
+    });
+    expect(serializeClientApiKeyItem({ apiKey: 'sk-a', name: '  ' })).toBe('sk-a');
+  });
+
+  test('keeps the name next to model rules', () => {
+    expect(
+      serializeClientApiKeyItem({ apiKey: 'sk-a', name: 'CI', models: ['gpt-*'] })
+    ).toEqual({ 'api-key': 'sk-a', name: 'CI', models: ['gpt-*'] });
   });
 });

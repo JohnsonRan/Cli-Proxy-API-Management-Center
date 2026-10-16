@@ -85,6 +85,7 @@ describe('API Keys Page localization contracts', () => {
     'stat_total_desc',
     'stat_named',
     'stat_named_desc',
+    'name_hint',
     'stat_restricted',
     'stat_restricted_desc',
     'table_name',

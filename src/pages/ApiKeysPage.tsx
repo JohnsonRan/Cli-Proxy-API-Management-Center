@@ -38,18 +38,13 @@ import {
 } from '@/components/ui/icons';
 import { ApiKeyStrengthMeter } from '@/features/config/components/blocks/ApiKeyStrengthMeter';
 import {
-  apiKeyNameFingerprint,
-  readApiKeyNames,
-  saveApiKeyName,
-} from '@/features/config/apiKeyNames';
-import {
   normalizeExcludedRules,
   type ExcludedModelCandidate,
   type ExcludedModelsCatalogState,
 } from '@/components/excludedModels';
 import { apiKeysApi, ClientApiKeyItem } from '@/services/api/apiKeys';
 import { modelsApi } from '@/services/api/models';
-import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+import { useConfigStore, useNotificationStore } from '@/stores';
 import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
 
 function useProxyModelCatalog(enabled: boolean) {
@@ -96,13 +91,11 @@ function MetricValue({ loading, children }: PropsWithChildren<{ loading: boolean
 
 export function ApiKeysPage() {
   const { t } = useTranslation();
-  const apiBase = useAuthStore((state) => state.apiBase);
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
   const apiKeys = useMemo(() => apiKeyItems.map((item) => item.apiKey), [apiKeyItems]);
-  const [names, setNames] = useState<Record<string, string>>(() => readApiKeyNames(apiBase));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -137,13 +130,12 @@ export function ApiKeysPage() {
     try {
       const items = await apiKeysApi.listItems();
       setApiKeyItems(items);
-      setNames(readApiKeyNames(apiBase));
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
     } finally {
       setLoading(false);
     }
-  }, [apiBase, showNotification]);
+  }, [showNotification]);
 
   useEffect(() => {
     void loadKeys();
@@ -161,9 +153,10 @@ export function ApiKeysPage() {
 
   // Compute metrics
   const totalKeys = apiKeys.length;
-  const namedCount = useMemo(() => {
-    return apiKeys.filter((k) => !!names[apiKeyNameFingerprint(apiBase, k)]).length;
-  }, [apiBase, apiKeys, names]);
+  const namedCount = useMemo(
+    () => apiKeyItems.filter((item) => !!item.name).length,
+    [apiKeyItems]
+  );
 
   // Keys that narrow their model scope, by allow-list or by exclusions.
   const restrictedCount = useMemo(
@@ -178,7 +171,7 @@ export function ApiKeysPage() {
     const q = searchQuery.trim().toLowerCase();
     const rows = apiKeyItems.map((item, index) => {
       const key = item.apiKey;
-      const name = names[apiKeyNameFingerprint(apiBase, key)] || '';
+      const name = item.name ?? '';
       return { item, key, index, name };
     });
 
@@ -186,7 +179,7 @@ export function ApiKeysPage() {
     return rows.filter(({ key, name }) => {
       return name.toLowerCase().includes(q) || key.toLowerCase().includes(q);
     });
-  }, [apiBase, apiKeyItems, names, searchQuery]);
+  }, [apiKeyItems, searchQuery]);
 
   // Actions
   const toggleReveal = useCallback((key: string) => {
@@ -229,10 +222,8 @@ export function ApiKeysPage() {
   };
 
   const openEditModal = (item: ClientApiKeyItem, index: number) => {
-    const latestNames = readApiKeyNames(apiBase);
-    setNames(latestNames);
     setEditingIndex(index);
-    setNameInput(latestNames[apiKeyNameFingerprint(apiBase, item.apiKey)] ?? '');
+    setNameInput(item.name ?? '');
     setKeyInput(item.apiKey);
     const activeModels = item.models ?? item.allowedModels ?? [];
     setAllowedModels(normalizeExcludedRules(activeModels));
@@ -269,6 +260,7 @@ export function ApiKeysPage() {
 
     const nextItem: ClientApiKeyItem = {
       apiKey: trimmedKey,
+      name: nameInput.trim() || undefined,
       models: allowedModels.length > 0 ? allowedModels : undefined,
       excludedModels: excludedModels.length > 0 ? excludedModels : undefined,
     };
@@ -277,25 +269,14 @@ export function ApiKeysPage() {
     try {
       let nextItems: ClientApiKeyItem[];
       if (editingIndex !== null && editingIndex >= 0) {
-        const oldKey = apiKeyItems[editingIndex].apiKey;
         nextItems = apiKeyItems.map((k, i) => (i === editingIndex ? nextItem : k));
-        if (oldKey !== trimmedKey) {
-          saveApiKeyName(apiBase, oldKey, '');
-        }
       } else {
         nextItems = [...apiKeyItems, nextItem];
-      }
-
-      if (!saveApiKeyName(apiBase, trimmedKey, nameInput)) {
-        setFormError(t('config_management.visual.api_keys.name_save_error'));
-        setSaving(false);
-        return;
       }
 
       await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
       setApiKeyItems(nextItems);
-      setNames(readApiKeyNames(apiBase));
       closeModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {
@@ -303,7 +284,7 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [allowedModels, apiBase, apiKeyItems, editingIndex, excludedModels, fetchConfig, keyInput, nameInput, showNotification, t]);
+  }, [allowedModels, apiKeyItems, editingIndex, excludedModels, fetchConfig, keyInput, nameInput, showNotification, t]);
 
   const openDeleteModal = (index: number) => {
     setTargetDeleteIndex(index);
@@ -323,15 +304,12 @@ export function ApiKeysPage() {
     ) {
       return;
     }
-    const keyToDelete = apiKeyItems[targetDeleteIndex].apiKey;
     setSaving(true);
     try {
       const nextItems = apiKeyItems.filter((_, i) => i !== targetDeleteIndex);
-      saveApiKeyName(apiBase, keyToDelete, '');
       await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
       setApiKeyItems(nextItems);
-      setNames(readApiKeyNames(apiBase));
       closeDeleteModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {
@@ -339,12 +317,14 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
+  }, [apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
 
   const deleteTargetKey =
     targetDeleteIndex !== null && targetDeleteIndex >= 0 ? apiKeys[targetDeleteIndex] : '';
   const deleteTargetName =
-    deleteTargetKey ? names[apiKeyNameFingerprint(apiBase, deleteTargetKey)] : '';
+    targetDeleteIndex !== null && targetDeleteIndex >= 0
+      ? apiKeyItems[targetDeleteIndex]?.name ?? ''
+      : '';
 
   return (
     <div className={styles.page}>
@@ -654,7 +634,7 @@ export function ApiKeysPage() {
             disabled={saving}
           />
           <div id={nameHintId} className="hint">
-            {t('config_management.visual.api_keys.name_hint')}
+            {t('api_keys_page.name_hint')}
           </div>
         </div>
 
