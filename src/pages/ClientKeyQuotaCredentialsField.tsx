@@ -38,7 +38,11 @@ export function ClientKeyQuotaCredentialsField({
     void load();
   }, [load]);
 
-  const options = useMemo(() => buildQuotaCredentialOptions(files, value), [files, value]);
+  // Until the list arrives every saved ID would look removed, so list nothing before then.
+  const options = useMemo(
+    () => (state === 'ready' ? buildQuotaCredentialOptions(files, value) : []),
+    [files, state, value]
+  );
   const selected = useMemo(() => new Set(value), [value]);
 
   const toggle = (id: string, checked: boolean) => {
