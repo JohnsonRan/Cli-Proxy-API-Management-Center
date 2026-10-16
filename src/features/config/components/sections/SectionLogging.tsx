@@ -99,6 +99,31 @@ export function SectionLogging({
           onChange={(usageExcludeEmbeddings) => onChange({ usageExcludeEmbeddings })}
         />
       </SettingList>
+
+      {/* 客户端额度查询 GET /v1/usage：任意有效客户端 API Key 可读取 OAuth 凭证额度。 */}
+      <SettingList>
+        <ToggleSetting
+          fieldId="quotaApiEnabled"
+          label={t('config_management.visual.sections.system.quota_api_enabled')}
+          description={t('config_management.visual.sections.system.quota_api_enabled_desc')}
+          checked={values.quotaApiEnabled}
+          disabled={disabled}
+          onChange={(quotaApiEnabled) => onChange({ quotaApiEnabled })}
+        />
+        <TextSetting
+          fieldId="quotaApiCacheTtlSeconds"
+          size="sm"
+          label={t('config_management.visual.sections.system.quota_api_cache_ttl')}
+          description={t('config_management.visual.sections.system.quota_api_cache_ttl_hint')}
+          type="number"
+          min={0}
+          placeholder="300"
+          value={values.quotaApiCacheTtlSeconds}
+          onChange={(quotaApiCacheTtlSeconds) => onChange({ quotaApiCacheTtlSeconds })}
+          disabled={disabled || !values.quotaApiEnabled}
+          error={getValidationMessage(t, validationErrors?.quotaApiCacheTtlSeconds)}
+        />
+      </SettingList>
     </SectionCard>
   );
 }
