@@ -345,14 +345,18 @@ export function ApiKeysPage() {
         nextItems = [...apiKeyItems, nextItem];
       }
 
-      await apiKeysApi.replaceItems(nextItems);
-      setApiKeyItems(nextItems);
       const nextQuota = withQuotaCredentials(quotaKeys, previousKey, trimmedKey, quotaCredentials);
-      if (!sameQuotaApiKeys(quotaKeys, nextQuota)) {
-        await quotaApiKeysApi.replace(nextQuota, scopesConnectionRef.current);
-        setQuotaKeys(nextQuota);
-      }
+      const assertConnection = scopesConnectionRef.current;
+      await quotaApiKeysApi.replaceClientKeys(
+        nextItems,
+        sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
+        assertConnection
+      );
+      // Keep the original retry target even if refreshing after a successful write fails.
       await fetchConfig(true);
+      assertConnection();
+      setApiKeyItems(nextItems);
+      setQuotaKeys(nextQuota);
       closeModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {
@@ -396,15 +400,18 @@ export function ApiKeysPage() {
     setSaving(true);
     try {
       const nextItems = apiKeyItems.filter((_, i) => i !== targetDeleteIndex);
-      await apiKeysApi.replaceItems(nextItems);
-      setApiKeyItems(nextItems);
       // A deleted key keeps no quota visibility, so a later key with the same value starts empty.
       const nextQuota = withQuotaCredentials(quotaKeys, keyToDelete, keyToDelete, []);
-      if (!sameQuotaApiKeys(quotaKeys, nextQuota)) {
-        await quotaApiKeysApi.replace(nextQuota, scopesConnectionRef.current);
-        setQuotaKeys(nextQuota);
-      }
+      const assertConnection = scopesConnectionRef.current;
+      await quotaApiKeysApi.replaceClientKeys(
+        nextItems,
+        sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
+        assertConnection
+      );
       await fetchConfig(true);
+      assertConnection();
+      setApiKeyItems(nextItems);
+      setQuotaKeys(nextQuota);
       closeDeleteModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {

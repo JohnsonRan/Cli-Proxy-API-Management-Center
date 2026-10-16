@@ -1,4 +1,6 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
@@ -8,6 +10,7 @@ import { ClientKeyQuotaCredentialsField } from '@/pages/ClientKeyQuotaCredential
 import { buildQuotaCredentialOptions } from '@/utils/quotaCredentials';
 import {
   parseQuotaApiKeyEntry,
+  quotaApiKeysApi,
   quotaCredentialsForKey,
   sameQuotaApiKeys,
   serializeQuotaApiKeyEntry,
@@ -15,6 +18,13 @@ import {
   type QuotaApiKeyEntry,
 } from '@/services/api/quotaApiKeys';
 import type { AuthFileItem } from '@/types/authFile';
+import type { ClientApiKeyItem } from '@/services/api/apiKeys';
+import { apiClient } from '@/services/api/client';
+
+const originalPatch = apiClient.patch;
+afterEach(() => {
+  apiClient.patch = originalPatch;
+});
 
 const entries: QuotaApiKeyEntry[] = [
   { apiKey: 'sk-a', credentials: ['codex.json'] },
@@ -120,3 +130,197 @@ describe('quota credential options', () => {
     expect(markup).not.toContain('codex-b.json');
   });
 });
+
+describe('atomic client key and quota writes', () => {
+  test('sends both serialized lists in one root PATCH, including explicit empty lists', async () => {
+    const calls: unknown[][] = [];
+    apiClient.patch = (async (...args: unknown[]) => {
+      calls.push(args);
+    }) as typeof apiClient.patch;
+    const items = [
+      { apiKey: 'sk-a' },
+      { apiKey: 'sk-b', models: [' model-a '], excludedModels: [' model-b '] },
+    ];
+    await quotaApiKeysApi.replaceClientKeys(
+      items,
+      [{ apiKey: ' sk-a ', credentials: [' codex.json ', 'codex.json'] }],
+      () => {}
+    );
+    expect(calls).toEqual([
+      [
+        '/config',
+        {
+          access: {
+            'api-keys': [
+              'sk-a',
+              {
+                'api-key': 'sk-b',
+                models: ['model-a'],
+                'excluded-models': ['model-b'],
+              },
+            ],
+          },
+          observability: {
+            'quota-api': { keys: [{ 'api-key': 'sk-a', credentials: ['codex.json'] }] },
+          },
+        },
+      ],
+    ]);
+    await quotaApiKeysApi.replaceClientKeys([], [], () => {});
+    expect(calls[1]).toEqual([
+      '/config',
+      {
+        access: { 'api-keys': [] },
+        observability: { 'quota-api': { keys: [] } },
+      },
+    ]);
+    await quotaApiKeysApi.replaceClientKeys(items, undefined, () => {});
+    expect(calls[2]).toEqual(['/config', { access: (calls[0][1] as { access: unknown }).access }]);
+  });
+
+  test('checks the captured connection before sending and after awaiting the write', async () => {
+    let calls = 0;
+    apiClient.patch = (async () => {
+      calls++;
+    }) as typeof apiClient.patch;
+    const changed = () => {
+      throw new Error('connection changed');
+    };
+    await expect(quotaApiKeysApi.replaceClientKeys([], [], changed)).rejects.toThrow(
+      'connection changed'
+    );
+    expect(calls).toBe(0);
+    let connected = true;
+    apiClient.patch = (async () => {
+      connected = false;
+    }) as typeof apiClient.patch;
+    await expect(
+      quotaApiKeysApi.replaceClientKeys([], [], () => {
+        if (!connected) changed();
+      })
+    ).rejects.toThrow('connection changed');
+  });
+});
+
+// Exercise the real callbacks without introducing a browser DOM test dependency.
+const pageSource = readFileSync('src/pages/ApiKeysPage.tsx', 'utf8');
+function mutationHarness(
+  action: 'handleSave' | 'handleConfirmDelete',
+  failure: 'write' | 'refresh'
+) {
+  let items: ClientApiKeyItem[] = [{ apiKey: 'sk-a' }, { apiKey: 'sk-b' }];
+  let quota = structuredClone(entries);
+  let fail = true;
+  let closed = false;
+  let errors = 0;
+  const requests: unknown[] = [];
+  apiClient.patch = (async (_url: string, body: unknown) => {
+    requests.push(body);
+    if (fail && failure === 'write') throw new Error('write failed');
+  }) as typeof apiClient.patch;
+  const start = pageSource.indexOf(`  const ${action} = useCallback(`);
+  const end = pageSource.indexOf('\n  }, [', start);
+  const js = ts.transpileModule(`${pageSource.slice(start, end)}\n  }, []);\nreturn ${action};`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  return {
+    async run() {
+      const env = {
+        useCallback: (fn: unknown) => fn,
+        keyInput: 'sk-c',
+        nameInput: '',
+        allowedModels: [],
+        excludedModels: [],
+        editingIndex: 0,
+        targetDeleteIndex: 0,
+        apiBase: 'http://fixture.invalid',
+        apiKeyItems: items,
+        quotaKeys: quota,
+        quotaCredentials: ['codex.json'],
+        scopesConnectionRef: { current: () => {} },
+        quotaApiKeysApi,
+        sameQuotaApiKeys,
+        withQuotaCredentials,
+        isValidApiKeyCharset: () => true,
+        saveApiKeyName: () => true,
+        readApiKeyNames: () => ({}),
+        setSaving: () => {},
+        setNames: () => {},
+        setApiKeyItems: (next: ClientApiKeyItem[]) => {
+          items = next;
+        },
+        setQuotaKeys: (next: QuotaApiKeyEntry[]) => {
+          quota = next;
+        },
+        closeModal: () => {
+          closed = true;
+        },
+        closeDeleteModal: () => {
+          closed = true;
+        },
+        setFormError: () => {
+          errors++;
+        },
+        showNotification: (_message: string, kind: string) => {
+          if (kind === 'error') errors++;
+        },
+        getErrorMessage: (error: Error) => error.message,
+        t: (key: string) => key,
+        fetchConfig: async () => {
+          if (fail && failure === 'refresh') throw new Error('refresh failed');
+        },
+      };
+      await new Function(...Object.keys(env), js)(...Object.values(env))();
+    },
+    retry() {
+      fail = false;
+    },
+    requests,
+    get items() {
+      return items;
+    },
+    get quota() {
+      return quota;
+    },
+    get closed() {
+      return closed;
+    },
+    get errors() {
+      return errors;
+    },
+  };
+}
+
+for (const failure of ['write', 'refresh'] as const) {
+  test(`delete retry after ${failure} failure never deletes the next key`, async () => {
+    const h = mutationHarness('handleConfirmDelete', failure);
+    await h.run();
+    expect(h.errors).toBe(1);
+    expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
+    expect(h.quota).toEqual(entries);
+    expect(h.closed).toBe(false);
+    h.retry();
+    await h.run();
+    expect(h.requests).toHaveLength(2);
+    expect(h.requests[1]).toEqual(h.requests[0]);
+    expect(h.items).toEqual([{ apiKey: 'sk-b' }]);
+    expect(h.quota).toEqual([entries[1]]);
+    expect(h.closed).toBe(true);
+  });
+
+  test(`rename retry after ${failure} failure removes the old key's quota grants`, async () => {
+    const h = mutationHarness('handleSave', failure);
+    await h.run();
+    expect(h.errors).toBe(1);
+    expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
+    expect(h.quota).toEqual(entries);
+    expect(h.closed).toBe(false);
+    h.retry();
+    await h.run();
+    expect(h.requests).toHaveLength(2);
+    expect(h.requests[1]).toEqual(h.requests[0]);
+    expect(h.items.map((item) => item.apiKey)).toEqual(['sk-c', 'sk-b']);
+    expect(h.quota).toEqual([{ apiKey: 'sk-c', credentials: ['codex.json'] }, entries[1]]);
+    expect(h.closed).toBe(true);
+  });
+}
