@@ -20,6 +20,8 @@ Re-run on 2026-10-15 before `patch/client-key-provider-scope`, `patch/codex-app-
 - Provider scopes: only [#424](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/424) (allowed provider prefixes, CLOSED, not merged) is related. Upstream core has no `client.key-scopes`, so there is no upstream setting to edit; the rules card targets the downstream core patch.
 - Codex app keepalive, OpenAI-compatible discovery/exclusions and embedding usage exclusion: no matching issue or pull request ([#115](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/115) is an unrelated, CLOSED report about the streaming block being dropped on save).
 
+Re-run on 2026-10-16 before `patch/quota-api`, searching open and closed issues and pull requests for `quota-api`, `v1/usage`, `sub2api`, `CC Switch`, `quota endpoint` and `usage endpoint`: the hits are all about the panel's own quota cards or usage dashboard (for example [#494](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/494), OPEN, about the Claude reset-grant read), none about a client-facing quota endpoint. Upstream core `main` (`5be2cdab`, checked 2026-10-16) has no `quota-api` setting, so the switch stays downstream.
+
 Conclusion unchanged: no active upstream issue or PR covers the client-key page rework or the button layout fix, so both stay downstream. Re-run this search before changing any patch and update this section with the links and the conclusion.
 
 ## Patch Branches
@@ -145,6 +147,12 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
     - **Note**: Kept apart from `patch/embeddings-and-rerank` so that branch, and `patch/systemone-endpoint` stacked on it, do not need a rebase.
     - **Cross-repo**: Needs the core patch `patch/embeddings-and-rerank` (setting added in core `2cca4366`).
 
+16. **`patch/quota-api`**
+    - **Goal**: Switch the client-facing OAuth quota endpoint (`GET /v1/usage`, Sub2API shape) on and off from the panel.
+    - **Scope**: The logging section gains `observability.quota-api.enabled` and `observability.quota-api.cache-ttl-seconds` in their own group after the usage statistics switch, through the visual-config additions. The TTL accepts empty or a non-negative integer (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30) and is locked while the endpoint is off. The description warns that any valid client API key can then read every OAuth credential's quota. Localized in all 6 locales; tests in `tests/quotaApiConfig.test.ts`.
+    - **Note**: Insertion points sit one unchanged line away from `patch/usage-exclude-embeddings` and `patch/codex-app-keepalive`, so all three squash cleanly in any order.
+    - **Cross-repo**: Needs the core patch `patch/quota-api` (core `7b736a6d`). Against a core without it the backend rejects or ignores the block.
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -163,7 +171,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api
 
 git checkout -B main upstream/main
 
@@ -229,6 +237,9 @@ git commit -m "merge patch/openai-compat-model-discovery branch"
 
 git merge --squash origin/patch/usage-exclude-embeddings
 git commit -m "merge patch/usage-exclude-embeddings branch"
+
+git merge --squash origin/patch/quota-api
+git commit -m "merge patch/quota-api branch"
 
 bun install --frozen-lockfile
 bun run type-check
