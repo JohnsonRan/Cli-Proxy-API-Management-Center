@@ -159,10 +159,10 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
 17. **`patch/commandcode-oauth`**
     - **Goal**: Log in to Command Code (commandcode.ai) like the other OAuth providers and show its quota.
     - **Scope**:
-      - OAuth gallery tile `commandcode` (browser flow, `is_webui`, manual callback). A remote login pastes the `http://127.0.0.1:54546/callback?apiKey=…` URL; the core reads the key from it.
+      - OAuth gallery tile `commandcode` (browser flow, `is_webui`, manual callback). Studio POSTs `apiKey` and `state` to `http://127.0.0.1:54546/callback`, so the address bar shows only the bare `/callback` and a remote login has no URL to copy. The manual field (`features/oauth/callbackUrl.ts`) therefore also takes the request payload from DevTools (`apiKey=…&state=…` or JSON) or the bare API key, and builds `http://127.0.0.1:54546/callback?apiKey=…&state=…` with the login's state; the core reads the key from it. Tests in `tests/oauthPage.test.ts`.
       - Built-in quota card `commandcode` (`features/quota/providers/commandcode`): through api-call with `Bearer $TOKEN$` it reads `GET https://api.commandcode.ai/alpha/billing/credits` (5-hour and weekly windows, remaining monthly/purchased/free credits) and `/alpha/billing/subscriptions` (plan and period end), the endpoints of the official CLI's `/usage`. The monthly row needs an active, known plan, because the API reports only the remaining monthly credits; the plan table is the CLI's. Rows reuse the Kimi row shape and meter, so reset scheduling and the timeline handle them the same way.
       - Icons, type colors, dashboard label; localized in all 6 locales; tests in `tests/commandCodeQuota.test.ts`.
-    - **Cross-repo**: Needs the core patch `patch/commandcode-oauth`. Against a core without it the tile answers `provider_not_found`.
+    - **Cross-repo**: Needs the core patch `patch/commandcode-oauth`; automatic web UI callbacks need core `031e1255` or later, which serves Studio's POST on 54546. Against a core without the patch the tile answers `provider_not_found`.
 
 ## Temporary Compatibility Patches
 
