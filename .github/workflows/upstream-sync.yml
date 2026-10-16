@@ -161,8 +161,21 @@ jobs:
           git merge --squash origin/patch/usage-exclude-embeddings
           git commit -m "merge patch/usage-exclude-embeddings branch"
 
-          # Needs the core patch/quota-api observability.quota-api settings.
-          git merge --squash origin/patch/quota-api
+          # Needs the core patch/quota-api observability.quota-api settings. It descends from
+          # patch/client-key-provider-scope and extends ApiKeysPage, so only its delta is applied.
+          if ! git merge-base --is-ancestor origin/patch/client-key-provider-scope origin/patch/quota-api; then
+            echo '::error::quota-api is behind client-key-provider-scope; the seam-diff would revert its work'
+            exit 1
+          fi
+          if ! git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way; then
+            echo '::error::quota-api seam-diff did not apply'
+            exit 1
+          fi
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::quota-api seam-diff left conflicts'
+            exit 1
+          fi
+          git add -A
           git commit -m "merge patch/quota-api branch"
 
       - name: Validate build and tests
