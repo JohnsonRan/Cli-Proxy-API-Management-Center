@@ -634,6 +634,24 @@
     "limit_index": "限額 #{{index}}",
     "reset_hint": "{{hint}} 後重置"
   },
+  "commandcode_quota": {
+    "title": "Command Code 額度",
+    "empty_title": "沒有 Command Code 認證檔案",
+    "empty_desc": "登入 Command Code 後可查看剩餘額度與用量視窗。",
+    "stale_request": "連線或憑證已變更，請重試。",
+    "idle": "點擊此處重新整理額度",
+    "loading": "正在載入額度...",
+    "load_failed": "載入額度失敗：{{message}}",
+    "missing_auth_index": "認證檔案缺少 auth_index",
+    "empty_data": "暫無額度資料",
+    "refresh_button": "重新整理額度",
+    "fetch_all": "全部取得",
+    "five_hour": "5 小時視窗",
+    "weekly": "每週視窗",
+    "monthly": "每月方案額度",
+    "plan": "方案：{{plan}}",
+    "credits_left": "剩餘額度：{{amount}}"
+  },
   "xai_quota": {
     "title": "Grok 配額",
     "empty_title": "暫無 xAI/Grok 驗證",
@@ -1008,7 +1026,17 @@
     "sign_up_prompt": "還沒有帳號？",
     "copied": "已複製",
     "login_another_account": "登入另一個帳號",
-    "view_auth_files": "查看驗證檔案"
+    "view_auth_files": "查看驗證檔案",
+    "commandcode_oauth_title": "Command Code 登入",
+    "commandcode_oauth_button": "開始 Command Code 登入",
+    "commandcode_oauth_hint": "在瀏覽器中登入 Command Code（commandcode.ai），並將其 API Key 儲存為認證檔案。遠端伺服器：授權後從網址列複製完整的 http://127.0.0.1:54546/callback?… 連結並在下方提交。模型帶有 commandcode/ 前綴；不提供 Claude 模型，也不支援 Go 方案。",
+    "commandcode_copy_link": "複製連結",
+    "commandcode_open_link": "開啟連結",
+    "commandcode_oauth_status_waiting": "正在等待 Command Code 授權...",
+    "commandcode_oauth_status_success": "Command Code 登入成功！",
+    "commandcode_oauth_status_error": "Command Code 登入失敗：",
+    "commandcode_oauth_start_error": "啟動 Command Code 登入失敗：",
+    "commandcode_oauth_polling_error": "檢查登入狀態失敗："
   },
   "stats": {
     "success": "成功",
