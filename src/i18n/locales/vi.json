@@ -1190,6 +1190,8 @@
           "usage_exclude_embeddings_desc": "Không tính yêu cầu /v1/embeddings vào thống kê sử dụng (hàng đợi usage). Chúng vẫn xuất hiện trong nhật ký yêu cầu và nhật ký ứng dụng. Yêu cầu rerank vẫn được tính. Không áp dụng ở chế độ Home.",
           "redis_usage_retention": "Thời gian giữ hàng đợi sử dụng Redis (giây)",
           "redis_usage_retention_hint": "Thời gian giữ trong bộ nhớ cho đầu ra sử dụng RESP LPOP/RPOP, tối đa 3600 giây",
+          "quota_api_cache_ttl": "Bộ nhớ đệm hạn mức (giây)",
+          "quota_api_cache_ttl_hint": "Thời gian dùng lại kết quả hạn mức từ upstream. Để trống hoặc 0 dùng 300 giây; giá trị dưới 30 được nâng lên 30.",
           "antigravity_signature_cache": "Bật cache chữ ký Antigravity",
           "antigravity_signature_cache_desc": "Ưu tiên và xác thực chữ ký thinking-block đã cache",
           "antigravity_signature_strict": "Bỏ qua xác thực chữ ký nghiêm ngặt",
@@ -2378,6 +2380,17 @@
       "error_prefix_required": "Nhập tiền tố khóa.",
       "error_providers_required": "Thêm ít nhất một nhà cung cấp; backend bỏ qua quy tắc không có nhà cung cấp.",
       "error_prefix_duplicate": "Tiền tố này đã được dùng; chỉ quy tắc đầu tiên có hiệu lực."
+    },
+    "quota_credentials": {
+      "label": "Thông tin xác thực xem hạn mức (GET /v1/usage)",
+      "hint": "Khóa này có thể đọc hạn mức upstream của các thông tin xác thực OAuth đã chọn qua GET /v1/usage. Mặc định không chọn gì, và khóa chưa chọn sẽ nhận danh sách rỗng.",
+      "tag": "Hạn mức: {{n}} thông tin xác thực",
+      "loading": "Đang tải thông tin xác thực…",
+      "load_failed": "Không tải được thông tin xác thực.",
+      "retry": "Thử lại",
+      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity hoặc xAI.",
+      "missing": "(đã xóa)",
+      "disabled": "(đã tắt)"
     }
   }
 }
