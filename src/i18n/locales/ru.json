@@ -647,6 +647,24 @@
     "limit_index": "Лимит #{{index}}",
     "reset_hint": "сброс через {{hint}}"
   },
+  "commandcode_quota": {
+    "title": "Квота Command Code",
+    "empty_title": "Нет файлов аутентификации Command Code",
+    "empty_desc": "Войдите в Command Code, чтобы увидеть остаток кредитов и окна использования.",
+    "stale_request": "Подключение или учётные данные изменились. Повторите попытку.",
+    "idle": "Нажмите, чтобы обновить квоту",
+    "loading": "Загрузка квоты...",
+    "load_failed": "Не удалось загрузить квоту: {{message}}",
+    "missing_auth_index": "В файле аутентификации нет auth_index",
+    "empty_data": "Нет данных о квоте",
+    "refresh_button": "Обновить квоту",
+    "fetch_all": "Получить все",
+    "five_hour": "Окно 5 часов",
+    "weekly": "Недельное окно",
+    "monthly": "Месячные кредиты тарифа",
+    "plan": "Тариф: {{plan}}",
+    "credits_left": "Осталось кредитов: {{amount}}"
+  },
   "xai_quota": {
     "title": "Квота Grok",
     "empty_title": "Файлы авторизации xAI/Grok отсутствуют",
@@ -979,7 +997,17 @@
     "restart_login": "Начать заново",
     "success_saved_hint": "Учётные данные сохранены — управляйте ими в файлах аутентификации.",
     "sign_up_prompt": "Нет аккаунта?",
-    "copied": "Скопировано"
+    "copied": "Скопировано",
+    "commandcode_oauth_title": "Вход в Command Code",
+    "commandcode_oauth_button": "Начать вход в Command Code",
+    "commandcode_oauth_hint": "Войдите в Command Code (commandcode.ai) в браузере и сохраните его API-ключ как файл аутентификации. Удалённый сервер: после авторизации скопируйте полный адрес http://127.0.0.1:54546/callback?… из адресной строки и отправьте его ниже. Модели перечисляются с префиксом commandcode/; модели Claude и тариф Go не поддерживаются.",
+    "commandcode_copy_link": "Копировать ссылку",
+    "commandcode_open_link": "Открыть ссылку",
+    "commandcode_oauth_status_waiting": "Ожидание авторизации Command Code...",
+    "commandcode_oauth_status_success": "Вход в Command Code выполнен!",
+    "commandcode_oauth_status_error": "Ошибка входа в Command Code:",
+    "commandcode_oauth_start_error": "Не удалось начать вход в Command Code:",
+    "commandcode_oauth_polling_error": "Не удалось проверить статус входа:"
   },
   "stats": {
     "success": "Успех",
