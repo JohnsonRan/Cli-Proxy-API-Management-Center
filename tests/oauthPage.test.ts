@@ -12,6 +12,7 @@ import ru from '@/i18n/locales/ru.json';
 import ko from '@/i18n/locales/ko.json';
 import vi from '@/i18n/locales/vi.json';
 import { OAuthPage } from '@/features/oauth/OAuthPage';
+import { OAuthFlowDialog } from '@/features/oauth/components/OAuthFlowDialog';
 import {
   COMMANDCODE_CALLBACK_URL,
   resolveCallbackUrl,
@@ -52,6 +53,60 @@ describe('OAuth dialog view resolution', () => {
 });
 
 describe('manual callback input', () => {
+  test.each(['commandcode', 'codex'])(
+    'renders the %s callback with appropriate masking',
+    async (providerId) => {
+      const i18n = createInstance();
+      await i18n.init({ lng: 'en', resources: { en: { translation: en } } });
+      const noop = () => {};
+      const markup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(OAuthFlowDialog, {
+            open: true,
+            providerId,
+            heading: { title: providerId, caption: 'Login', icon: '' },
+            state: {
+              status: 'waiting',
+              url: 'https://example.test/login',
+              callbackUrl: 'synthetic-callback',
+            },
+            text: (suffix) => i18n.t(`auth_login.${providerId}_${suffix}`),
+            supportsCallback: true,
+            onStart: noop,
+            onCancel: noop,
+            onCallbackChange: noop,
+            onCallbackSubmit: noop,
+            onViewAuthFiles: noop,
+            onClose: noop,
+          })
+        )
+      );
+      const input = markup.match(/<input\b[^>]*>/)?.[0];
+      expect(input).toBeDefined();
+      expect(input).toContain(`type="${providerId === 'commandcode' ? 'password' : 'text'}"`);
+      expect(input).toContain('autoComplete="off"');
+      expect(input).toContain('spellCheck="false"');
+      const inputId = input?.match(/id="([^"]+)"/)?.[1];
+      expect(inputId).toBeTruthy();
+      expect(markup).toContain(`for="${inputId}"`);
+    }
+  );
+
+  test('clears the reusable key only after an accepted, current Command Code callback', () => {
+    const source = readFileSync('src/features/oauth/hooks/useOAuthFlows.ts', 'utf8');
+    const accepted = source.slice(
+      source.indexOf('await oauthApi.submitCallback('),
+      source.indexOf("notify(provider, t('auth_login.oauth_callback_success')")
+    );
+    expect(accepted).toContain('if (!attempt.isCurrent()) return;');
+    expect(accepted).toContain("...(provider === 'commandcode' ? { callbackUrl: '' } : {})");
+    expect(accepted.indexOf('if (!attempt.isCurrent()) return;')).toBeLessThan(
+      accepted.indexOf("callbackUrl: ''")
+    );
+  });
+
   test('submits non-xAI input verbatim (trimmed)', () => {
     expect(resolveCallbackUrl('codex', '  http://localhost:1455/auth/callback?code=c  ')).toBe(
       'http://localhost:1455/auth/callback?code=c'
