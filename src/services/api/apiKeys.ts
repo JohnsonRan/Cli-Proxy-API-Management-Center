@@ -6,6 +6,8 @@ const PATH = '/config/access/api-keys';
 
 export interface ClientApiKeyItem {
   apiKey: string;
+  /** Display name stored in the server config; it does not affect access. */
+  name?: string;
   models?: string[];
   allowedModels?: string[];
   excludedModels?: string[];
@@ -23,8 +25,10 @@ export const parseClientApiKeyItem = (raw: unknown): ClientApiKeyItem => {
       const list = val.map((x) => String(x).trim()).filter(Boolean);
       return list.length > 0 ? list : undefined;
     };
+    const name = typeof record['name'] === 'string' ? record['name'].trim() : '';
     return {
       apiKey,
+      name: name || undefined,
       models: parseList(record['models']),
       allowedModels: parseList(record['allowed-models']),
       excludedModels: parseList(record['excluded-models']),
@@ -38,13 +42,17 @@ export const serializeClientApiKeyItem = (item: ClientApiKeyItem): unknown => {
   const excluded = item.excludedModels?.map((s) => s.trim()).filter(Boolean);
   const hasModels = Boolean(models && models.length > 0);
   const hasExcluded = Boolean(excluded && excluded.length > 0);
+  const name = item.name?.trim();
 
-  if (!hasModels && !hasExcluded) {
+  if (!name && !hasModels && !hasExcluded) {
     return item.apiKey;
   }
   const obj: Record<string, unknown> = {
     'api-key': item.apiKey,
   };
+  if (name) {
+    obj['name'] = name;
+  }
   if (hasModels) {
     obj['models'] = models;
   }
