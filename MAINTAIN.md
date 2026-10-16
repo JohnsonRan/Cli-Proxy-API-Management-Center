@@ -24,6 +24,8 @@ Re-run on 2026-10-16 before `patch/quota-api`, searching open and closed issues 
 
 Conclusion unchanged: no active upstream issue or PR covers the client-key page rework or the button layout fix, so both stay downstream. Re-run this search before changing any patch and update this section with the links and the conclusion.
 
+Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed issues and pull requests for `commandcode`, `command code` and `command-code`: no results in this repository. Core context: [router-for-me/CLIProxyAPI#3969](https://github.com/router-for-me/CLIProxyAPI/pull/3969) (closed; the maintainer asked for a plugin) and [#5060](https://github.com/router-for-me/CLIProxyAPI/pull/5060) (open, conflicting, API keys only). Upstream ships no Command Code login or quota card, so both stay downstream.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -150,9 +152,17 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
 16. **`patch/quota-api`**
     - **Goal**: Choose, per client API key, which OAuth credentials the key can read through the core's `GET /v1/usage`, and edit its cache TTL.
     - **Scope**: The API keys page add/edit dialog lists the Codex, Claude, Antigravity and xAI OAuth credentials as checkboxes (`ClientKeyQuotaCredentialsField`, options from `utils/quotaCredentials.ts`), stored by core auth ID in `observability.quota-api.keys` (`services/api/quotaApiKeys.ts`). Saving writes the key's selection, a renamed key carries it, deleting a key drops it, and an unchanged selection writes nothing; saved IDs whose credential is gone stay listed as removed. The key table shows how many credentials a key can read. The logging section keeps `observability.quota-api.cache-ttl-seconds` after the usage statistics switch (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30); the former `enabled` switch is gone because the core ignores it. Localized in all 6 locales; tests in `tests/quotaApiKeys.test.ts` and `tests/quotaApiConfig.test.ts`.
-    - **Stacked**: Branched from `patch/client-key-provider-scope` (it edits `ApiKeysPage`) and integrated as a seam-diff against it (see below), still in last position.
+    - **Stacked**: Branched from `patch/client-key-provider-scope` (it edits `ApiKeysPage`) and integrated as a seam-diff against it (see below), right after `patch/usage-exclude-embeddings`.
     - **Note**: The logging insertion point sits one unchanged line away from `patch/usage-exclude-embeddings` and `patch/codex-app-keepalive`, so those apply cleanly in any order.
     - **Cross-repo**: Needs the core patch `patch/quota-api` (core `2628cfe5`). Against an older core the selection has no effect.
+
+17. **`patch/commandcode-oauth`**
+    - **Goal**: Log in to Command Code (commandcode.ai) like the other OAuth providers and show its quota.
+    - **Scope**:
+      - OAuth gallery tile `commandcode` (browser flow, `is_webui`, manual callback). A remote login pastes the `http://127.0.0.1:54546/callback?apiKey=…` URL; the core reads the key from it.
+      - Built-in quota card `commandcode` (`features/quota/providers/commandcode`): through api-call with `Bearer $TOKEN$` it reads `GET https://api.commandcode.ai/alpha/billing/credits` (5-hour and weekly windows, remaining monthly/purchased/free credits) and `/alpha/billing/subscriptions` (plan and period end), the endpoints of the official CLI's `/usage`. The monthly row needs an active, known plan, because the API reports only the remaining monthly credits; the plan table is the CLI's. Rows reuse the Kimi row shape and meter, so reset scheduling and the timeline handle them the same way.
+      - Icons, type colors, dashboard label; localized in all 6 locales; tests in `tests/commandCodeQuota.test.ts`.
+    - **Cross-repo**: Needs the core patch `patch/commandcode-oauth`. Against a core without it the tile answers `provider_not_found`.
 
 ## Temporary Compatibility Patches
 
@@ -166,7 +176,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 `patch/client-key-provider-scope` extends that chain: it is branched from `patch/client-api-key-models`, integrated right after it with `git diff origin/patch/client-api-key-models origin/patch/client-key-provider-scope | git apply --3way`, and the sync fails closed unless `client-api-key-models` is an ancestor of it. Rebase it whenever `client-api-key-models` moves.
 
-`patch/quota-api` is stacked on `patch/client-key-provider-scope`: its credential picker extends the same `ApiKeysPage`. It stays last in the order and is integrated with `git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way`; the sync fails closed unless `client-key-provider-scope` is an ancestor of it. Rebase it whenever `client-key-provider-scope` moves.
+`patch/quota-api` is stacked on `patch/client-key-provider-scope`: its credential picker extends the same `ApiKeysPage`. It is integrated after `patch/usage-exclude-embeddings` with `git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way`; the sync fails closed unless `client-key-provider-scope` is an ancestor of it. Rebase it whenever `client-key-provider-scope` moves.
 
 `patch/systemone-endpoint` is stacked on `patch/embeddings-and-rerank` the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
 
@@ -174,7 +184,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth
 
 git checkout -B main upstream/main
 
@@ -246,6 +256,9 @@ git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git app
 git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
 git add -A
 git commit -m "merge patch/quota-api branch"
+
+git merge --squash origin/patch/commandcode-oauth
+git commit -m "merge patch/commandcode-oauth branch"
 
 bun install --frozen-lockfile
 bun run type-check
