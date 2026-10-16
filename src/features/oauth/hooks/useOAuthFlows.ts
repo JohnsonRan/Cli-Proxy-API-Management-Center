@@ -337,7 +337,11 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     const redirectUrl = resolveCallbackUrl(provider, callbackInput, states[provider]?.state);
     if (!redirectUrl) {
       rejectInput(
-        provider === 'xai' ? 'auth_login.xai_callback_state_missing' : 'auth_login.missing_state'
+        provider === 'xai'
+          ? 'auth_login.xai_callback_state_missing'
+          : provider === 'commandcode'
+            ? 'auth_login.commandcode_callback_invalid'
+            : 'auth_login.missing_state'
       );
       return;
     }
