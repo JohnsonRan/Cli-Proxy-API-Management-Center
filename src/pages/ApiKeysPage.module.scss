@@ -580,3 +580,42 @@
     transform: rotate(360deg);
   }
 }
+
+// Per-key credential visibility for GET /v1/usage (observability.quota-api.keys).
+.quotaCredentialList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: $spacing-xs;
+}
+
+.quotaCredentialLabel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  word-break: break-all;
+}
+
+.quotaCredentialProvider {
+  padding: 0 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, $success-color 15%, transparent);
+  color: $success-color;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.quotaCredentialMissing {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.quotaCredentialStatus {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+}

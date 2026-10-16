@@ -178,7 +178,6 @@ export type VisualConfigValues = {
   errorLogsMaxFiles: string;
   usageStatisticsEnabled: boolean;
   redisUsageQueueRetentionSeconds: string;
-  quotaApiEnabled: boolean;
   quotaApiCacheTtlSeconds: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
@@ -282,7 +281,6 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   errorLogsMaxFiles: '',
   usageStatisticsEnabled: false,
   redisUsageQueueRetentionSeconds: '',
-  quotaApiEnabled: false,
   quotaApiCacheTtlSeconds: '',
   proxyUrl: '',
   forceModelPrefix: false,

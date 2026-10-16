@@ -512,13 +512,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['observability', 'usage', 'redis-usage-queue-retention-seconds'],
   },
   {
-    fieldId: 'quotaApiEnabled',
-    sectionId: 'logging',
-    labelKey: L('sections.system.quota_api_enabled'),
-    hintKey: L('sections.system.quota_api_enabled_desc'),
-    yamlKeys: ['observability', 'quota-api', 'enabled'],
-  },
-  {
     fieldId: 'quotaApiCacheTtlSeconds',
     sectionId: 'logging',
     labelKey: L('sections.system.quota_api_cache_ttl'),

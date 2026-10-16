@@ -1396,8 +1396,6 @@
           "usage_statistics_enabled_desc": "메모리에서 요청 사용량 통계를 집계합니다.",
           "redis_usage_retention": "Redis 사용량 큐 보존 시간 (초)",
           "redis_usage_retention_hint": "RESP LPOP/RPOP 사용량 출력을 위한 인메모리 보존 시간으로 최대 3600초입니다.",
-          "quota_api_enabled": "클라이언트 할당량 엔드포인트 (GET /v1/usage)",
-          "quota_api_enabled_desc": "유효한 클라이언트 API 키라면 활성화된 모든 Codex, Claude, Antigravity, xAI OAuth 자격 증명의 할당량을 CC Switch 등 클라이언트가 사용하는 Sub2API /v1/usage 형식으로 읽을 수 있습니다. 자격 증명은 계정 정보 없이 \"<provider>#<n>\"으로 표시됩니다.",
           "quota_api_cache_ttl": "할당량 캐시 (초)",
           "quota_api_cache_ttl_hint": "업스트림 할당량 결과를 재사용하는 시간입니다. 비우거나 0이면 300초를 사용하고, 30 미만은 30으로 올립니다.",
           "antigravity_sensitive_words": "민감한 단어 난독화",
@@ -2350,6 +2348,17 @@
       "error_prefix_required": "키 접두사를 입력하세요.",
       "error_providers_required": "제공자를 하나 이상 추가하세요. 제공자가 없는 규칙은 백엔드가 무시합니다.",
       "error_prefix_duplicate": "다른 규칙이 이미 이 접두사를 사용합니다. 첫 번째 규칙만 적용됩니다."
+    },
+    "quota_credentials": {
+      "label": "할당량 표시 자격 증명 (GET /v1/usage)",
+      "hint": "이 키는 GET /v1/usage로 선택한 OAuth 자격 증명의 업스트림 할당량을 읽을 수 있습니다. 기본값은 선택 없음이며, 선택하지 않으면 빈 목록을 반환합니다.",
+      "tag": "할당량: 자격 증명 {{n}}개",
+      "loading": "자격 증명을 불러오는 중…",
+      "load_failed": "자격 증명을 불러오지 못했습니다.",
+      "retry": "다시 시도",
+      "empty": "Codex, Claude, Antigravity 또는 xAI OAuth 자격 증명이 없습니다.",
+      "missing": "(삭제됨)",
+      "disabled": "(비활성화됨)"
     }
   }
 }

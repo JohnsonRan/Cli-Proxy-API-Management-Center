@@ -1188,8 +1188,6 @@
           "usage_statistics_enabled_desc": "Tổng hợp thống kê sử dụng yêu cầu trong bộ nhớ",
           "redis_usage_retention": "Thời gian giữ hàng đợi sử dụng Redis (giây)",
           "redis_usage_retention_hint": "Thời gian giữ trong bộ nhớ cho đầu ra sử dụng RESP LPOP/RPOP, tối đa 3600 giây",
-          "quota_api_enabled": "Endpoint hạn mức cho client (GET /v1/usage)",
-          "quota_api_enabled_desc": "Cho phép mọi client API key hợp lệ đọc hạn mức của tất cả thông tin xác thực OAuth Codex, Claude, Antigravity và xAI đang bật, theo định dạng Sub2API /v1/usage mà các client như CC Switch sử dụng. Thông tin xác thực hiển thị dạng \"<provider>#<n>\", không kèm chi tiết tài khoản.",
           "quota_api_cache_ttl": "Bộ nhớ đệm hạn mức (giây)",
           "quota_api_cache_ttl_hint": "Thời gian dùng lại kết quả hạn mức từ upstream. Để trống hoặc 0 dùng 300 giây; giá trị dưới 30 được nâng lên 30.",
           "antigravity_signature_cache": "Bật cache chữ ký Antigravity",
@@ -2356,6 +2354,17 @@
       "error_prefix_required": "Nhập tiền tố khóa.",
       "error_providers_required": "Thêm ít nhất một nhà cung cấp; backend bỏ qua quy tắc không có nhà cung cấp.",
       "error_prefix_duplicate": "Tiền tố này đã được dùng; chỉ quy tắc đầu tiên có hiệu lực."
+    },
+    "quota_credentials": {
+      "label": "Thông tin xác thực xem hạn mức (GET /v1/usage)",
+      "hint": "Khóa này có thể đọc hạn mức upstream của các thông tin xác thực OAuth đã chọn qua GET /v1/usage. Mặc định không chọn gì, và khóa chưa chọn sẽ nhận danh sách rỗng.",
+      "tag": "Hạn mức: {{n}} thông tin xác thực",
+      "loading": "Đang tải thông tin xác thực…",
+      "load_failed": "Không tải được thông tin xác thực.",
+      "retry": "Thử lại",
+      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity hoặc xAI.",
+      "missing": "(đã xóa)",
+      "disabled": "(đã tắt)"
     }
   }
 }
