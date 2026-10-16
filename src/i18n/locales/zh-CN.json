@@ -1404,8 +1404,6 @@
           "usage_statistics_enabled_desc": "启用内存中的请求用量聚合",
           "redis_usage_retention": "Redis 用量队列保留秒数",
           "redis_usage_retention_hint": "RESP 接口 LPOP/RPOP 用量队列的内存保留时间，最大 3600 秒",
-          "quota_api_enabled": "客户端额度查询接口（GET /v1/usage）",
-          "quota_api_enabled_desc": "允许任意有效的客户端 API Key 读取所有已启用的 Codex、Claude、Antigravity 和 xAI OAuth 凭证额度，返回 CC Switch 等客户端使用的 Sub2API /v1/usage 格式。凭证显示为 \"<provider>#<n>\"，不含账号信息。",
           "quota_api_cache_ttl": "额度缓存时间（秒）",
           "quota_api_cache_ttl_hint": "上游额度结果的复用时长。留空或 0 使用 300 秒，低于 30 秒按 30 秒处理。",
           "antigravity_sensitive_words": "敏感词混淆",
@@ -2510,6 +2508,17 @@
       "error_prefix_required": "请填写密钥前缀。",
       "error_providers_required": "至少添加一个提供商；没有提供商的规则会被后端忽略。",
       "error_prefix_duplicate": "已有规则使用此前缀，只有第一条生效。"
+    },
+    "quota_credentials": {
+      "label": "额度可见凭证（GET /v1/usage）",
+      "hint": "该密钥可通过 GET /v1/usage 读取所选 OAuth 凭证的上游额度。默认不选任何凭证，未选择时返回空列表。",
+      "tag": "额度：{{n}} 个凭证",
+      "loading": "正在加载凭证…",
+      "load_failed": "凭证加载失败。",
+      "retry": "重试",
+      "empty": "没有 Codex、Claude、Antigravity 或 xAI 的 OAuth 凭证。",
+      "missing": "（已移除）",
+      "disabled": "（已禁用）"
     }
   }
 }

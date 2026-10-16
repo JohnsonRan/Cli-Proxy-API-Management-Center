@@ -20,11 +20,8 @@ const renderLogging = (values = DEFAULT_VISUAL_VALUES) =>
   );
 
 describe('client quota endpoint (observability.quota-api)', () => {
-  test('indexes both fields in the logging section', () => {
-    expect(findConfigFieldById('quotaApiEnabled')).toMatchObject({
-      sectionId: 'logging',
-      yamlKeys: ['observability', 'quota-api', 'enabled'],
-    });
+  test('indexes the cache field in the logging section', () => {
+    expect(findConfigFieldById('quotaApiEnabled')).toBeUndefined();
     expect(findConfigFieldById('quotaApiCacheTtlSeconds')).toMatchObject({
       sectionId: 'logging',
       yamlKeys: ['observability', 'quota-api', 'cache-ttl-seconds'],
@@ -33,28 +30,29 @@ describe('client quota endpoint (observability.quota-api)', () => {
 
   test('reads and writes the v8 block without touching siblings', () => {
     const yaml =
-      'observability:\n  quota-api:\n    enabled: false # keep\n    cache-ttl-seconds: 120\n' +
+      'observability:\n  quota-api:\n    cache-ttl-seconds: 120 # keep\n' +
+      '    keys:\n      - api-key: sk-a\n        credentials: [codex.json]\n' +
       '  usage:\n    usage-statistics-enabled: true\n';
-    const config = runVisualConfig(yaml, [{ quotaApiEnabled: true }]);
-    expect(config.visualValues.quotaApiCacheTtlSeconds).toBe('120');
+    expect(runVisualConfig(yaml, []).visualValues.quotaApiCacheTtlSeconds).toBe('120');
+    const config = runVisualConfig(yaml, [{ quotaApiCacheTtlSeconds: '90' }]);
     const doc = parseDocument(config.applyVisualChangesToYaml(yaml));
-    expect(doc.getIn(['observability', 'quota-api', 'enabled'])).toBe(true);
-    expect(doc.getIn(['observability', 'quota-api', 'cache-ttl-seconds'])).toBe(120);
+    expect(doc.getIn(['observability', 'quota-api', 'cache-ttl-seconds'])).toBe(90);
+    expect(doc.getIn(['observability', 'quota-api', 'keys', 0, 'api-key'])).toBe('sk-a');
     expect(doc.getIn(['observability', 'usage', 'usage-statistics-enabled'])).toBe(true);
-    expect([...config.visualDirtyFields]).toEqual(['quotaApiEnabled']);
+    expect([...config.visualDirtyFields]).toEqual(['quotaApiCacheTtlSeconds']);
   });
 
   test('saves the TTL as a number and removes it when cleared', () => {
-    const yaml = 'observability:\n  quota-api:\n    enabled: true\n';
+    const yaml = 'observability:\n  quota-api:\n    keys: []\n';
     const set = runVisualConfig(yaml, [{ quotaApiCacheTtlSeconds: '600' }]);
     const written = parseDocument(set.applyVisualChangesToYaml(yaml));
     expect(written.getIn(['observability', 'quota-api', 'cache-ttl-seconds'])).toBe(600);
 
-    const withTtl = 'observability:\n  quota-api:\n    enabled: true\n    cache-ttl-seconds: 60\n';
+    const withTtl = 'observability:\n  quota-api:\n    keys: []\n    cache-ttl-seconds: 60\n';
     const cleared = runVisualConfig(withTtl, [{ quotaApiCacheTtlSeconds: '' }]);
     const doc = parseDocument(cleared.applyVisualChangesToYaml(withTtl));
     expect(doc.hasIn(['observability', 'quota-api', 'cache-ttl-seconds'])).toBe(false);
-    expect(doc.getIn(['observability', 'quota-api', 'enabled'])).toBe(true);
+    expect(doc.hasIn(['observability', 'quota-api', 'keys'])).toBe(true);
   });
 
   test('rejects a negative or fractional TTL', () => {
@@ -70,21 +68,14 @@ describe('client quota endpoint (observability.quota-api)', () => {
     ).toBeUndefined();
   });
 
-  test('renders after usage statistics and locks the TTL while disabled', () => {
-    const off = renderLogging();
-    const usage = off.indexOf('cfg-field-usageStatisticsEnabled');
-    const toggle = off.indexOf('cfg-field-quotaApiEnabled');
-    const ttl = off.indexOf('cfg-field-quotaApiCacheTtlSeconds');
+  test('renders the TTL after usage statistics, always editable', () => {
+    const markup = renderLogging();
+    const usage = markup.indexOf('cfg-field-usageStatisticsEnabled');
+    const ttl = markup.indexOf('cfg-field-quotaApiCacheTtlSeconds');
     expect(usage).toBeGreaterThan(-1);
-    expect(toggle).toBeGreaterThan(usage);
-    expect(ttl).toBeGreaterThan(toggle);
-    const ttlInput = (markup: string) => {
-      const start = markup.indexOf('<input', markup.indexOf('cfg-field-quotaApiCacheTtlSeconds'));
-      return markup.slice(start, markup.indexOf('>', start));
-    };
-    expect(ttlInput(off)).toContain('disabled');
-    expect(
-      ttlInput(renderLogging({ ...DEFAULT_VISUAL_VALUES, quotaApiEnabled: true }))
-    ).not.toContain('disabled');
+    expect(ttl).toBeGreaterThan(usage);
+    expect(markup).not.toContain('cfg-field-quotaApiEnabled');
+    const start = markup.indexOf('<input', ttl);
+    expect(markup.slice(start, markup.indexOf('>', start))).not.toContain('disabled');
   });
 });
