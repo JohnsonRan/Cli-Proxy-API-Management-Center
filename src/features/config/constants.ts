@@ -175,7 +175,6 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   logsMaxTotalSizeMb: ['logsMaxTotalSizeMb'],
   errorLogsMaxFiles: ['errorLogsMaxFiles'],
   redisUsageQueueRetentionSeconds: ['redisUsageQueueRetentionSeconds'],
-  quotaApiEnabled: ['quotaApiEnabled'],
   quotaApiCacheTtlSeconds: ['quotaApiCacheTtlSeconds'],
   usageStatisticsEnabled: ['usageStatisticsEnabled'],
   // ── streaming ─────────────────────────────────────────────────────────────
