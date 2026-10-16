@@ -204,27 +204,44 @@ describe('atomic client key and quota writes', () => {
 
 // Exercise the real callbacks without introducing a browser DOM test dependency.
 const pageSource = readFileSync('src/pages/ApiKeysPage.tsx', 'utf8');
+function callbackSource(action: string) {
+  const source = ts.createSourceFile('ApiKeysPage.tsx', pageSource, ts.ScriptTarget.Latest, true);
+  let callback: ts.Node | undefined;
+  function visit(node: ts.Node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(source) === action) {
+      const call = node.initializer;
+      if (call && ts.isCallExpression(call)) callback = call.arguments[0];
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  if (!callback) throw new Error(`Callback not found: ${action}`);
+  return ts.transpileModule(`return (${callback.getText(source)});`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+}
+
 function mutationHarness(
   action: 'handleSave' | 'handleConfirmDelete',
-  failure: 'write' | 'refresh'
+  failure: 'write' | 'refresh' | 'connection-write' | 'connection-refresh'
 ) {
   let items: ClientApiKeyItem[] = [{ apiKey: 'sk-a' }, { apiKey: 'sk-b' }];
   let quota = structuredClone(entries);
   let fail = true;
+  let connected = true;
   let closed = false;
   let errors = 0;
+  let cacheClears = 0;
+  let refreshes = 0;
+  const notifications: { message: string; kind: string }[] = [];
   const requests: unknown[] = [];
   apiClient.patch = (async (_url: string, body: unknown) => {
     requests.push(body);
     if (fail && failure === 'write') throw new Error('write failed');
+    if (failure === 'connection-write') connected = false;
   }) as typeof apiClient.patch;
-  const start = pageSource.indexOf(`  const ${action} = useCallback(`);
-  const end = pageSource.indexOf('\n  }, [', start);
-  const js = ts.transpileModule(`${pageSource.slice(start, end)}\n  }, []);\nreturn ${action};`, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
-  }).outputText;
   return {
-    async run() {
+    async run(nextAction = action, credentials = ['codex.json']) {
       const env = {
         useCallback: (fn: unknown) => fn,
         keyInput: 'sk-c',
@@ -236,8 +253,12 @@ function mutationHarness(
         apiBase: 'http://fixture.invalid',
         apiKeyItems: items,
         quotaKeys: quota,
-        quotaCredentials: ['codex.json'],
-        connectionGuardRef: { current: () => {} },
+        quotaCredentials: credentials,
+        connectionGuardRef: {
+          current: () => {
+            if (!connected) throw new Error('connection changed');
+          },
+        },
         quotaApiKeysApi,
         sameQuotaApiKeys,
         withQuotaCredentials,
@@ -261,21 +282,37 @@ function mutationHarness(
         setFormError: () => {
           errors++;
         },
-        showNotification: (_message: string, kind: string) => {
+        showNotification: (message: string, kind: string) => {
+          notifications.push({ message, kind });
           if (kind === 'error') errors++;
         },
         getErrorMessage: (error: Error) => error.message,
         t: (key: string) => key,
+        clearConfigCache: () => {
+          cacheClears++;
+        },
         fetchConfig: async () => {
+          refreshes++;
+          expect(cacheClears).toBe(refreshes);
+          expect(closed).toBe(true);
+          if (failure === 'connection-refresh') connected = false;
           if (fail && failure === 'refresh') throw new Error('refresh failed');
         },
       };
-      await new Function(...Object.keys(env), js)(...Object.values(env))();
+      const refreshConfigAfterSave = new Function(
+        ...Object.keys(env),
+        callbackSource('refreshConfigAfterSave')
+      )(...Object.values(env));
+      await new Function(...Object.keys(env), 'refreshConfigAfterSave', callbackSource(nextAction))(
+        ...Object.values(env),
+        refreshConfigAfterSave
+      )();
     },
     retry() {
       fail = false;
     },
     requests,
+    notifications,
     get items() {
       return items;
     },
@@ -288,39 +325,101 @@ function mutationHarness(
     get errors() {
       return errors;
     },
+    get cacheClears() {
+      return cacheClears;
+    },
   };
 }
 
-for (const failure of ['write', 'refresh'] as const) {
-  test(`delete retry after ${failure} failure never deletes the next key`, async () => {
-    const h = mutationHarness('handleConfirmDelete', failure);
+test('delete retry after write failure never deletes the next key', async () => {
+  const h = mutationHarness('handleConfirmDelete', 'write');
+  await h.run();
+  expect(h.errors).toBe(1);
+  expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
+  expect(h.quota).toEqual(entries);
+  expect(h.closed).toBe(false);
+  expect(h.cacheClears).toBe(0);
+  h.retry();
+  await h.run();
+  expect(h.requests).toHaveLength(2);
+  expect(h.requests[1]).toEqual(h.requests[0]);
+  expect(h.items).toEqual([{ apiKey: 'sk-b' }]);
+  expect(h.quota).toEqual([entries[1]]);
+  expect(h.closed).toBe(true);
+});
+
+test("rename retry after write failure removes the old key's quota grants", async () => {
+  const h = mutationHarness('handleSave', 'write');
+  await h.run();
+  expect(h.errors).toBe(1);
+  expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
+  expect(h.quota).toEqual(entries);
+  expect(h.closed).toBe(false);
+  expect(h.cacheClears).toBe(0);
+  h.retry();
+  await h.run();
+  expect(h.requests).toHaveLength(2);
+  expect(h.requests[1]).toEqual(h.requests[0]);
+  expect(h.items.map((item) => item.apiKey)).toEqual(['sk-c', 'sk-b']);
+  expect(h.quota).toEqual([{ apiKey: 'sk-c', credentials: ['codex.json'] }, entries[1]]);
+  expect(h.closed).toBe(true);
+});
+
+for (const action of ['handleSave', 'handleConfirmDelete'] as const) {
+  test(`${action} commits local state and closes dialog despite failed refresh`, async () => {
+    const h = mutationHarness(action, 'refresh');
     await h.run();
-    expect(h.errors).toBe(1);
-    expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
-    expect(h.quota).toEqual(entries);
-    expect(h.closed).toBe(false);
-    h.retry();
-    await h.run();
-    expect(h.requests).toHaveLength(2);
-    expect(h.requests[1]).toEqual(h.requests[0]);
-    expect(h.items).toEqual([{ apiKey: 'sk-b' }]);
-    expect(h.quota).toEqual([entries[1]]);
+    expect(h.requests).toHaveLength(1);
+    expect(h.errors).toBe(0);
     expect(h.closed).toBe(true);
+    expect(h.cacheClears).toBe(1);
+    expect(h.items.map((item) => item.apiKey)).toEqual(
+      action === 'handleSave' ? ['sk-c', 'sk-b'] : ['sk-b']
+    );
+    expect(h.quota).toEqual(
+      action === 'handleSave'
+        ? [{ apiKey: 'sk-c', credentials: ['codex.json'] }, entries[1]]
+        : [entries[1]]
+    );
+    expect(h.notifications).toEqual([
+      {
+        kind: 'warning',
+        message: 'config_management.save_success. notification.refresh_failed: refresh failed',
+      },
+    ]);
   });
 
-  test(`rename retry after ${failure} failure removes the old key's quota grants`, async () => {
-    const h = mutationHarness('handleSave', failure);
+  test(`${action} applies nothing if connection switches during write`, async () => {
+    const h = mutationHarness(action, 'connection-write');
     await h.run();
-    expect(h.errors).toBe(1);
     expect(h.items.map((item) => item.apiKey)).toEqual(['sk-a', 'sk-b']);
     expect(h.quota).toEqual(entries);
     expect(h.closed).toBe(false);
-    h.retry();
+    expect(h.cacheClears).toBe(0);
+  });
+
+  test(`${action} suppresses old-session notifications after refresh switches connection`, async () => {
+    const h = mutationHarness(action, 'connection-refresh');
     await h.run();
-    expect(h.requests).toHaveLength(2);
-    expect(h.requests[1]).toEqual(h.requests[0]);
-    expect(h.items.map((item) => item.apiKey)).toEqual(['sk-c', 'sk-b']);
-    expect(h.quota).toEqual([{ apiKey: 'sk-c', credentials: ['codex.json'] }, entries[1]]);
+    expect(h.errors).toBe(0);
     expect(h.closed).toBe(true);
+    expect(h.notifications).toEqual([]);
   });
 }
+
+test('next mutation after failed post-delete refresh cannot resurrect the deleted key', async () => {
+  const h = mutationHarness('handleConfirmDelete', 'refresh');
+  await h.run();
+  expect(h.closed).toBe(true);
+  h.retry();
+  await h.run('handleSave', ['claude.json']);
+  expect(h.requests).toHaveLength(2);
+  expect(h.requests[1]).toEqual({
+    access: { 'api-keys': ['sk-c'] },
+    observability: {
+      'quota-api': { keys: [{ 'api-key': 'sk-c', credentials: ['claude.json'] }] },
+    },
+  });
+  expect(h.items.map((item) => item.apiKey)).toEqual(['sk-c']);
+  expect(h.quota).toEqual([{ apiKey: 'sk-c', credentials: ['claude.json'] }]);
+});
