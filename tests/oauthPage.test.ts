@@ -12,7 +12,11 @@ import ru from '@/i18n/locales/ru.json';
 import ko from '@/i18n/locales/ko.json';
 import vi from '@/i18n/locales/vi.json';
 import { OAuthPage } from '@/features/oauth/OAuthPage';
-import { resolveCallbackUrl, XAI_CALLBACK_URL } from '@/features/oauth/callbackUrl';
+import {
+  COMMANDCODE_CALLBACK_URL,
+  resolveCallbackUrl,
+  XAI_CALLBACK_URL,
+} from '@/features/oauth/callbackUrl';
 import { resolveFlowView, splitAuthUrl } from '@/features/oauth/flowView';
 import { buildPluginOAuthProviderCards, OAUTH_PROVIDERS } from '@/features/oauth/providers';
 import {
@@ -76,6 +80,37 @@ describe('manual callback input', () => {
     expect(built.searchParams.get('state')).toBe('pasted');
     expect(built.searchParams.get('error')).toBe('access_denied');
     expect(built.searchParams.get('error_description')).toBe('no');
+  });
+
+  test('builds the Command Code callback from a pasted payload, JSON, URL or bare key', () => {
+    const read = (input: string, state?: string) => {
+      const built = resolveCallbackUrl('commandcode', input, state);
+      if (!built) return null;
+      const url = new URL(built);
+      expect(`${url.origin}${url.pathname}`).toBe(COMMANDCODE_CALLBACK_URL);
+      return Object.fromEntries(url.searchParams);
+    };
+    expect(read('apiKey=k1&state=pasted&userId=u&userName=n&keyName=cli', 'st')).toEqual({
+      state: 'pasted',
+      apiKey: 'k1',
+    });
+    expect(read('{"apiKey":"k2","state":"s2","userId":"u"}')).toEqual({
+      state: 's2',
+      apiKey: 'k2',
+    });
+    expect(read(`${COMMANDCODE_CALLBACK_URL}?apiKey=k3&state=s3`)).toEqual({
+      state: 's3',
+      apiKey: 'k3',
+    });
+    expect(read('  user_k4  ', 'st-4')).toEqual({ state: 'st-4', apiKey: 'user_k4' });
+    expect(read('error=access_denied', 'st-5')).toEqual({ state: 'st-5', error: 'access_denied' });
+  });
+
+  test('rejects Command Code input without an API key or state', () => {
+    expect(resolveCallbackUrl('commandcode', COMMANDCODE_CALLBACK_URL, 'st')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', 'user_k')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', 'state=s', 'st')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', '{not json', 'st')).toBeNull();
   });
 
   test('refuses to invent a state for xAI', () => {
