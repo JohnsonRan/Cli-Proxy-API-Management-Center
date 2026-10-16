@@ -109,6 +109,7 @@ export function ApiKeysPage() {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const clearConfigCache = useConfigStore((state) => state.clearCache);
   const openaiCompatibility = useConfigStore((state) => state.config?.openaiCompatibility);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
@@ -315,6 +316,29 @@ export function ApiKeysPage() {
     setFormError('');
   };
 
+  const refreshConfigAfterSave = useCallback(
+    async (assertConnection: () => void) => {
+      // Drop the pre-write snapshot and any in-flight read before refreshing committed state.
+      clearConfigCache();
+      try {
+        await fetchConfig(true);
+        assertConnection();
+        showNotification(t('config_management.save_success'), 'success');
+      } catch (err) {
+        try {
+          assertConnection();
+        } catch {
+          return;
+        }
+        showNotification(
+          `${t('config_management.save_success')}. ${t('notification.refresh_failed')}: ${getErrorMessage(err)}`,
+          'warning'
+        );
+      }
+    },
+    [clearConfigCache, fetchConfig, showNotification, t]
+  );
+
   const handleSave = useCallback(async () => {
     const trimmedKey = keyInput.trim();
     if (!trimmedKey) {
@@ -352,13 +376,11 @@ export function ApiKeysPage() {
         sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
         assertConnection
       );
-      // Keep the original retry target even if refreshing after a successful write fails.
-      await fetchConfig(true);
       assertConnection();
       setApiKeyItems(nextItems);
       setQuotaKeys(nextQuota);
       closeModal();
-      showNotification(t('common.saved_success', '保存成功'), 'success');
+      await refreshConfigAfterSave(assertConnection);
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -369,12 +391,11 @@ export function ApiKeysPage() {
     apiKeyItems,
     editingIndex,
     excludedModels,
-    fetchConfig,
     keyInput,
     nameInput,
     quotaCredentials,
     quotaKeys,
-    showNotification,
+    refreshConfigAfterSave,
     t,
   ]);
 
@@ -408,18 +429,17 @@ export function ApiKeysPage() {
         sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
         assertConnection
       );
-      await fetchConfig(true);
       assertConnection();
       setApiKeyItems(nextItems);
       setQuotaKeys(nextQuota);
       closeDeleteModal();
-      showNotification(t('common.saved_success', '保存成功'), 'success');
+      await refreshConfigAfterSave(assertConnection);
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
     } finally {
       setSaving(false);
     }
-  }, [apiKeyItems, fetchConfig, quotaKeys, showNotification, t, targetDeleteIndex]);
+  }, [apiKeyItems, quotaKeys, refreshConfigAfterSave, showNotification, targetDeleteIndex]);
 
   const modalScope = modalOpen ? resolveKeyScope(keyInput, keyScopes)?.scope : undefined;
 
