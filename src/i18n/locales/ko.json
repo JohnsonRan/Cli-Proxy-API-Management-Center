@@ -636,6 +636,24 @@
     "limit_index": "한도 #{{index}}",
     "reset_hint": "{{hint}} 후 초기화"
   },
+  "commandcode_quota": {
+    "title": "Command Code 할당량",
+    "empty_title": "Command Code 인증 파일 없음",
+    "empty_desc": "Command Code에 로그인하면 남은 크레딧과 사용량 창을 볼 수 있습니다.",
+    "stale_request": "연결 또는 자격 증명이 변경되었습니다. 다시 시도하세요.",
+    "idle": "여기를 클릭해 할당량 새로고침",
+    "loading": "할당량 불러오는 중...",
+    "load_failed": "할당량 불러오기 실패: {{message}}",
+    "missing_auth_index": "인증 파일에 auth_index가 없습니다",
+    "empty_data": "할당량 데이터가 없습니다",
+    "refresh_button": "할당량 새로고침",
+    "fetch_all": "모두 가져오기",
+    "five_hour": "5시간 창",
+    "weekly": "주간 창",
+    "monthly": "월간 플랜 크레딧",
+    "plan": "플랜: {{plan}}",
+    "credits_left": "남은 크레딧: {{amount}}"
+  },
   "xai_quota": {
     "title": "Grok 할당량",
     "empty_title": "xAI/Grok 인증 파일 없음",
@@ -982,7 +1000,20 @@
     "restart_login": "다시 시작",
     "success_saved_hint": "자격 증명이 저장되었습니다. 인증 파일에서 관리할 수 있습니다.",
     "sign_up_prompt": "계정이 없나요?",
-    "copied": "복사됨"
+    "copied": "복사됨",
+    "commandcode_oauth_title": "Command Code 로그인",
+    "commandcode_oauth_button": "Command Code 로그인 시작",
+    "commandcode_oauth_hint": "브라우저에서 Command Code(commandcode.ai)에 로그인하고 API 키를 인증 파일로 저장합니다. 원격 서버: Studio는 키를 http://127.0.0.1:54546/callback 으로 보내지만 브라우저에서 서버로 전달되지 않으므로 아래에 직접 제출하세요. Claude 모델과 Go 플랜은 지원하지 않습니다.",
+    "commandcode_callback_hint": "페이지가 127.0.0.1:54546 에 연결되지 않으면 개발자 도구 → 네트워크에서 callback 요청을 선택하고 페이로드의 apiKey 값(또는 페이로드 소스)을 붙여 넣으세요. 매개변수가 포함된 전체 콜백 URL도 사용할 수 있습니다.",
+    "commandcode_callback_placeholder": "API 키, apiKey=…&state=… 페이로드 또는 콜백 URL",
+    "commandcode_callback_invalid": "API 키, 콜백 페이로드 또는 apiKey가 포함된 콜백 URL을 입력하세요.",
+    "commandcode_copy_link": "링크 복사",
+    "commandcode_open_link": "링크 열기",
+    "commandcode_oauth_status_waiting": "Command Code 승인을 기다리는 중...",
+    "commandcode_oauth_status_success": "Command Code 로그인 성공!",
+    "commandcode_oauth_status_error": "Command Code 로그인 실패:",
+    "commandcode_oauth_start_error": "Command Code 로그인 시작 실패:",
+    "commandcode_oauth_polling_error": "로그인 상태 확인 실패:"
   },
   "stats": {
     "success": "성공",
