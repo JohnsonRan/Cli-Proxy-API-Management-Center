@@ -2,6 +2,7 @@
  * Which OAuth credentials each client API key may read through core's GET /v1/usage:
  * the `observability.quota-api.keys` config list. A key without an entry sees nothing.
  */
+import { serializeClientApiKeyItem, type ClientApiKeyItem } from './apiKeys';
 import { apiClient } from './client';
 import { getConfigValue } from './configValue';
 
@@ -89,12 +90,24 @@ export const quotaApiKeysApi = {
   },
 
   /**
-   * Replace the whole list. `assertConnection` comes from guardConfigConnection() captured
-   * when the list was loaded, so a write never lands on a connection switched since then.
-   * An empty list is written as `[]`: core needs `quota-api` to stay a mapping.
+   * Save access keys and changed quota grants together: a partial save makes index-based
+   * retries target another key. Undefined leaves grants untouched; [] clears the list.
    */
-  async replace(entries: readonly QuotaApiKeyEntry[], assertConnection: () => void) {
+  async replaceClientKeys(
+    items: readonly ClientApiKeyItem[],
+    entries: readonly QuotaApiKeyEntry[] | undefined,
+    assertConnection: () => void
+  ) {
     assertConnection();
-    await apiClient.put(PATH, entries.map(serializeQuotaApiKeyEntry));
+    try {
+      await apiClient.patch('/config', {
+        access: { 'api-keys': items.map(serializeClientApiKeyItem) },
+        ...(entries === undefined
+          ? {}
+          : { observability: { 'quota-api': { keys: entries.map(serializeQuotaApiKeyEntry) } } }),
+      });
+    } finally {
+      assertConnection();
+    }
   },
 };
