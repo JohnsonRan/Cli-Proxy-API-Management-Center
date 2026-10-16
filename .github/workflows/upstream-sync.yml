@@ -1,0 +1,192 @@
+name: 'Upstream Sync'
+
+on:
+  schedule:
+    - cron: '28 5,17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: upstream-sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync-main-with-squash-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Rebuild main from upstream and squash branches
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
+          git fetch upstream main --tags
+          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api
+          echo "PREVIOUS_MAIN=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
+          git reset --hard upstream/main
+
+          if ! git merge --squash origin/ci; then
+            mapfile -d '' -t conflicts < <(git diff --name-only --diff-filter=U -z)
+            if (( ${#conflicts[@]} != 1 )) || [[ ${conflicts[0]} != README.md ]]; then
+              printf '::error::Unexpected ci squash conflicts:'
+              printf ' %q' "${conflicts[@]}"
+              printf '\n'
+              exit 1
+            fi
+          fi
+          git restore --source=origin/ci --staged --worktree -- README.md
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::Unresolved conflicts remain after replacing README.md'
+            exit 1
+          fi
+          git commit -m "merge ci branch"
+
+          git merge --squash origin/patch/embeddings-and-rerank
+          git commit -m "merge patch/embeddings-and-rerank branch"
+
+          # patch/systemone-endpoint descends from patch/embeddings-and-rerank and extends
+          # the same model flags and connectivity-test branch, so integrate only its delta.
+          if ! git merge-base --is-ancestor origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint; then
+            echo '::error::systemone-endpoint is behind embeddings-and-rerank; the seam-diff would revert embeddings work'
+            exit 1
+          fi
+          if ! git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way; then
+            echo '::error::systemone-endpoint seam-diff did not apply'
+            exit 1
+          fi
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::systemone-endpoint seam-diff left conflicts'
+            exit 1
+          fi
+          git add -A
+          git commit -m "merge patch/systemone-endpoint branch"
+
+          git merge --squash origin/patch/fix-xai-quota-test
+          git commit -m "merge patch/fix-xai-quota-test branch"
+
+          git merge --squash origin/patch/remove-promotional-sections
+          git commit -m "merge patch/remove-promotional-sections branch"
+
+          # extract-client-api-keys owns the /quick-start and /api-keys route lines, and
+          # remove-promotional-sections deliberately leaves MainRoutes.tsx alone, so this
+          # squash merges without conflicts. A conflict here means the two patches have
+          # started editing the same region again.
+          git merge --squash origin/patch/extract-client-api-keys
+          git commit -m "merge patch/extract-client-api-keys branch"
+
+          git merge --squash origin/patch/downstream-versioning
+          git commit -m "merge patch/downstream-versioning branch"
+
+          git merge --squash origin/patch/update-management-panel
+          git commit -m "merge patch/update-management-panel branch"
+
+          # patch/client-api-key-models descends from patch/extract-client-api-keys, so
+          # integrate only its own delta. Squashing it re-adds ApiKeysPage and conflicts.
+          # This branch must contain the extract tip: otherwise the diff also reverts the
+          # newer extract commits instead of applying only this patch's own work.
+          if ! git merge-base --is-ancestor origin/patch/extract-client-api-keys origin/patch/client-api-key-models; then
+            echo '::error::client-api-key-models is behind extract-client-api-keys; the seam-diff would revert extract work'
+            exit 1
+          fi
+          if ! git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way; then
+            echo '::error::client-api-key-models seam-diff did not apply'
+            exit 1
+          fi
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::client-api-key-models seam-diff left conflicts'
+            exit 1
+          fi
+          git add -A
+          git commit -m "merge patch/client-api-key-models branch"
+
+          # patch/client-key-provider-scope descends from patch/client-api-key-models and
+          # extends ApiKeysPage, so it is integrated right after it through the same seam-diff.
+          if ! git merge-base --is-ancestor origin/patch/client-api-key-models origin/patch/client-key-provider-scope; then
+            echo '::error::client-key-provider-scope is behind client-api-key-models; the seam-diff would revert its work'
+            exit 1
+          fi
+          if ! git diff origin/patch/client-api-key-models origin/patch/client-key-provider-scope | git apply --3way; then
+            echo '::error::client-key-provider-scope seam-diff did not apply'
+            exit 1
+          fi
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::client-key-provider-scope seam-diff left conflicts'
+            exit 1
+          fi
+          git add -A
+          git commit -m "merge patch/client-key-provider-scope branch"
+
+          # button-icon-layout touches Button.tsx and styles/components.scss, which no other
+          # patch edits, so its position in the order does not matter.
+          git merge --squash origin/patch/button-icon-layout
+          git commit -m "merge patch/button-icon-layout branch"
+
+          # Version-free obfuscation key; the core shim stops injecting into bundles
+          # that carry its cpa_obfuscation_ua_migrated marker.
+          git merge --squash origin/patch/secure-storage-stable-key
+          git commit -m "merge patch/secure-storage-stable-key branch"
+
+          # Needs the core patch/responses-ws-sse-incremental setting.
+          git merge --squash origin/patch/websocket-upstream-toggle
+          git commit -m "merge patch/websocket-upstream-toggle branch"
+
+          # Needs the core patch/codex-app-keepalive settings.
+          git merge --squash origin/patch/codex-app-keepalive
+          git commit -m "merge patch/codex-app-keepalive branch"
+
+          # Needs the core patch/openai-compat-model-discovery fields.
+          git merge --squash origin/patch/openai-compat-model-discovery
+          git commit -m "merge patch/openai-compat-model-discovery branch"
+
+          # Needs the core patch/embeddings-and-rerank exclude-embeddings setting.
+          git merge --squash origin/patch/usage-exclude-embeddings
+          git commit -m "merge patch/usage-exclude-embeddings branch"
+
+          # Needs the core patch/quota-api observability.quota-api settings.
+          git merge --squash origin/patch/quota-api
+          git commit -m "merge patch/quota-api branch"
+
+      - name: Validate build and tests
+        run: |
+          bun install --frozen-lockfile
+          bun run type-check
+          bun test
+          bun run build
+
+      - name: Skip unchanged result
+        id: changed
+        run: |
+          set -euo pipefail
+          if [[ "$(git rev-parse 'HEAD^{tree}')" == "$(git rev-parse "${PREVIOUS_MAIN}^{tree}")" ]]; then
+            echo "Rebuilt tree matches main; nothing to publish."
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push rebuilt main
+        if: steps.changed.outputs.push == 'true'
+        env:
+          PUSH_TOKEN: ${{ secrets.SYNC_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force-with-lease="main:${PREVIOUS_MAIN}" origin HEAD:main
