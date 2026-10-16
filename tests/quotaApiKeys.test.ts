@@ -20,6 +20,7 @@ import {
 import type { AuthFileItem } from '@/types/authFile';
 import type { ClientApiKeyItem } from '@/services/api/apiKeys';
 import { apiClient } from '@/services/api/client';
+import { useConfigStore } from '@/stores/useConfigStore';
 
 const originalPatch = apiClient.patch;
 afterEach(() => {
@@ -233,6 +234,7 @@ function mutationHarness(
   let errors = 0;
   let cacheClears = 0;
   let refreshes = 0;
+  const committedKeys: unknown[] = [];
   const notifications: { message: string; kind: string }[] = [];
   const requests: unknown[] = [];
   apiClient.patch = (async (_url: string, body: unknown) => {
@@ -288,7 +290,9 @@ function mutationHarness(
         },
         getErrorMessage: (error: Error) => error.message,
         t: (key: string) => key,
-        clearConfigCache: () => {
+        updateConfigValue: (section: string, value: unknown) => {
+          expect(section).toBe('api-keys');
+          committedKeys.push(value);
           cacheClears++;
         },
         fetchConfig: async () => {
@@ -313,6 +317,7 @@ function mutationHarness(
     },
     requests,
     notifications,
+    committedKeys,
     get items() {
       return items;
     },
@@ -373,6 +378,7 @@ for (const action of ['handleSave', 'handleConfirmDelete'] as const) {
     expect(h.errors).toBe(0);
     expect(h.closed).toBe(true);
     expect(h.cacheClears).toBe(1);
+    expect(h.committedKeys).toEqual([action === 'handleSave' ? ['sk-c', 'sk-b'] : ['sk-b']]);
     expect(h.items.map((item) => item.apiKey)).toEqual(
       action === 'handleSave' ? ['sk-c', 'sk-b'] : ['sk-b']
     );
@@ -422,4 +428,15 @@ test('next mutation after failed post-delete refresh cannot resurrect the delete
   });
   expect(h.items.map((item) => item.apiKey)).toEqual(['sk-c']);
   expect(h.quota).toEqual([{ apiKey: 'sk-c', credentials: ['claude.json'] }]);
+});
+
+test('committing client keys keeps the rest of the config snapshot and invalidates the cache', () => {
+  const openaiCompatibility = [{ name: 'custom-relay' }] as never;
+  useConfigStore.setState({ config: { apiKeys: ['sk-a', 'sk-b'], openaiCompatibility } });
+  useConfigStore.getState().updateConfigValue('api-keys', ['sk-b']);
+  const { config, isCacheValid } = useConfigStore.getState();
+  expect(config?.apiKeys).toEqual(['sk-b']);
+  expect(config?.openaiCompatibility).toBe(openaiCompatibility);
+  expect(isCacheValid()).toBe(false);
+  useConfigStore.setState({ config: null });
 });
