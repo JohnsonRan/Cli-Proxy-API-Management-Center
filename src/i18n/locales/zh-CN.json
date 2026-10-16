@@ -547,7 +547,6 @@
     "reset_confirm_button": "确认重置",
     "reset_not_confirmed": "未确认额度重置成功，请刷新额度后再决定是否重试。",
     "reset_cooldown_failed": "额度已重置，但代理冷却清除失败。请在原连接的认证文件页面使用“清除冷却”，不要再次消耗重置卡。",
-
     "reset_success": "已重置 \"{{name}}\" 的 Codex 额度",
     "reset_failed": "重置 \"{{name}}\" 的 Codex 额度失败：{{message}}",
     "plan_plus": "Plus",
@@ -632,6 +631,24 @@
     "limit_window": "{{duration}} 限额",
     "limit_index": "限额 #{{index}}",
     "reset_hint": "{{hint}} 后重置"
+  },
+  "commandcode_quota": {
+    "title": "Command Code 额度",
+    "empty_title": "没有 Command Code 认证文件",
+    "empty_desc": "登录 Command Code 后可查看剩余额度与用量窗口。",
+    "stale_request": "连接或凭证已变更，请重试。",
+    "idle": "点击此处刷新额度",
+    "loading": "正在加载额度...",
+    "load_failed": "加载额度失败：{{message}}",
+    "missing_auth_index": "认证文件缺少 auth_index",
+    "empty_data": "暂无额度数据",
+    "refresh_button": "刷新额度",
+    "fetch_all": "全部获取",
+    "five_hour": "5 小时窗口",
+    "weekly": "每周窗口",
+    "monthly": "月度套餐额度",
+    "plan": "套餐：{{plan}}",
+    "credits_left": "剩余额度：{{amount}}"
   },
   "xai_quota": {
     "title": "Grok 额度",
@@ -965,7 +982,17 @@
     "restart_login": "重新开始",
     "success_saved_hint": "凭证已保存，可在认证文件页管理。",
     "sign_up_prompt": "还没有账号？",
-    "copied": "已复制"
+    "copied": "已复制",
+    "commandcode_oauth_title": "Command Code 登录",
+    "commandcode_oauth_button": "开始 Command Code 登录",
+    "commandcode_oauth_hint": "在浏览器中登录 Command Code（commandcode.ai），并把它的 API Key 保存为认证文件。远程服务器：授权后从地址栏复制完整的 http://127.0.0.1:54546/callback?… 链接并在下方提交。模型带 commandcode/ 前缀；不提供 Claude 模型，也不支持 Go 套餐。",
+    "commandcode_copy_link": "复制链接",
+    "commandcode_open_link": "打开链接",
+    "commandcode_oauth_status_waiting": "正在等待 Command Code 授权...",
+    "commandcode_oauth_status_success": "Command Code 登录成功！",
+    "commandcode_oauth_status_error": "Command Code 登录失败：",
+    "commandcode_oauth_start_error": "启动 Command Code 登录失败：",
+    "commandcode_oauth_polling_error": "检查登录状态失败："
   },
   "stats": {
     "success": "成功",
