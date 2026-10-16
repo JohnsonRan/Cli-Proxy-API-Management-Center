@@ -12,8 +12,10 @@ export interface QuotaCredentialOption {
 }
 
 /**
- * Options for the credentials whose quota core's GET /v1/usage can read. Saved IDs that
- * no longer match a credential keep a row so they can be cleared instead of lingering.
+ * Options for the credentials whose quota core's GET /v1/usage can read. Core probes only
+ * OAuth credentials (`account_type` is core's AuthKind), so API-key credentials of the same
+ * providers are left out. Saved IDs that no longer match a credential keep a row so they can
+ * be cleared instead of lingering.
  */
 export const buildQuotaCredentialOptions = (
   files: readonly AuthFileItem[],
@@ -24,7 +26,7 @@ export const buildQuotaCredentialOptions = (
     const provider = String(file.provider ?? file.type ?? '')
       .trim()
       .toLowerCase();
-    if (!isQuotaApiProvider(provider)) return;
+    if (!isQuotaApiProvider(provider) || file['account_type'] !== 'oauth') return;
     const id = String(file['id'] ?? file.name ?? '').trim();
     if (!id || byId.has(id)) return;
     const name = String(file.name ?? id).trim() || id;
