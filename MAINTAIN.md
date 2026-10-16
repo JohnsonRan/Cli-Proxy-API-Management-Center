@@ -148,10 +148,11 @@ Conclusion unchanged: no active upstream issue or PR covers the client-key page 
     - **Cross-repo**: Needs the core patch `patch/embeddings-and-rerank` (setting added in core `2cca4366`).
 
 16. **`patch/quota-api`**
-    - **Goal**: Switch the client-facing OAuth quota endpoint (`GET /v1/usage`, Sub2API shape) on and off from the panel.
-    - **Scope**: The logging section gains `observability.quota-api.enabled` and `observability.quota-api.cache-ttl-seconds` in their own group after the usage statistics switch, through the visual-config additions. The TTL accepts empty or a non-negative integer (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30) and is locked while the endpoint is off. The description warns that any valid client API key can then read every OAuth credential's quota. Localized in all 6 locales; tests in `tests/quotaApiConfig.test.ts`.
-    - **Note**: Insertion points sit one unchanged line away from `patch/usage-exclude-embeddings` and `patch/codex-app-keepalive`, so all three squash cleanly in any order.
-    - **Cross-repo**: Needs the core patch `patch/quota-api` (core `7b736a6d`). Against a core without it the backend rejects or ignores the block.
+    - **Goal**: Choose, per client API key, which OAuth credentials the key can read through the core's `GET /v1/usage`, and edit its cache TTL.
+    - **Scope**: The API keys page add/edit dialog lists the Codex, Claude, Antigravity and xAI OAuth credentials as checkboxes (`ClientKeyQuotaCredentialsField`, options from `utils/quotaCredentials.ts`), stored by core auth ID in `observability.quota-api.keys` (`services/api/quotaApiKeys.ts`). Saving writes the key's selection, a renamed key carries it, deleting a key drops it, and an unchanged selection writes nothing; saved IDs whose credential is gone stay listed as removed. The key table shows how many credentials a key can read. The logging section keeps `observability.quota-api.cache-ttl-seconds` after the usage statistics switch (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30); the former `enabled` switch is gone because the core ignores it. Localized in all 6 locales; tests in `tests/quotaApiKeys.test.ts` and `tests/quotaApiConfig.test.ts`.
+    - **Stacked**: Branched from `patch/client-key-provider-scope` (it edits `ApiKeysPage`) and integrated as a seam-diff against it (see below), still in last position.
+    - **Note**: The logging insertion point sits one unchanged line away from `patch/usage-exclude-embeddings` and `patch/codex-app-keepalive`, so those apply cleanly in any order.
+    - **Cross-repo**: Needs the core patch `patch/quota-api` (core `2628cfe5`). Against an older core the selection has no effect.
 
 ## Temporary Compatibility Patches
 
@@ -164,6 +165,8 @@ These pairs are not compatibility patches: the second branch descends from the f
 `patch/client-api-key-models` is branched from `patch/extract-client-api-keys`, and the two form a hard ordered pair: `extract-client-api-keys` must be integrated first and `client-api-key-models` can never be moved, retired, or reviewed on its own. Its integration step uses `git diff origin/patch/extract-client-api-keys origin/patch/client-api-key-models | git apply --3way` rather than a squash merge, because squashing it re-adds `ApiKeysPage` and other files already contributed by the extract patch. This branch must always contain the extract tip: while it does not, the same diff also reverts the newer extract commits, so the sync workflow fails closed unless `extract-client-api-keys` is an ancestor of `client-api-key-models`.
 
 `patch/client-key-provider-scope` extends that chain: it is branched from `patch/client-api-key-models`, integrated right after it with `git diff origin/patch/client-api-key-models origin/patch/client-key-provider-scope | git apply --3way`, and the sync fails closed unless `client-api-key-models` is an ancestor of it. Rebase it whenever `client-api-key-models` moves.
+
+`patch/quota-api` is stacked on `patch/client-key-provider-scope`: its credential picker extends the same `ApiKeysPage`. It stays last in the order and is integrated with `git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way`; the sync fails closed unless `client-key-provider-scope` is an ancestor of it. Rebase it whenever `client-key-provider-scope` moves.
 
 `patch/systemone-endpoint` is stacked on `patch/embeddings-and-rerank` the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
 
@@ -238,7 +241,10 @@ git commit -m "merge patch/openai-compat-model-discovery branch"
 git merge --squash origin/patch/usage-exclude-embeddings
 git commit -m "merge patch/usage-exclude-embeddings branch"
 
-git merge --squash origin/patch/quota-api
+git merge-base --is-ancestor origin/patch/client-key-provider-scope origin/patch/quota-api || { echo 'quota-api is behind client-key-provider-scope; aborting'; exit 1; }
+git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way || { echo 'seam-diff did not apply; aborting'; exit 1; }
+git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
+git add -A
 git commit -m "merge patch/quota-api branch"
 
 bun install --frozen-lockfile
