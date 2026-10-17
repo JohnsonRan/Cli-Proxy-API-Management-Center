@@ -96,6 +96,16 @@ export function ModelEntriesEditor({
                     {t('providersPage.form.modelBadgeImage')}
                   </span>
                 ) : null}
+                {!oauthAliasOnly && supportsImage && !expanded && entry.embedding === true ? (
+                  <span className={styles.entryBadge}>
+                    {t('providersPage.form.modelBadgeEmbedding')}
+                  </span>
+                ) : null}
+                {!oauthAliasOnly && supportsImage && !expanded && entry.rerank === true ? (
+                  <span className={styles.entryBadge}>
+                    {t('providersPage.form.modelBadgeRerank')}
+                  </span>
+                ) : null}
                 {!oauthAliasOnly && supportsThinking && !expanded && hasThinking ? (
                   <span className={styles.entryBadge}>
                     {t('providersPage.form.modelBadgeThinking')}
@@ -134,19 +144,47 @@ export function ModelEntriesEditor({
             {expanded ? (
               <div className={styles.modelEntryDetails}>
                 {!oauthAliasOnly && supportsImage ? (
-                  <label className={styles.checkboxRow}>
-                    <input
-                      type="checkbox"
-                      className={styles.checkboxBox}
-                      checked={entry.image === true}
-                      disabled={mutating}
-                      onChange={(e) => onUpdate(idx, { image: e.target.checked })}
-                    />
-                    <span className={styles.checkboxText}>
-                      <span>{t('providersPage.form.modelImage')}</span>
-                      <small>{t('providersPage.form.modelImageHint')}</small>
-                    </span>
-                  </label>
+                  <>
+                    <label className={styles.checkboxRow}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkboxBox}
+                        checked={entry.image === true}
+                        disabled={mutating}
+                        onChange={(e) => onUpdate(idx, { image: e.target.checked })}
+                      />
+                      <span className={styles.checkboxText}>
+                        <span>{t('providersPage.form.modelImage')}</span>
+                        <small>{t('providersPage.form.modelImageHint')}</small>
+                      </span>
+                    </label>
+                    <label className={styles.checkboxRow}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkboxBox}
+                        checked={entry.embedding === true}
+                        disabled={mutating}
+                        onChange={(e) => onUpdate(idx, { embedding: e.target.checked })}
+                      />
+                      <span className={styles.checkboxText}>
+                        <span>{t('providersPage.form.modelEmbedding')}</span>
+                        <small>{t('providersPage.form.modelEmbeddingHint')}</small>
+                      </span>
+                    </label>
+                    <label className={styles.checkboxRow}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkboxBox}
+                        checked={entry.rerank === true}
+                        disabled={mutating}
+                        onChange={(e) => onUpdate(idx, { rerank: e.target.checked })}
+                      />
+                      <span className={styles.checkboxText}>
+                        <span>{t('providersPage.form.modelRerank')}</span>
+                        <small>{t('providersPage.form.modelRerankHint')}</small>
+                      </span>
+                    </label>
+                  </>
                 ) : null}
                 {oauthAliasOnly ? (
                   <>
