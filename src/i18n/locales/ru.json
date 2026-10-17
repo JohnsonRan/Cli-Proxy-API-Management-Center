@@ -1405,6 +1405,8 @@
           "usage_exclude_embeddings_desc": "Не учитывать запросы /v1/embeddings в статистике использования (очереди usage). Они по-прежнему попадают в журналы запросов и приложения. Запросы rerank учитываются. В режиме Home не применяется.",
           "redis_usage_retention": "Хранение очереди Redis usage (сек)",
           "redis_usage_retention_hint": "Время хранения вывода RESP LPOP/RPOP в памяти, максимум 3600 секунд",
+          "quota_api_cache_ttl": "Кэш квот (сек)",
+          "quota_api_cache_ttl_hint": "Сколько повторно использовать результаты квот upstream. Пусто или 0 — 300 секунд; значения меньше 30 повышаются до 30.",
           "antigravity_sensitive_words": "Обфускация стоп-слов",
           "antigravity_sensitive_words_desc": "Вставляет символы нулевой ширины в совпадающие слова системных инструкций Antigravity, затрудняя точное распознавание ключевых слов на стороне сервиса",
           "antigravity_sensitive_words_label": "Стоп-слова OAuth (oauth.providers.antigravity.sensitive-words)",
@@ -2366,6 +2368,17 @@
       "error_prefix_required": "Укажите префикс ключа.",
       "error_providers_required": "Добавьте хотя бы одного провайдера; правило без провайдеров бэкенд игнорирует.",
       "error_prefix_duplicate": "Этот префикс уже используется; действует только первое правило."
+    },
+    "quota_credentials": {
+      "label": "Видимость квот (GET /v1/usage)",
+      "hint": "Этот ключ может читать квоты выбранных OAuth-учётных данных через GET /v1/usage. По умолчанию ничего не выбрано, и ключ без выбора получает пустой список.",
+      "tag": "Квоты: {{n}} учётных данных",
+      "loading": "Загрузка учётных данных…",
+      "load_failed": "Не удалось загрузить учётные данные.",
+      "retry": "Повторить",
+      "empty": "Нет OAuth-учётных данных Codex, Claude, Antigravity, xAI или Command Code.",
+      "missing": "(удалено)",
+      "disabled": "(отключено)"
     }
   }
 }
