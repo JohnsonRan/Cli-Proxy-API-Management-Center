@@ -40,7 +40,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth
+          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth tmp/patch/commandcode-quota-api
           echo "PREVIOUS_MAIN=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
           git reset --hard upstream/main
 
@@ -181,6 +181,28 @@ jobs:
           # Needs the core patch/commandcode-oauth login and commandcode credentials.
           git merge --squash origin/patch/commandcode-oauth
           git commit -m "merge patch/commandcode-oauth branch"
+
+          # Compatibility patch for quota-api + commandcode-oauth (see MAINTAIN.md). Its base
+          # merges both patch tips; squashing would re-add both, so apply only base..tip.
+          compat_base=fef073e2168793a4f8a48c83451287116d00ab02
+          if ! git merge-base --is-ancestor "${compat_base}" origin/tmp/patch/commandcode-quota-api; then
+            echo '::error::tmp/patch/commandcode-quota-api no longer contains its pinned base'
+            exit 1
+          fi
+          for source in patch/quota-api patch/commandcode-oauth; do
+            if ! git rev-list --parents -n 1 "${compat_base}" | grep -q "$(git rev-parse "origin/${source}")"; then
+              echo "::warning::${source} moved since tmp/patch/commandcode-quota-api was based; revalidate the combination"
+            fi
+          done
+          if ! git diff "${compat_base}" origin/tmp/patch/commandcode-quota-api | git apply --3way --index; then
+            echo '::error::tmp/patch/commandcode-quota-api delta did not apply'
+            exit 1
+          fi
+          if ! git diff --quiet --diff-filter=U --; then
+            echo '::error::tmp/patch/commandcode-quota-api delta left conflicts'
+            exit 1
+          fi
+          git commit -m "merge tmp/patch/commandcode-quota-api branch"
 
       - name: Validate build and tests
         run: |
