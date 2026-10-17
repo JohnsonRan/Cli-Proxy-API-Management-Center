@@ -337,7 +337,11 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     const redirectUrl = resolveCallbackUrl(provider, callbackInput, states[provider]?.state);
     if (!redirectUrl) {
       rejectInput(
-        provider === 'xai' ? 'auth_login.xai_callback_state_missing' : 'auth_login.missing_state'
+        provider === 'xai'
+          ? 'auth_login.xai_callback_state_missing'
+          : provider === 'commandcode'
+            ? 'auth_login.commandcode_callback_invalid'
+            : 'auth_login.missing_state'
       );
       return;
     }
@@ -350,7 +354,12 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     try {
       await oauthApi.submitCallback(provider, redirectUrl, attempt.signal);
       if (!attempt.isCurrent()) return;
-      updateProviderState(provider, { callbackSubmitting: false, callbackStatus: 'success' });
+      updateProviderState(provider, {
+        callbackSubmitting: false,
+        callbackStatus: 'success',
+        // Command Code callbacks contain a reusable API key, not just an authorization code.
+        ...(provider === 'commandcode' ? { callbackUrl: '' } : {}),
+      });
       notify(provider, t('auth_login.oauth_callback_success'), 'success');
       // The backend only accepts callbacks for pending logins. If a failed status
       // request stopped polling, resume it so the card can report the outcome.

@@ -592,6 +592,24 @@
     "stale_request": "Kết nối hoặc credential đã thay đổi. Vui lòng thử lại.",
     "monthly_limit": "Giới hạn tháng"
   },
+  "commandcode_quota": {
+    "title": "Hạn mức Command Code",
+    "empty_title": "Không có tệp xác thực Command Code",
+    "empty_desc": "Đăng nhập Command Code để xem tín dụng còn lại và các khung sử dụng.",
+    "stale_request": "Kết nối hoặc thông tin xác thực đã thay đổi. Vui lòng thử lại.",
+    "idle": "Nhấn vào đây để làm mới hạn mức",
+    "loading": "Đang tải hạn mức...",
+    "load_failed": "Tải hạn mức thất bại: {{message}}",
+    "missing_auth_index": "Tệp xác thực thiếu auth_index",
+    "empty_data": "Không có dữ liệu hạn mức",
+    "refresh_button": "Làm mới hạn mức",
+    "fetch_all": "Lấy tất cả",
+    "five_hour": "Khung 5 giờ",
+    "weekly": "Khung hàng tuần",
+    "monthly": "Tín dụng gói hàng tháng",
+    "plan": "Gói: {{plan}}",
+    "credits_left": "Tín dụng còn lại: {{amount}}"
+  },
   "xai_quota": {
     "title": "Quota Grok",
     "empty_title": "Không có File xác thực xAI/Grok",
@@ -938,7 +956,20 @@
     "kimi_ai_oauth_status_success": "Xác thực thành công!",
     "kimi_ai_oauth_status_error": "Xác thực thất bại:",
     "kimi_ai_oauth_start_error": "Không thể bắt đầu đăng nhập Kimi quốc tế:",
-    "kimi_ai_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực:"
+    "kimi_ai_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực:",
+    "commandcode_oauth_title": "Đăng nhập Command Code",
+    "commandcode_oauth_button": "Bắt đầu đăng nhập Command Code",
+    "commandcode_oauth_hint": "Đăng nhập Command Code (commandcode.ai) trong trình duyệt và lưu API key làm tệp xác thực. Máy chủ từ xa: Studio gửi key tới http://127.0.0.1:54546/callback nhưng trình duyệt không chuyển được tới máy chủ, hãy gửi thủ công bên dưới. Không hỗ trợ mô hình Claude và gói Go.",
+    "commandcode_callback_hint": "Nếu trang không kết nối được 127.0.0.1:54546, mở DevTools → Network, chọn yêu cầu callback và dán giá trị apiKey trong payload (hoặc mã nguồn payload). URL callback đầy đủ kèm tham số cũng được chấp nhận.",
+    "commandcode_callback_placeholder": "API key, payload apiKey=…&state=… hoặc URL callback",
+    "commandcode_callback_invalid": "Hãy nhập API key, payload callback hoặc URL callback có chứa apiKey.",
+    "commandcode_copy_link": "Sao chép liên kết",
+    "commandcode_open_link": "Mở liên kết",
+    "commandcode_oauth_status_waiting": "Đang chờ Command Code cấp quyền...",
+    "commandcode_oauth_status_success": "Đăng nhập Command Code thành công!",
+    "commandcode_oauth_status_error": "Đăng nhập Command Code thất bại:",
+    "commandcode_oauth_start_error": "Không thể bắt đầu đăng nhập Command Code:",
+    "commandcode_oauth_polling_error": "Không thể kiểm tra trạng thái đăng nhập:"
   },
   "stats": {
     "success": "Thành công",
