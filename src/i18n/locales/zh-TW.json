@@ -2434,7 +2434,7 @@
       "loading": "正在載入憑證…",
       "load_failed": "憑證載入失敗。",
       "retry": "重試",
-      "empty": "沒有 Codex、Claude、Antigravity 或 xAI 的 OAuth 憑證。",
+      "empty": "沒有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 憑證。",
       "missing": "（已移除）",
       "disabled": "（已停用）"
     }

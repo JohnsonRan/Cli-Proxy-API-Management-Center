@@ -2408,7 +2408,7 @@
       "loading": "Loading credentials…",
       "load_failed": "Could not load the credentials.",
       "retry": "Retry",
-      "empty": "No Codex, Claude, Antigravity or xAI OAuth credentials.",
+      "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials.",
       "missing": "(removed)",
       "disabled": "(disabled)"
     }
