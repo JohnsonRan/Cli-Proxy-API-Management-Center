@@ -2354,7 +2354,7 @@
       "loading": "正在加载凭证…",
       "load_failed": "凭证加载失败。",
       "retry": "重试",
-      "empty": "没有 Codex、Claude、Antigravity 或 xAI 的 OAuth 凭证。",
+      "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证。",
       "missing": "（已移除）",
       "disabled": "（已禁用）"
     }
