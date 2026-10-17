@@ -1428,6 +1428,8 @@
           "usage_exclude_embeddings_desc": "/v1/embeddings 請求不計入用量統計（用量佇列），仍會出現在請求日誌與應用日誌中。重排請求照常統計。Home 模式下不生效。",
           "redis_usage_retention": "Redis 用量佇列保留秒數",
           "redis_usage_retention_hint": "RESP 介面 LPOP/RPOP 用量佇列的記憶體保留時間，最大 3600 秒",
+          "quota_api_cache_ttl": "額度快取時間（秒）",
+          "quota_api_cache_ttl_hint": "上游額度結果的重複使用時長。留空或 0 使用 300 秒，低於 30 秒以 30 秒處理。",
           "antigravity_sensitive_words": "敏感詞混淆",
           "antigravity_sensitive_words_desc": "在 Antigravity 系統提示詞的匹配項中插入零寬字元，降低上游精確關鍵詞匹配",
           "antigravity_sensitive_words_label": "OAuth 敏感詞（oauth.providers.antigravity.sensitive-words）",
@@ -2398,6 +2400,17 @@
       "error_prefix_required": "請填寫金鑰前綴。",
       "error_providers_required": "至少新增一個供應商；沒有供應商的規則會被後端忽略。",
       "error_prefix_duplicate": "已有規則使用此前綴，只有第一條生效。"
+    },
+    "quota_credentials": {
+      "label": "額度可見憑證（GET /v1/usage）",
+      "hint": "此金鑰可透過 GET /v1/usage 讀取所選 OAuth 憑證的上游額度。預設不選任何憑證，未選擇時回傳空列表。",
+      "tag": "額度：{{n}} 個憑證",
+      "loading": "正在載入憑證…",
+      "load_failed": "憑證載入失敗。",
+      "retry": "重試",
+      "empty": "沒有 Codex、Claude、Antigravity 或 xAI 的 OAuth 憑證。",
+      "missing": "（已移除）",
+      "disabled": "（已停用）"
     }
   }
 }
