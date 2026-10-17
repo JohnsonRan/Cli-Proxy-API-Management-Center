@@ -9,7 +9,15 @@ import { getConfigValue } from './configValue';
 const PATH = '/config/observability/quota-api/keys';
 
 /** Providers whose quota core's GET /v1/usage reads (aliases included). */
-export const QUOTA_API_PROVIDERS = ['codex', 'claude', 'anthropic', 'antigravity', 'xai', 'grok'];
+export const QUOTA_API_PROVIDERS = [
+  'codex',
+  'claude',
+  'anthropic',
+  'antigravity',
+  'xai',
+  'grok',
+  'commandcode',
+];
 
 export const isQuotaApiProvider = (provider: unknown): boolean =>
   QUOTA_API_PROVIDERS.includes(
