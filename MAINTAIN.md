@@ -167,7 +167,9 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
 
 ## Temporary Compatibility Patches
 
-None. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
+- **`tmp/patch/commandcode-quota-api`** (after `patch/commandcode-oauth`): adds `commandcode` to `QUOTA_API_PROVIDERS`, so the quota credential picker of `patch/quota-api` lists Command Code logins (OAuth kind) that `patch/commandcode-oauth` creates, and names Command Code in the empty-list hint in all 6 locales. Tests in `tests/quotaApiCommandCode.test.ts`. Needs the core `tmp/patch/commandcode-quota-api`, which makes `GET /v1/usage` probe them; against a core without it the selection is saved but reports nothing. The branch is `patch/quota-api` (`3ba5f843`) merged with `patch/commandcode-oauth` (`2e47ec7d`) into the base `fef073e2`, plus the compatibility commit; the sync applies `git diff fef073e2 origin/tmp/patch/commandcode-quota-api | git apply --3way --index` and warns when either source patch has moved (re-merge the tips into a new base, rebase the commit, update the pinned SHA). Retire with either source patch.
+
+Retired: `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
 
 ## Stacked Patch Pairs
 
@@ -185,7 +187,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth tmp/patch/commandcode-quota-api
 
 git checkout -B main upstream/main
 
@@ -260,6 +262,11 @@ git commit -m "merge patch/quota-api branch"
 
 git merge --squash origin/patch/commandcode-oauth
 git commit -m "merge patch/commandcode-oauth branch"
+
+# Compatibility patch: apply only its delta over the pinned base (see Temporary Compatibility Patches).
+git merge-base --is-ancestor fef073e2 origin/tmp/patch/commandcode-quota-api || { echo 'compat branch lost its base; aborting'; exit 1; }
+git diff fef073e2 origin/tmp/patch/commandcode-quota-api | git apply --3way --index || { echo 'compat delta did not apply; aborting'; exit 1; }
+git commit -m "merge tmp/patch/commandcode-quota-api branch"
 
 bun install --frozen-lockfile
 bun run type-check
