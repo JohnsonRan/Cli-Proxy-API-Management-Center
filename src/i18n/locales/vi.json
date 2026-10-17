@@ -2524,7 +2524,7 @@
       "loading": "Đang tải thông tin xác thực…",
       "load_failed": "Không tải được thông tin xác thực.",
       "retry": "Thử lại",
-      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity hoặc xAI.",
+      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity, xAI hoặc Command Code.",
       "missing": "(đã xóa)",
       "disabled": "(đã tắt)"
     }

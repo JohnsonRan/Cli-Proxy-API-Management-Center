@@ -2518,7 +2518,7 @@
       "loading": "자격 증명을 불러오는 중…",
       "load_failed": "자격 증명을 불러오지 못했습니다.",
       "retry": "다시 시도",
-      "empty": "Codex, Claude, Antigravity 또는 xAI OAuth 자격 증명이 없습니다.",
+      "empty": "Codex, Claude, Antigravity, xAI 또는 Command Code OAuth 자격 증명이 없습니다.",
       "missing": "(삭제됨)",
       "disabled": "(비활성화됨)"
     }

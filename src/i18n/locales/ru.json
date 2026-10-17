@@ -2512,7 +2512,7 @@
       "loading": "Загрузка учётных данных…",
       "load_failed": "Не удалось загрузить учётные данные.",
       "retry": "Повторить",
-      "empty": "Нет OAuth-учётных данных Codex, Claude, Antigravity или xAI.",
+      "empty": "Нет OAuth-учётных данных Codex, Claude, Antigravity, xAI или Command Code.",
       "missing": "(удалено)",
       "disabled": "(отключено)"
     }
