@@ -1400,6 +1400,8 @@
           "usage_exclude_embeddings_desc": "/v1/embeddings 请求不计入用量统计（用量队列），仍会出现在请求日志和应用日志中。重排请求照常统计。Home 模式下不生效。",
           "redis_usage_retention": "Redis 用量队列保留秒数",
           "redis_usage_retention_hint": "RESP 接口 LPOP/RPOP 用量队列的内存保留时间，最大 3600 秒",
+          "quota_api_cache_ttl": "额度缓存时间（秒）",
+          "quota_api_cache_ttl_hint": "上游额度结果的复用时长。留空或 0 使用 300 秒，低于 30 秒按 30 秒处理。",
           "antigravity_sensitive_words": "敏感词混淆",
           "antigravity_sensitive_words_desc": "在 Antigravity 系统提示词匹配项中插入零宽字符，降低上游精确关键词匹配",
           "antigravity_sensitive_words_label": "OAuth 敏感词（oauth.providers.antigravity.sensitive-words）",
@@ -2370,6 +2372,17 @@
       "error_prefix_required": "请填写密钥前缀。",
       "error_providers_required": "至少添加一个提供商；没有提供商的规则会被后端忽略。",
       "error_prefix_duplicate": "已有规则使用此前缀，只有第一条生效。"
+    },
+    "quota_credentials": {
+      "label": "额度可见凭证（GET /v1/usage）",
+      "hint": "该密钥可通过 GET /v1/usage 读取所选 OAuth 凭证的上游额度。默认不选任何凭证，未选择时返回空列表。",
+      "tag": "额度：{{n}} 个凭证",
+      "loading": "正在加载凭证…",
+      "load_failed": "凭证加载失败。",
+      "retry": "重试",
+      "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证。",
+      "missing": "（已移除）",
+      "disabled": "（已禁用）"
     }
   }
 }
