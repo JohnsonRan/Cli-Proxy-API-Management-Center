@@ -2045,6 +2045,45 @@
         "apiKeyEntries": "Mục API key"
       }
     },
+    "upstreamQuota": {
+      "title": "Hạn mức thượng nguồn",
+      "titleForKey": "Hạn mức thượng nguồn · {{key}}",
+      "check": "Kiểm tra hạn mức thượng nguồn",
+      "refresh": "Làm mới",
+      "unsupported": "Thượng nguồn này không chia sẻ hạn mức (GET /v1/usage không khả dụng).",
+      "noneShared": "Thượng nguồn không chia sẻ tài khoản nào với khóa này.",
+      "failed": "Không đọc được hạn mức thượng nguồn",
+      "noData": "Không có dữ liệu hạn mức.",
+      "unknown": "Không rõ",
+      "remainingPercent": "Còn {{percent}}%",
+      "remainingOf": "Còn {{remaining}} / {{limit}}",
+      "usedAmount": "Đã dùng {{used}}",
+      "resetsAt": "Đặt lại lúc {{time}}",
+      "observedAt": "Ghi nhận lúc {{time}}",
+      "unlimited": "Không giới hạn",
+      "relay": "Proxy thượng nguồn",
+      "windows": {
+        "five_hour": "5 giờ",
+        "weekly": "Hằng tuần",
+        "monthly": "Hằng tháng",
+        "seven_day": "7 ngày",
+        "seven_day_opus": "7 ngày Opus",
+        "seven_day_sonnet": "7 ngày Sonnet",
+        "seven_day_oauth_apps": "7 ngày ứng dụng OAuth",
+        "seven_day_cowork": "7 ngày Cowork",
+        "seven_day_fable": "7 ngày Fable",
+        "code_review_five_hour": "Review mã 5 giờ",
+        "code_review_weekly": "Review mã hằng tuần",
+        "code_review_monthly": "Review mã hằng tháng"
+      },
+      "balances": {
+        "credits": "Tín dụng",
+        "rate_limit_resets": "Lượt đặt lại giới hạn",
+        "extra_usage": "Mức dùng thêm",
+        "on_demand": "Theo yêu cầu",
+        "prepaid": "Số dư trả trước"
+      }
+    },
     "form": {
       "createEyebrow": "Mới",
       "editEyebrow": "Chỉnh sửa",
