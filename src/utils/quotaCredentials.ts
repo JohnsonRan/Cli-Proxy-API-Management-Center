@@ -1,5 +1,7 @@
 import { isQuotaApiProvider } from '@/services/api/quotaApiKeys';
 import type { AuthFileItem } from '@/types/authFile';
+import type { Config } from '@/types';
+import { maskApiKey } from '@/utils/format';
 
 export interface QuotaCredentialOption {
   /** Core auth ID, the value stored in quota-api.keys. */
@@ -19,9 +21,13 @@ export interface QuotaCredentialOption {
  */
 export const buildQuotaCredentialOptions = (
   files: readonly AuthFileItem[],
-  selected: readonly string[]
+  selected: readonly string[],
+  relays: readonly QuotaCredentialOption[] = []
 ): QuotaCredentialOption[] => {
   const byId = new Map<string, QuotaCredentialOption>();
+  relays.forEach((relay) => {
+    if (!byId.has(relay.id)) byId.set(relay.id, relay);
+  });
   files.forEach((file) => {
     const provider = String(file.provider ?? file.type ?? '')
       .trim()
@@ -49,4 +55,47 @@ export const buildQuotaCredentialOptions = (
       left.provider.localeCompare(right.provider) ||
       left.label.localeCompare(right.label, undefined, { sensitivity: 'base' })
   );
+};
+
+/** Provider label core reports for a relayed upstream proxy. */
+export const QUOTA_RELAY_PROVIDER = 'relay';
+
+type RelayKey = { apiKey?: string; baseUrl?: string; authIndex?: string };
+
+/**
+ * Provider API keys with a custom base URL, which may point at another proxy whose own
+ * GET /v1/usage core relays. They are stored by auth index, the only identifier config-based
+ * credentials expose; editing the key or base URL changes it, and the old selection then
+ * shows as removed.
+ */
+export const buildQuotaRelayOptions = (
+  config: Config | null | undefined
+): QuotaCredentialOption[] => {
+  if (!config) return [];
+  const options: QuotaCredentialOption[] = [];
+  const add = (key: RelayKey, name: string) => {
+    const id = String(key.authIndex ?? '').trim();
+    if (!id || !String(key.baseUrl ?? '').trim()) return;
+    const masked = key.apiKey ? maskApiKey(key.apiKey) : id;
+    options.push({
+      id,
+      label: `${name} · ${masked} · ${key.baseUrl}`,
+      provider: QUOTA_RELAY_PROVIDER,
+      disabled: false,
+      missing: false,
+    });
+  };
+  (config.openaiCompatibility ?? []).forEach((provider) => {
+    if (provider.disabled) return;
+    provider.apiKeyEntries.forEach((entry) =>
+      add({ ...entry, baseUrl: provider.baseUrl }, provider.name || 'openai-compatibility')
+    );
+  });
+  const groups: Array<[string, readonly RelayKey[] | undefined]> = [
+    ['codex', config.codexApiKeys],
+    ['claude', config.claudeApiKeys],
+    ['gemini', config.geminiApiKeys],
+  ];
+  groups.forEach(([name, keys]) => (keys ?? []).forEach((key) => add(key, name)));
+  return options;
 };
