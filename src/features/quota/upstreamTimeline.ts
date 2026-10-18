@@ -3,11 +3,11 @@
  * feeds: the caller passes the loaded results and a label resolver.
  */
 
-import type {
-  UpstreamQuotaCredential,
-  UpstreamQuotaWindow,
+import {
+  flattenUpstreamAccounts,
+  type UpstreamQuotaCredential,
+  type UpstreamQuotaWindow,
 } from '@/features/providers/upstreamQuota';
-import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import { pickLaneWindow, type TimelineLane } from './quotaTimelineModel';
 
 /** Periods of the core's window ids, for a summary that omits `period_seconds`. */
@@ -92,17 +92,11 @@ export function buildUpstreamTimelineLanes(
   labelFor: (window: UpstreamQuotaWindow) => string,
   maxPeriodHours?: number
 ): TimelineLane[] {
-  const lanes: TimelineLane[] = [];
-  const walk = (credentials: UpstreamQuotaCredential[], path: string) => {
-    credentials.forEach((credential, index) => {
-      const key = `${path}/${index}`;
-      if (credential.provider !== QUOTA_RELAY_PROVIDER && credential.status === 'ok') {
-        const lane = laneFor(key, credential, maxPeriodHours, labelFor);
-        if (lane) lanes.push(lane);
-      }
-      walk(credential.upstream, key);
-    });
-  };
-  sources.forEach((source) => walk(source.credentials, `upstream:${source.key}`));
-  return lanes;
+  return sources.flatMap((source) =>
+    flattenUpstreamAccounts(source.credentials).flatMap(({ credential, path }) => {
+      if (credential.status !== 'ok') return [];
+      const lane = laneFor(`upstream:${source.key}${path}`, credential, maxPeriodHours, labelFor);
+      return lane ? [lane] : [];
+    })
+  );
 }
