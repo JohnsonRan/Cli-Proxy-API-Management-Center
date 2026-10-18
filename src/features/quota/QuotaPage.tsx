@@ -26,6 +26,7 @@ import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
+import { UpstreamQuotaSection } from './components/UpstreamQuotaSection';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_PAGE_SIZE,
@@ -478,6 +479,8 @@ export function QuotaPage() {
           resolvedTheme={resolvedTheme}
         />
       </section>
+
+      <UpstreamQuotaSection />
     </div>
   );
 }

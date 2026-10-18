@@ -11,6 +11,7 @@ import {
   sponsorProtocolUrl,
 } from '../sponsorDefinitions';
 import type { ProviderResource, SponsorProviderRaw } from '../types';
+import { collectUpstreamQuotaTargets } from '../upstreamQuota';
 import styles from './forms/sharedForm.module.scss';
 import { UpstreamQuotaPanel } from './UpstreamQuotaPanel';
 
@@ -120,28 +121,7 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
   const openaiConfig =
     resource.brand === 'openaiCompatibility' ? (resource.raw as OpenAIProviderConfig) : null;
   const apiKeyEntries = openaiConfig?.apiKeyEntries ?? [];
-  // Only a custom base URL can be another proxy sharing its quota.
-  const rawUpstreamTargets: Array<{ authIndex: string; title?: string }> = !resource.baseUrl
-    ? []
-    : openaiConfig
-      ? apiKeyEntries
-          .filter((entry) => entry.authIndex)
-          .map((entry) => ({
-            authIndex: entry.authIndex as string,
-            title:
-              apiKeyEntries.length > 1
-                ? t('providersPage.upstreamQuota.titleForKey', { key: maskApiKey(entry.apiKey) })
-                : undefined,
-          }))
-      : resource.authIndex
-        ? [{ authIndex: resource.authIndex }]
-        : [];
-  const seenAuthIndexes = new Set<string>();
-  const upstreamQuotaTargets = rawUpstreamTargets.filter((target) => {
-    if (seenAuthIndexes.has(target.authIndex)) return false;
-    seenAuthIndexes.add(target.authIndex);
-    return true;
-  });
+  const upstreamQuotaTargets = collectUpstreamQuotaTargets(resource);
 
   return (
     <div>
@@ -199,8 +179,12 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
         <UpstreamQuotaPanel
           key={target.authIndex}
           authIndex={target.authIndex}
-          baseUrl={resource.baseUrl ?? ''}
-          title={target.title}
+          baseUrl={target.baseUrl}
+          title={
+            apiKeyEntries.length > 1 && target.maskedKey
+              ? t('providersPage.upstreamQuota.titleForKey', { key: target.maskedKey })
+              : undefined
+          }
         />
       ))}
 
