@@ -26,6 +26,7 @@ import {
 import type { AuthFileItem } from '@/types/authFile';
 import type { ClientApiKeyItem } from '@/services/api/apiKeys';
 import { apiClient } from '@/services/api/client';
+import { normalizeConfigResponse } from '@/services/api/transformers';
 import { useConfigStore } from '@/stores/useConfigStore';
 
 const originalPatch = apiClient.patch;
@@ -202,6 +203,26 @@ describe('quota credential options', () => {
       ['idx-self', true],
       ['idx-friend', false],
     ]);
+  });
+
+  test('flags own-key relays when client keys are stored as named objects', () => {
+    const config = normalizeConfigResponse({
+      access: {
+        'api-keys': ['sk-plain-0123456789', { 'api-key': ' sk-named-0123456789 ', name: 'Me' }],
+      },
+    });
+    expect(config.apiKeys).toEqual(['sk-plain-0123456789', 'sk-named-0123456789']);
+    const relays = buildQuotaRelayOptions({
+      ...config,
+      openaiCompatibility: [
+        {
+          name: 'self',
+          baseUrl: 'https://me.example/v1',
+          apiKeyEntries: [{ apiKey: 'sk-named-0123456789', authIndex: 'idx-self' }],
+        },
+      ],
+    });
+    expect(relays.map((option) => option.ownKey)).toEqual([true]);
   });
 
   test('loadQuotaCredentialsSources tolerates config failure but requires auth files', async () => {
