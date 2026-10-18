@@ -1,6 +1,7 @@
 import { isQuotaApiProvider } from '@/services/api/quotaApiKeys';
 import type { AuthFileItem } from '@/types/authFile';
 import type { Config } from '@/types';
+import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import { maskApiKey } from '@/utils/format';
 
 export interface QuotaCredentialOption {
@@ -56,9 +57,6 @@ export const buildQuotaCredentialOptions = (
       left.label.localeCompare(right.label, undefined, { sensitivity: 'base' })
   );
 };
-
-/** Provider label core reports for a relayed upstream proxy. */
-export const QUOTA_RELAY_PROVIDER = 'relay';
 
 type RelayKey = { apiKey?: string; baseUrl?: string; authIndex?: string };
 

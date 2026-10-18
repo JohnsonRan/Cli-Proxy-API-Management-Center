@@ -11,8 +11,8 @@ import {
   buildQuotaCredentialOptions,
   buildQuotaRelayOptions,
   loadQuotaCredentialsSources,
-  QUOTA_RELAY_PROVIDER,
 } from '@/utils/quotaCredentials';
+import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import {
   parseQuotaApiKeyEntry,
   quotaApiKeysApi,
