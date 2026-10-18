@@ -27,6 +27,9 @@ import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import { UpstreamQuotaSection } from './components/UpstreamQuotaSection';
+import { useUpstreamQuotas } from './hooks/useUpstreamQuotas';
+import { buildUpstreamTimelineLanes } from './upstreamTimeline';
+import { upstreamWindowLabel } from '@/features/providers/upstreamQuota';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_PAGE_SIZE,
@@ -302,6 +305,22 @@ export function QuotaPage() {
 
   const canUseActions = !disableControls && !loading && filesGeneration === sessionGeneration;
 
+  /* ---------- 上游代理共享的额度：卡片与时间线读同一份结果 ---------- */
+
+  const upstream = useUpstreamQuotas();
+  const upstreamLanes = useCallback(
+    (maxPeriodHours?: number) =>
+      buildUpstreamTimelineLanes(
+        upstream.entries.flatMap((entry) => {
+          const result = upstream.states[entry.key]?.result;
+          return result?.ok ? [{ key: entry.key, credentials: result.credentials }] : [];
+        }),
+        (window) => upstreamWindowLabel(t, window),
+        maxPeriodHours
+      ),
+    [upstream.entries, upstream.states, t]
+  );
+
   /* ---------- 首屏卡片一次性级联入场 ----------
    * 首批数据渲染后立即翻转 cardsAnimated；已挂载的卡片在挂载时捕获过自己的
    * 延迟（QuotaCard 内 useState 初始化），后续切 tab/翻页/刷新新挂载的卡片
@@ -470,17 +489,25 @@ export function QuotaPage() {
             </Button>
           </div>
         )}
-
-        {/* 时间线只比较当前页凭证，避免大量凭证一次性生成无界泳道。 */}
-        <QuotaTimeline
-          entries={pageItems}
-          quotaFor={getQuota}
-          displayNameFor={displayNameFor}
-          resolvedTheme={resolvedTheme}
-        />
       </section>
 
-      <UpstreamQuotaSection />
+      <UpstreamQuotaSection
+        entries={upstream.entries}
+        states={upstream.states}
+        resolvedTheme={resolvedTheme}
+        canRefresh={!disableControls}
+        onRefresh={(entry) => void upstream.load(entry)}
+      />
+
+      {/* 时间线只比较当前页凭证，避免大量凭证一次性生成无界泳道；
+          上游共享的账号在查看后并入，排在凭证之后。 */}
+      <QuotaTimeline
+        entries={pageItems}
+        quotaFor={getQuota}
+        displayNameFor={displayNameFor}
+        resolvedTheme={resolvedTheme}
+        extraLanes={upstreamLanes}
+      />
     </div>
   );
 }
