@@ -1596,6 +1596,8 @@
     "description": "集中查看 OAuth 额度与剩余情况",
     "upstream_title": "上游额度",
     "upstream_desc": "自定义 Base URL 的提供商密钥可读取上游代理共享给它的额度，点击查看后才会请求。",
+    "upstream_idle": "点击此处查看上游额度",
+    "upstream_loading": "正在读取上游额度…",
     "refresh_all_credentials": "刷新全部凭证",
     "sort_label": "排序",
     "sort_default": "默认",
