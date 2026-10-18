@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
+import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import { getErrorMessage } from '@/utils/helpers';
 import { formatQuotaResetTime } from '@/utils/quota';
 import {
   fetchUpstreamQuota,
   lowestRemainingPercent,
-  UPSTREAM_RELAY_PROVIDER,
   type UpstreamQuotaBalance,
   type UpstreamQuotaCredential,
   type UpstreamQuotaResult,
@@ -129,7 +129,7 @@ export function UpstreamQuotaCredentialView({
 }) {
   const { t } = useTranslation();
   const remaining = lowestRemainingPercent(credential);
-  const isRelay = credential.provider === UPSTREAM_RELAY_PROVIDER;
+  const isRelay = credential.provider === QUOTA_RELAY_PROVIDER;
   const hint =
     credential.status === 'error'
       ? (credential.error ?? t('providersPage.upstreamQuota.failed'))

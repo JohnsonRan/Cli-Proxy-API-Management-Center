@@ -6,8 +6,8 @@ import {
   buildUpstreamQuotaUrl,
   lowestRemainingPercent,
   normalizeUpstreamQuota,
-  UPSTREAM_RELAY_PROVIDER,
 } from '@/features/providers/upstreamQuota';
+import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import { UpstreamQuotaResultView } from '@/features/providers/sheets/UpstreamQuotaPanel';
 
 // A GET /v1/usage body as the core returns it: one relay whose upstream shares two accounts.
@@ -62,12 +62,12 @@ describe('upstream quota', () => {
     expect(normalizeUpstreamQuota({ credentials: [] })).toBeNull();
     expect(normalizeUpstreamQuota({ version: 1, credentials: [] })).toBeNull();
     expect(normalizeUpstreamQuota({ version: 2, credentials: [] })).toEqual([]);
-    expect(UPSTREAM_RELAY_PROVIDER).toBe('relay');
+    expect(QUOTA_RELAY_PROVIDER).toBe('relay');
 
     const credentials = normalizeUpstreamQuota(RELAYED);
     expect(credentials).not.toBeNull();
     const relay = credentials![0];
-    expect(relay.provider).toBe(UPSTREAM_RELAY_PROVIDER);
+    expect(relay.provider).toBe(QUOTA_RELAY_PROVIDER);
     expect(relay.upstream).toHaveLength(2);
     expect(relay.upstream[0].windows[0]).toEqual({
       id: 'five_hour',

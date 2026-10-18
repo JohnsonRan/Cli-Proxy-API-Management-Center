@@ -43,9 +43,6 @@ export interface UpstreamQuotaCredential {
 /** Nesting the core produces is bounded at 3 relays; anything deeper is dropped. */
 const MAX_DEPTH = 6;
 
-/** Provider name core assigns to a relayed upstream proxy. */
-export const UPSTREAM_RELAY_PROVIDER = 'relay';
-
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() ? value.trim() : null;
 
