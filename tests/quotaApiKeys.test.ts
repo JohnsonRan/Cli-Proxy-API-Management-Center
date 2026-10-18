@@ -10,6 +10,7 @@ import { ClientKeyQuotaCredentialsField } from '@/pages/ClientKeyQuotaCredential
 import {
   buildQuotaCredentialOptions,
   buildQuotaRelayOptions,
+  filterQuotaCredentialOptions,
   loadQuotaCredentialsSources,
 } from '@/utils/quotaCredentials';
 import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
@@ -170,6 +171,17 @@ describe('quota credential options', () => {
     const options = buildQuotaCredentialOptions(files, ['idx-friend', 'idx-gone'], relays);
     expect(options.find((option) => option.id === 'idx-friend')?.missing).toBe(false);
     expect(options.find((option) => option.id === 'idx-gone')?.missing).toBe(true);
+  });
+
+  test('filters credential options by label, provider or stored ID', () => {
+    const options = buildQuotaCredentialOptions(files, ['gone.json']);
+    const ids = (query: string) =>
+      filterQuotaCredentialOptions(options, query).map((option) => option.id);
+    expect(ids('')).toHaveLength(options.length);
+    expect(ids(' WORK ')).toEqual(['codex-b.json']);
+    expect(ids('grok')).toEqual(['grok.json']);
+    expect(ids('gone')).toEqual(['gone.json']);
+    expect(ids('nothing-matches')).toEqual([]);
   });
 
   test("flags relays that use one of this proxy's own client keys", () => {
