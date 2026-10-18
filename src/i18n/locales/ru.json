@@ -1647,6 +1647,10 @@
     "search_clear": "Очистить поиск",
     "title": "Управление квотами",
     "description": "Следите за статусом квот OAuth для учётных данных Antigravity, Codex, Claude, Kimi и xAI.",
+    "upstream_title": "Квота апстрима",
+    "upstream_desc": "Ключи провайдеров с собственным base URL могут читать квоту, которой с ними делится вышестоящий прокси. Запрос отправляется только по кнопке проверки.",
+    "upstream_idle": "Нажмите, чтобы проверить квоту апстрима",
+    "upstream_loading": "Чтение квоты апстрима…",
     "refresh_all_credentials": "Обновить все учётные данные",
     "sort_label": "Сортировка",
     "sort_default": "По умолчанию",
@@ -2161,6 +2165,45 @@
         "authIndex": "Auth Index",
         "excludedModels": "Исключённых моделей",
         "apiKeyEntries": "API-ключей"
+      }
+    },
+    "upstreamQuota": {
+      "title": "Квота апстрима",
+      "titleForKey": "Квота апстрима · {{key}}",
+      "check": "Проверить квоту апстрима",
+      "refresh": "Обновить",
+      "unsupported": "Апстрим не делится квотой (GET /v1/usage недоступен).",
+      "noneShared": "Апстрим не открыл этому ключу ни одного аккаунта.",
+      "failed": "Не удалось получить квоту апстрима",
+      "noData": "Данные о квоте не получены.",
+      "unknown": "Неизвестно",
+      "remainingPercent": "Осталось {{percent}}%",
+      "remainingOf": "Осталось {{remaining}} из {{limit}}",
+      "usedAmount": "Использовано {{used}}",
+      "resetsAt": "Сброс {{time}}",
+      "observedAt": "Получено {{time}}",
+      "unlimited": "Без лимита",
+      "relay": "Вышестоящий прокси",
+      "windows": {
+        "five_hour": "5 часов",
+        "weekly": "Неделя",
+        "monthly": "Месяц",
+        "seven_day": "7 дней",
+        "seven_day_opus": "7 дней Opus",
+        "seven_day_sonnet": "7 дней Sonnet",
+        "seven_day_oauth_apps": "7 дней OAuth-приложения",
+        "seven_day_cowork": "7 дней Cowork",
+        "seven_day_fable": "7 дней Fable",
+        "code_review_five_hour": "Код-ревью 5 часов",
+        "code_review_weekly": "Код-ревью неделя",
+        "code_review_monthly": "Код-ревью месяц"
+      },
+      "balances": {
+        "credits": "Кредиты",
+        "rate_limit_resets": "Сбросы лимита",
+        "extra_usage": "Дополнительное использование",
+        "on_demand": "По запросу",
+        "prepaid": "Предоплаченный баланс"
       }
     },
     "form": {
