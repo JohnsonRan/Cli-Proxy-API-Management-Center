@@ -2311,7 +2311,7 @@
     "stat_named_desc": "配置中已备注的密钥",
     "name_hint": "保存在服务器配置（access.api-keys）中，所有面板共享。清空此字段可移除名称。",
     "stat_restricted": "受限密钥",
-    "stat_restricted_desc": "已限制模型范围的密钥",
+    "stat_restricted_desc": "受模型规则或提供商作用域限制的密钥",
     "table_name": "备注名称",
     "table_key": "API 密钥",
     "table_models": "模型范围",
@@ -2337,6 +2337,26 @@
     "empty_search_desc": "尝试更换搜索关键字。",
     "delete_modal_title": "删除客户端密钥",
     "delete_modal_confirm": "确定要删除此密钥吗？依赖该密钥的客户端将立即失效。",
-    "delete_btn": "确认删除"
+    "delete_btn": "确认删除",
+    "scopes": {
+      "title": "提供商作用域",
+      "description": "client.key-scopes：按前缀把密钥限制在指定提供商的凭证上",
+      "hint": "以该前缀开头的密钥只能看到并使用这些提供商；匹配最长前缀，完整密钥也可作为前缀。请求其他模型返回 400 model_not_found；Codex 联网搜索和语音需在列表中包含 codex。填写提供商键（claude、codex、gemini、xai…）、OpenAI 兼容条目名称或执行器插件 ID；anthropic、openai、chatgpt、muse、grok 为别名。未匹配任何规则的密钥不受限。Home 模式下不生效。",
+      "empty": "暂无规则：所有客户端密钥均可使用全部提供商。",
+      "prefix_label": "密钥前缀",
+      "providers_label": "提供商",
+      "providers_placeholder": "输入提供商后回车",
+      "add_rule": "添加规则",
+      "remove_rule": "删除规则",
+      "remove_provider": "移除 {{provider}}",
+      "save": "保存作用域",
+      "reset": "放弃修改",
+      "tag": "仅 {{providers}}",
+      "matched_prefix": "匹配的密钥前缀：{{prefix}}",
+      "modal_note": "该密钥匹配提供商作用域“{{prefix}}”，仅可使用：{{providers}}。",
+      "error_prefix_required": "请填写密钥前缀。",
+      "error_providers_required": "至少添加一个提供商；没有提供商的规则会被后端忽略。",
+      "error_prefix_duplicate": "已有规则使用此前缀，只有第一条生效。"
+    }
   }
 }
