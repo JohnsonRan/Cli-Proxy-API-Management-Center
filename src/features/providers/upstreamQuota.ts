@@ -5,7 +5,10 @@
  */
 
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
+import type { OpenAIProviderConfig } from '@/types';
+import { maskApiKey } from '@/utils/format';
 import { isRecord } from '@/utils/helpers';
+import type { ProviderGroup, ProviderResource } from './types';
 
 export interface UpstreamQuotaWindow {
   id: string;
@@ -150,6 +153,46 @@ export const lowestRemainingPercent = (credential: UpstreamQuotaCredential): num
   const all = [...own, ...nested];
   return all.length > 0 ? Math.max(0, Math.min(...all)) : null;
 };
+
+export interface UpstreamQuotaTarget {
+  authIndex: string;
+  baseUrl: string;
+  /** Masked API key of the entry, or null when the config holds none. */
+  maskedKey: string | null;
+}
+
+/**
+ * The keys of one provider that may reach another proxy sharing its quota. Only a custom
+ * base URL can be such a proxy, and api-call needs the key's auth index to inject it.
+ * Entries sharing an auth index are one credential, so they yield one target.
+ */
+export const collectUpstreamQuotaTargets = (resource: ProviderResource): UpstreamQuotaTarget[] => {
+  const baseUrl = resource.baseUrl?.trim();
+  if (!baseUrl) return [];
+  const candidates =
+    resource.brand === 'openaiCompatibility'
+      ? ((resource.raw as OpenAIProviderConfig).apiKeyEntries ?? []).map((entry) => ({
+          authIndex: entry.authIndex,
+          maskedKey: entry.apiKey ? maskApiKey(entry.apiKey) : null,
+        }))
+      : [{ authIndex: resource.authIndex, maskedKey: resource.apiKeyPreview }];
+  const seen = new Set<string>();
+  return candidates.flatMap(({ authIndex, maskedKey }) => {
+    const index = authIndex?.trim();
+    if (!index || seen.has(index)) return [];
+    seen.add(index);
+    return [{ authIndex: index, baseUrl, maskedKey }];
+  });
+};
+
+/** Every provider with at least one key that can check an upstream's quota, in list order. */
+export const collectUpstreamQuotaProviders = (
+  groups: ProviderGroup[]
+): Array<{ resource: ProviderResource; targets: UpstreamQuotaTarget[] }> =>
+  groups
+    .flatMap((group) => group.resources)
+    .map((resource) => ({ resource, targets: collectUpstreamQuotaTargets(resource) }))
+    .filter((item) => item.targets.length > 0);
 
 export type UpstreamQuotaResult =
   | { ok: true; credentials: UpstreamQuotaCredential[] }

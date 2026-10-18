@@ -1595,6 +1595,8 @@
     "search_clear": "Clear search",
     "title": "Quota Management",
     "description": "Monitor OAuth quota status for Antigravity, Codex, Claude, Kimi, and xAI credentials.",
+    "upstream_title": "Upstream quota",
+    "upstream_desc": "Provider keys with a custom base URL can read the quota their upstream proxy shares with them. Nothing is requested until you check.",
     "refresh_all_credentials": "Refresh all credentials",
     "sort_label": "Sort",
     "sort_default": "Default",
