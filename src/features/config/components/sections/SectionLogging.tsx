@@ -99,6 +99,23 @@ export function SectionLogging({
           onChange={(usageExcludeEmbeddings) => onChange({ usageExcludeEmbeddings })}
         />
       </SettingList>
+
+      {/* Client quota endpoint GET /v1/usage; visible credentials are chosen per key on the API keys page. */}
+      <SettingList>
+        <TextSetting
+          fieldId="quotaApiCacheTtlSeconds"
+          size="sm"
+          label={t('config_management.visual.sections.system.quota_api_cache_ttl')}
+          description={t('config_management.visual.sections.system.quota_api_cache_ttl_hint')}
+          type="number"
+          min={0}
+          placeholder="300"
+          value={values.quotaApiCacheTtlSeconds}
+          onChange={(quotaApiCacheTtlSeconds) => onChange({ quotaApiCacheTtlSeconds })}
+          disabled={disabled}
+          error={getValidationMessage(t, validationErrors?.quotaApiCacheTtlSeconds)}
+        />
+      </SettingList>
     </SectionCard>
   );
 }
