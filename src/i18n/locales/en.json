@@ -2519,9 +2519,16 @@
       "load_failed": "Could not load the credentials.",
       "retry": "Retry",
       "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials, and no provider key with a custom base URL.",
-      "missing": "(removed)",
-      "disabled": "(disabled)",
-      "own_key": "(this proxy's own key, may loop back)"
+      "missing": "Removed",
+      "disabled": "Disabled",
+      "own_key": "This proxy's own key, may loop back",
+      "trigger_empty": "No credentials (empty list)",
+      "trigger_summary": "{{selected}} / {{total}} selected",
+      "search_placeholder": "Search credentials, providers or IDs…",
+      "no_results": "No credentials match “{{query}}”",
+      "select_all": "Select all",
+      "clear": "Clear",
+      "chip_remove": "Remove {{name}}"
     }
   }
 }

@@ -2545,9 +2545,16 @@
       "load_failed": "憑證載入失敗。",
       "retry": "重試",
       "empty": "沒有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 憑證，也沒有帶自訂 Base URL 的提供商金鑰。",
-      "missing": "（已移除）",
-      "disabled": "（已停用）",
-      "own_key": "（本代理的金鑰，可能指回自身）"
+      "missing": "已移除",
+      "disabled": "已停用",
+      "own_key": "本代理的金鑰，可能指回自身",
+      "trigger_empty": "未選擇憑證（回傳空列表）",
+      "trigger_summary": "已選 {{selected}} / {{total}}",
+      "search_placeholder": "搜尋憑證、提供商或 ID…",
+      "no_results": "沒有符合「{{query}}」的憑證",
+      "select_all": "全選",
+      "clear": "清除",
+      "chip_remove": "移除 {{name}}"
     }
   }
 }

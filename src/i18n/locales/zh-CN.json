@@ -2517,9 +2517,16 @@
       "load_failed": "凭证加载失败。",
       "retry": "重试",
       "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证，也没有带自定义 Base URL 的提供商密钥。",
-      "missing": "（已移除）",
-      "disabled": "（已禁用）",
-      "own_key": "（本代理的密钥，可能指回自身）"
+      "missing": "已移除",
+      "disabled": "已禁用",
+      "own_key": "本代理的密钥，可能指回自身",
+      "trigger_empty": "未选择凭证（返回空列表）",
+      "trigger_summary": "已选 {{selected}} / {{total}}",
+      "search_placeholder": "搜索凭证、提供商或 ID…",
+      "no_results": "没有匹配“{{query}}”的凭证",
+      "select_all": "全选",
+      "clear": "清空",
+      "chip_remove": "移除 {{name}}"
     }
   }
 }
