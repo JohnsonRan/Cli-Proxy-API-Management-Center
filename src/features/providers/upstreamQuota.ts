@@ -43,6 +43,9 @@ export interface UpstreamQuotaCredential {
 /** Nesting the core produces is bounded at 3 relays; anything deeper is dropped. */
 const MAX_DEPTH = 6;
 
+/** Provider name core assigns to a relayed upstream proxy. */
+export const UPSTREAM_RELAY_PROVIDER = 'relay';
+
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() ? value.trim() : null;
 
@@ -101,8 +104,8 @@ const normalizeCredential = (value: unknown, depth: number): UpstreamQuotaCreden
 
 /**
  * Parses a GET /v1/usage body. Returns null when the body is not the CLIProxyAPI
- * quota contract, so a provider that merely has some /v1/usage endpoint is not
- * mistaken for an upstream proxy.
+ * quota contract (version >= 2 and credentials array), so a provider that merely has
+ * some /v1/usage endpoint is not mistaken for an upstream proxy.
  */
 export const normalizeUpstreamQuota = (payload: unknown): UpstreamQuotaCredential[] | null => {
   let parsed = payload;
@@ -114,6 +117,9 @@ export const normalizeUpstreamQuota = (payload: unknown): UpstreamQuotaCredentia
     }
   }
   if (!isRecord(parsed) || !Array.isArray(parsed.credentials)) return null;
+  const version =
+    typeof parsed.version === 'number' && Number.isFinite(parsed.version) ? parsed.version : null;
+  if (version === null || version < 2) return null;
   return list(parsed.credentials, (item) => normalizeCredential(item, 0));
 };
 
