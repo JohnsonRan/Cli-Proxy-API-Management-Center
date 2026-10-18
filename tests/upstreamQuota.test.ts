@@ -6,7 +6,7 @@ import {
   buildUpstreamQuotaUrl,
   collectUpstreamQuotaProviders,
   collectUpstreamQuotaTargets,
-  lowestRemainingPercent,
+  flattenUpstreamAccounts,
   normalizeUpstreamQuota,
 } from '@/features/providers/upstreamQuota';
 import { claudeToResource, codexToResource, openaiToResource } from '@/features/providers/adapters';
@@ -18,7 +18,18 @@ import { buildUpstreamTimelineLanes } from '@/features/quota/upstreamTimeline';
 import type { Config } from '@/types';
 import { maskApiKey } from '@/utils/format';
 import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
-import { UpstreamQuotaResultView } from '@/features/providers/sheets/UpstreamQuotaPanel';
+import { UpstreamQuotaBody } from '@/features/quota/components/UpstreamQuotaBody';
+import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
+
+// CSS Modules are not compiled under Bun: bind each contract class to its own name.
+const classes = bindQuotaClasses(
+  Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
+  'test'
+);
+const renderBody = (result: Parameters<typeof UpstreamQuotaBody>[0]['result']) =>
+  renderToStaticMarkup(
+    createElement(UpstreamQuotaBody, { result, resolvedTheme: 'dark', classes })
+  );
 
 // A GET /v1/usage body as the core returns it: one relay whose upstream shares two accounts.
 const RELAYED = {
@@ -89,27 +100,34 @@ describe('upstream quota', () => {
     expect(relay.upstream[1]).toMatchObject({ status: 'error', windows: [], balances: [] });
   });
 
-  test('the tightest window across nested accounts sets the headline', () => {
-    const credentials = normalizeUpstreamQuota(RELAYED)!;
-    expect(lowestRemainingPercent(credentials[0])).toBe(20);
-    expect(lowestRemainingPercent(credentials[0].upstream[1])).toBeNull();
+  test('a relay contributes the accounts behind it, not itself', () => {
+    const accounts = flattenUpstreamAccounts(normalizeUpstreamQuota(RELAYED)!);
+    expect(accounts.map(({ credential, via, path }) => [credential.name, via, path])).toEqual([
+      ['team-a', 'friend', '/0/0'],
+      ['team-b', 'friend', '/0/1'],
+    ]);
+    // A relay that failed before reporting any account stays, so its error is visible.
+    const failed = flattenUpstreamAccounts(
+      normalizeUpstreamQuota({
+        version: 2,
+        credentials: [{ name: 'down', provider: 'relay', status: 'error', error: 'timeout' }],
+      })!
+    );
+    expect(failed.map(({ credential }) => credential.name)).toEqual(['down']);
   });
 
-  test('renders every account collapsible, nested under its relay', () => {
-    const markup = renderToStaticMarkup(
-      createElement(UpstreamQuotaResultView, {
-        result: { ok: true, credentials: normalizeUpstreamQuota(RELAYED)! },
-      })
-    );
-    expect(markup.match(/<details/g)).toHaveLength(3);
+  test('renders accounts flat, with the quota rows of the OAuth cards', () => {
+    const markup = renderBody({ ok: true, credentials: normalizeUpstreamQuota(RELAYED)! });
+    // No nested boxes: one row per account, no collapsibles.
+    expect(markup).not.toContain('<details');
     expect(markup).toContain('team-a');
-    expect(markup).toContain(i18n.t('providersPage.upstreamQuota.relay'));
+    expect(markup).toContain(i18n.t('providersPage.upstreamQuota.via', { name: 'friend' }));
     expect(markup).toContain(i18n.t('providersPage.upstreamQuota.windows.five_hour'));
-    expect(markup).toContain(
-      i18n.t('providersPage.upstreamQuota.remainingPercent', { percent: 20 })
-    );
-    expect(markup).toContain('auth token refresh failed');
+    // Remaining percent and meter width share one value.
+    expect(markup).toContain('>20%<');
     expect(markup).toContain('width:20%');
+    expect(markup).toContain('auth token refresh failed');
+    expect(markup).toContain(i18n.t('providersPage.upstreamQuota.balances.credits'));
   });
 
   test('targets only keys with a custom base URL and an auth index, once per index', () => {
@@ -224,14 +242,11 @@ describe('upstream quota', () => {
     // The brand is the icon, so the name is the provider name and the masked key.
     expect(idle).toContain(`friend · ${maskApiKey('sk-openai-relay-1')}`);
 
-    const loaded = render({
-      c1: { loading: false, result: { ok: true, credentials: normalizeUpstreamQuota(RELAYED)! } },
-      o1: { loading: false, result: { ok: false, reason: 'unsupported', message: '' } },
-    });
-    expect(loaded).toContain('team-a');
-    expect(loaded).toContain(i18n.t('providersPage.upstreamQuota.unsupported'));
-    expect(loaded).toContain(i18n.t('auth_files.quota_refresh_single'));
-    expect(loaded).not.toContain(i18n.t('quota_management.upstream_idle'));
+    // Loading keeps the card and swaps the body for a skeleton plus a refresh pill.
+    const loading = render({ c1: { loading: true, result: null } });
+    expect(loading).toContain('aria-busy="true"');
+    expect(loading).toContain(i18n.t('auth_files.quota_refresh_single'));
+    expect(loading.split(i18n.t('quota_management.upstream_idle'))).toHaveLength(2);
 
     expect(
       renderToStaticMarkup(
@@ -315,11 +330,14 @@ describe('upstream quota', () => {
   });
 
   test('explains an upstream without the endpoint', () => {
-    const markup = renderToStaticMarkup(
-      createElement(UpstreamQuotaResultView, {
-        result: { ok: false, reason: 'unsupported', message: '' },
-      })
+    expect(renderBody({ ok: false, reason: 'unsupported', message: '' })).toContain(
+      i18n.t('providersPage.upstreamQuota.unsupported')
     );
-    expect(markup).toContain(i18n.t('providersPage.upstreamQuota.unsupported'));
+    expect(renderBody({ ok: true, credentials: [] })).toContain(
+      i18n.t('providersPage.upstreamQuota.noneShared')
+    );
+    expect(renderBody({ ok: false, reason: 'error', message: '502 bad gateway' })).toContain(
+      '502 bad gateway'
+    );
   });
 });

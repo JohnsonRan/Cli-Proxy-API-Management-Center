@@ -8,6 +8,7 @@ import type { TFunction } from 'i18next';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import type { OpenAIProviderConfig } from '@/types';
 import { maskApiKey } from '@/utils/format';
+import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
 import { isRecord } from '@/utils/helpers';
 import type { ProviderGroup, ProviderResource } from './types';
 
@@ -65,6 +66,43 @@ export const upstreamWindowLabel = (t: TFunction, window: UpstreamQuotaWindow): 
     ? t(`providersPage.upstreamQuota.windows.${window.id}`)
     : null;
   return window.label && !known ? window.label : (known ?? window.label ?? window.id);
+};
+
+const KNOWN_BALANCES = new Set([
+  'credits',
+  'rate_limit_resets',
+  'extra_usage',
+  'on_demand',
+  'prepaid',
+]);
+
+export const upstreamBalanceLabel = (t: TFunction, balance: UpstreamQuotaBalance): string =>
+  KNOWN_BALANCES.has(balance.id)
+    ? t(`providersPage.upstreamQuota.balances.${balance.id}`)
+    : (balance.label ?? balance.id);
+
+const formatAmount = (value: number, unit: string | null): string => {
+  const rounded = Math.round(value * 100) / 100;
+  if (!unit || unit === 'count' || unit === 'credits') return String(rounded);
+  if (unit === 'usd') return `$${rounded}`;
+  return `${rounded} ${unit.toUpperCase()}`;
+};
+
+export const upstreamBalanceValue = (t: TFunction, balance: UpstreamQuotaBalance): string => {
+  if (balance.unlimited) return t('providersPage.upstreamQuota.unlimited');
+  if (balance.remaining !== null && balance.limit !== null) {
+    return t('providersPage.upstreamQuota.remainingOf', {
+      remaining: formatAmount(balance.remaining, balance.unit),
+      limit: formatAmount(balance.limit, balance.unit),
+    });
+  }
+  if (balance.remaining !== null) return formatAmount(balance.remaining, balance.unit);
+  if (balance.used !== null) {
+    return t('providersPage.upstreamQuota.usedAmount', {
+      used: formatAmount(balance.used, balance.unit),
+    });
+  }
+  return t('providersPage.upstreamQuota.unknown');
 };
 
 /** Nesting the core produces is bounded at 3 relays; anything deeper is dropped. */
@@ -166,17 +204,32 @@ export const buildUpstreamQuotaUrl = (baseUrl: string | null | undefined): strin
   return url.toString();
 };
 
-/** The tightest window decides how close an account is to running out. */
-export const lowestRemainingPercent = (credential: UpstreamQuotaCredential): number | null => {
-  const own = credential.windows
-    .map((window) => (window.usedPercent === null ? null : 100 - window.usedPercent))
-    .filter((value): value is number => value !== null);
-  const nested = credential.upstream
-    .map(lowestRemainingPercent)
-    .filter((value): value is number => value !== null);
-  const all = [...own, ...nested];
-  return all.length > 0 ? Math.max(0, Math.min(...all)) : null;
-};
+export interface UpstreamQuotaAccount {
+  credential: UpstreamQuotaCredential;
+  /** Name of the relay the account sits behind, or null when the upstream owns it. */
+  via: string | null;
+  /** Stable position in the summary tree, unique within one result. */
+  path: string;
+}
+
+/**
+ * The accounts in a summary, depth first. A relay is a proxy rather than an account, so
+ * it contributes only the accounts behind it; an errored relay stays, to show its error.
+ */
+export const flattenUpstreamAccounts = (
+  credentials: UpstreamQuotaCredential[],
+  via: string | null = null,
+  path = ''
+): UpstreamQuotaAccount[] =>
+  credentials.flatMap((credential, index) => {
+    const at = `${path}/${index}`;
+    const relay = credential.provider === QUOTA_RELAY_PROVIDER;
+    const own =
+      !relay || (credential.status === 'error' && credential.upstream.length === 0)
+        ? [{ credential, via, path: at }]
+        : [];
+    return [...own, ...flattenUpstreamAccounts(credential.upstream, credential.name, at)];
+  });
 
 export interface UpstreamQuotaTarget {
   authIndex: string;

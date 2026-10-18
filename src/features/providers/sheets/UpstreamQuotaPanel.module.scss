@@ -1,8 +1,13 @@
+@use '../../../styles/mixins' as *;
+
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .header {
@@ -13,129 +18,9 @@
 }
 
 .title {
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.list,
-.nested {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nested {
-  margin-top: 8px;
-  padding-left: 12px;
-  border-left: 2px solid var(--border-color);
-}
-
-.credential {
-  min-width: 0;
-}
-
-.credentialLabel {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-.credentialName {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.credentialProvider {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.row {
-  display: grid;
-  grid-template-columns: minmax(96px, 1.2fr) minmax(80px, 2fr) auto;
-  grid-template-areas:
-    'label meter value'
-    'label reset reset';
-  align-items: center;
-  column-gap: 10px;
-  row-gap: 2px;
-  padding: 4px 0;
-  font-size: 13px;
-}
-
-.rowLabel {
-  grid-area: label;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.rowValue {
-  grid-area: value;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.rowValueWide {
-  grid-column: 2 / -1;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.rowReset {
-  grid-area: reset;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.meter {
-  grid-area: meter;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--border-color);
-  overflow: hidden;
-}
-
-.meterFill {
-  height: 100%;
-  border-radius: inherit;
-}
-
-.fillHigh {
-  background: var(--success-color);
-}
-
-.fillMedium {
-  background: var(--amber-color);
-}
-
-.fillLow {
-  background: var(--error-color);
-}
-
-.fillUnknown {
-  background: transparent;
-}
-
-.empty,
-.observed {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.observed {
-  margin-top: 6px;
-  color: var(--text-tertiary);
-}
-
-.error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--error-color);
-  overflow-wrap: anywhere;
+  @include text-ellipsis;
 }

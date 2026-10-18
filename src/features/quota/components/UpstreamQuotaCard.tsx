@@ -6,10 +6,11 @@
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
-import { UpstreamQuotaResultView } from '@/features/providers/sheets/UpstreamQuotaPanel';
 import { getThemeSurfaceIconBackground } from '@/features/authFiles/constants';
 import type { ResolvedTheme } from '@/types';
 import type { UpstreamQuotaEntry, UpstreamQuotaState } from '../hooks/useUpstreamQuotas';
+import { getQuotaBodyClasses } from './quotaBodyClasses';
+import { UpstreamQuotaBody } from './UpstreamQuotaBody';
 import styles from './QuotaCard.module.scss';
 
 export interface UpstreamQuotaCardProps {
@@ -81,7 +82,11 @@ export function UpstreamQuotaCard({
             ))}
           </div>
         ) : result ? (
-          <UpstreamQuotaResultView result={result} />
+          <UpstreamQuotaBody
+            result={result}
+            resolvedTheme={resolvedTheme}
+            classes={getQuotaBodyClasses()}
+          />
         ) : null}
       </div>
 
