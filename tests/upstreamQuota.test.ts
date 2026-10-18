@@ -6,6 +6,7 @@ import {
   buildUpstreamQuotaUrl,
   lowestRemainingPercent,
   normalizeUpstreamQuota,
+  UPSTREAM_RELAY_PROVIDER,
 } from '@/features/providers/upstreamQuota';
 import { UpstreamQuotaResultView } from '@/features/providers/sheets/UpstreamQuotaPanel';
 
@@ -57,12 +58,16 @@ describe('upstream quota', () => {
   test('accepts only the CLIProxyAPI quota contract', () => {
     expect(normalizeUpstreamQuota({ object: 'list', data: [] })).toBeNull();
     expect(normalizeUpstreamQuota('<html>')).toBeNull();
-    expect(normalizeUpstreamQuota('{"credentials":[]}')).toEqual([]);
+    expect(normalizeUpstreamQuota('{"credentials":[]}')).toBeNull();
+    expect(normalizeUpstreamQuota({ credentials: [] })).toBeNull();
+    expect(normalizeUpstreamQuota({ version: 1, credentials: [] })).toBeNull();
+    expect(normalizeUpstreamQuota({ version: 2, credentials: [] })).toEqual([]);
+    expect(UPSTREAM_RELAY_PROVIDER).toBe('relay');
 
     const credentials = normalizeUpstreamQuota(RELAYED);
     expect(credentials).not.toBeNull();
     const relay = credentials![0];
-    expect(relay.provider).toBe('relay');
+    expect(relay.provider).toBe(UPSTREAM_RELAY_PROVIDER);
     expect(relay.upstream).toHaveLength(2);
     expect(relay.upstream[0].windows[0]).toEqual({
       id: 'five_hour',

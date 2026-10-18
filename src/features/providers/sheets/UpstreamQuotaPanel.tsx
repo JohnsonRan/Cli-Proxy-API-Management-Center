@@ -8,6 +8,7 @@ import { formatQuotaResetTime } from '@/utils/quota';
 import {
   fetchUpstreamQuota,
   lowestRemainingPercent,
+  UPSTREAM_RELAY_PROVIDER,
   type UpstreamQuotaBalance,
   type UpstreamQuotaCredential,
   type UpstreamQuotaResult,
@@ -128,7 +129,7 @@ export function UpstreamQuotaCredentialView({
 }) {
   const { t } = useTranslation();
   const remaining = lowestRemainingPercent(credential);
-  const isRelay = credential.provider === 'relay';
+  const isRelay = credential.provider === UPSTREAM_RELAY_PROVIDER;
   const hint =
     credential.status === 'error'
       ? (credential.error ?? t('providersPage.upstreamQuota.failed'))
