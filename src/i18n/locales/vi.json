@@ -2409,12 +2409,12 @@
     },
     "quota_credentials": {
       "label": "Thông tin xác thực xem hạn mức (GET /v1/usage)",
-      "hint": "Khóa này có thể đọc hạn mức upstream của các thông tin xác thực OAuth đã chọn qua GET /v1/usage. Mặc định không chọn gì, và khóa chưa chọn sẽ nhận danh sách rỗng.",
+      "hint": "Khóa này có thể đọc qua GET /v1/usage bản tóm tắt hạn mức của các thông tin xác thực OAuth đã chọn và của các proxy thượng nguồn đã chọn (khóa nhà cung cấp có Base URL tùy chỉnh, GET /v1/usage của chúng được chuyển tiếp). Mặc định không chọn gì, và khóa chưa chọn sẽ nhận danh sách rỗng.",
       "tag": "Hạn mức: {{n}} thông tin xác thực",
       "loading": "Đang tải thông tin xác thực…",
       "load_failed": "Không tải được thông tin xác thực.",
       "retry": "Thử lại",
-      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity, xAI hoặc Command Code.",
+      "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity, xAI hoặc Command Code, và không có khóa nhà cung cấp nào có Base URL tùy chỉnh.",
       "missing": "(đã xóa)",
       "disabled": "(đã tắt)"
     }

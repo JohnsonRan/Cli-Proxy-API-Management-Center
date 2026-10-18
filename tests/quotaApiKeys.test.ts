@@ -7,7 +7,11 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import en from '@/i18n/locales/en.json';
 import { ClientKeyQuotaCredentialsField } from '@/pages/ClientKeyQuotaCredentialsField';
-import { buildQuotaCredentialOptions } from '@/utils/quotaCredentials';
+import {
+  buildQuotaCredentialOptions,
+  buildQuotaRelayOptions,
+  QUOTA_RELAY_PROVIDER,
+} from '@/utils/quotaCredentials';
 import {
   parseQuotaApiKeyEntry,
   quotaApiKeysApi,
@@ -129,6 +133,42 @@ describe('quota credential options', () => {
     expect(markup).toContain(en.api_keys_page.quota_credentials.loading);
     expect(markup).not.toContain(en.api_keys_page.quota_credentials.missing);
     expect(markup).not.toContain('codex-b.json');
+  });
+
+  test('offers provider keys with a custom base URL as relays, stored by auth index', () => {
+    const relays = buildQuotaRelayOptions({
+      openaiCompatibility: [
+        {
+          name: 'friend',
+          baseUrl: 'https://friend.example/v1',
+          apiKeyEntries: [
+            { apiKey: 'sk-friend-0123456789', authIndex: 'idx-friend' },
+            { apiKey: 'sk-no-index-0123456789' },
+          ],
+        },
+        {
+          name: 'off',
+          baseUrl: 'https://off.example/v1',
+          disabled: true,
+          apiKeyEntries: [{ apiKey: 'sk-off-0123456789', authIndex: 'idx-off' }],
+        },
+      ],
+      codexApiKeys: [
+        { apiKey: 'sk-codex-official', authIndex: 'idx-official' },
+        { apiKey: 'sk-codex-relay-0123', baseUrl: 'https://relay.example', authIndex: 'idx-codex' },
+      ],
+    });
+    expect(relays.map((option) => [option.id, option.provider])).toEqual([
+      ['idx-friend', QUOTA_RELAY_PROVIDER],
+      ['idx-codex', QUOTA_RELAY_PROVIDER],
+    ]);
+    expect(relays[0].label).toContain('friend');
+    expect(relays[0].label).toContain('https://friend.example/v1');
+    expect(relays[0].label).not.toContain('sk-friend-0123456789');
+
+    const options = buildQuotaCredentialOptions(files, ['idx-friend', 'idx-gone'], relays);
+    expect(options.find((option) => option.id === 'idx-friend')?.missing).toBe(false);
+    expect(options.find((option) => option.id === 'idx-gone')?.missing).toBe(true);
   });
 });
 

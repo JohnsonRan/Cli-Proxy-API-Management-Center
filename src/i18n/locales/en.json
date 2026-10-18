@@ -2403,12 +2403,12 @@
     },
     "quota_credentials": {
       "label": "Quota visibility (GET /v1/usage)",
-      "hint": "This key can read the upstream quota of the selected OAuth credentials through GET /v1/usage. Nothing is selected by default, and a key with no selection gets an empty list.",
+      "hint": "This key can read, through GET /v1/usage, a quota summary of the selected OAuth credentials and of the selected upstream proxies (provider keys with a custom base URL, whose own GET /v1/usage is relayed). Nothing is selected by default, and a key with no selection gets an empty list.",
       "tag": "Quota: {{n}} credentials",
       "loading": "Loading credentials…",
       "load_failed": "Could not load the credentials.",
       "retry": "Retry",
-      "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials.",
+      "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials, and no provider key with a custom base URL.",
       "missing": "(removed)",
       "disabled": "(disabled)"
     }

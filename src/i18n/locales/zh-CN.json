@@ -2401,12 +2401,12 @@
     },
     "quota_credentials": {
       "label": "额度可见凭证（GET /v1/usage）",
-      "hint": "该密钥可通过 GET /v1/usage 读取所选 OAuth 凭证的上游额度。默认不选任何凭证，未选择时返回空列表。",
+      "hint": "该密钥可通过 GET /v1/usage 读取所选 OAuth 凭证的额度摘要，以及所选上游代理（带自定义 Base URL 的提供商密钥，会中转其自身的 GET /v1/usage）的额度。默认不选任何凭证，未选择时返回空列表。",
       "tag": "额度：{{n}} 个凭证",
       "loading": "正在加载凭证…",
       "load_failed": "凭证加载失败。",
       "retry": "重试",
-      "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证。",
+      "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证，也没有带自定义 Base URL 的提供商密钥。",
       "missing": "（已移除）",
       "disabled": "（已禁用）"
     }

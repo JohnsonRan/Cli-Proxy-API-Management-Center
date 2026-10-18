@@ -2403,12 +2403,12 @@
     },
     "quota_credentials": {
       "label": "할당량 표시 자격 증명 (GET /v1/usage)",
-      "hint": "이 키는 GET /v1/usage로 선택한 OAuth 자격 증명의 업스트림 할당량을 읽을 수 있습니다. 기본값은 선택 없음이며, 선택하지 않으면 빈 목록을 반환합니다.",
+      "hint": "이 키는 GET /v1/usage로 선택한 OAuth 자격 증명과 선택한 업스트림 프록시(사용자 지정 Base URL이 있는 제공자 키로, 그쪽 GET /v1/usage를 중계)의 할당량 요약을 읽을 수 있습니다. 기본값은 선택 없음이며, 선택하지 않으면 빈 목록을 반환합니다.",
       "tag": "할당량: 자격 증명 {{n}}개",
       "loading": "자격 증명을 불러오는 중…",
       "load_failed": "자격 증명을 불러오지 못했습니다.",
       "retry": "다시 시도",
-      "empty": "Codex, Claude, Antigravity, xAI 또는 Command Code OAuth 자격 증명이 없습니다.",
+      "empty": "Codex, Claude, Antigravity, xAI 또는 Command Code OAuth 자격 증명이 없고, 사용자 지정 Base URL이 있는 제공자 키도 없습니다.",
       "missing": "(삭제됨)",
       "disabled": "(비활성화됨)"
     }
