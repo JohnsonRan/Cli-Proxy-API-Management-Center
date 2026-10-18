@@ -2410,7 +2410,8 @@
       "retry": "Retry",
       "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials, and no provider key with a custom base URL.",
       "missing": "(removed)",
-      "disabled": "(disabled)"
+      "disabled": "(disabled)",
+      "own_key": "(this proxy's own key, may loop back)"
     }
   }
 }

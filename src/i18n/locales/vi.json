@@ -2416,7 +2416,8 @@
       "retry": "Thử lại",
       "empty": "Không có thông tin xác thực OAuth Codex, Claude, Antigravity, xAI hoặc Command Code, và không có khóa nhà cung cấp nào có Base URL tùy chỉnh.",
       "missing": "(đã xóa)",
-      "disabled": "(đã tắt)"
+      "disabled": "(đã tắt)",
+      "own_key": "(khóa của chính proxy này, có thể vòng lặp)"
     }
   }
 }

@@ -2410,7 +2410,8 @@
       "retry": "다시 시도",
       "empty": "Codex, Claude, Antigravity, xAI 또는 Command Code OAuth 자격 증명이 없고, 사용자 지정 Base URL이 있는 제공자 키도 없습니다.",
       "missing": "(삭제됨)",
-      "disabled": "(비활성화됨)"
+      "disabled": "(비활성화됨)",
+      "own_key": "(이 프록시의 자체 키, 루프 가능)"
     }
   }
 }
