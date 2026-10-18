@@ -12,6 +12,11 @@ export interface QuotaCredentialOption {
   disabled: boolean;
   /** Selected but no longer among the credentials. */
   missing: boolean;
+  /**
+   * A relay using one of this proxy's own client keys: likely this proxy itself, which core
+   * reports as a relay loop. Another proxy may share the key, so it stays selectable.
+   */
+  ownKey?: boolean;
 }
 
 /**
@@ -70,6 +75,7 @@ export const buildQuotaRelayOptions = (
   config: Config | null | undefined
 ): QuotaCredentialOption[] => {
   if (!config) return [];
+  const ownKeys = new Set((config.apiKeys ?? []).map((key) => key.trim()).filter(Boolean));
   const options: QuotaCredentialOption[] = [];
   const add = (key: RelayKey, name: string) => {
     const id = String(key.authIndex ?? '').trim();
@@ -81,6 +87,7 @@ export const buildQuotaRelayOptions = (
       provider: QUOTA_RELAY_PROVIDER,
       disabled: false,
       missing: false,
+      ownKey: ownKeys.has(String(key.apiKey ?? '').trim()),
     });
   };
   (config.openaiCompatibility ?? []).forEach((provider) => {

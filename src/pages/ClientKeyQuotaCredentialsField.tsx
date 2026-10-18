@@ -104,6 +104,11 @@ export function ClientKeyQuotaCredentialsField({
                       {t('api_keys_page.quota_credentials.disabled')}
                     </span>
                   )}
+                  {option.ownKey && (
+                    <span className={styles.quotaCredentialMissing}>
+                      {t('api_keys_page.quota_credentials.own_key')}
+                    </span>
+                  )}
                 </span>
               }
             />
