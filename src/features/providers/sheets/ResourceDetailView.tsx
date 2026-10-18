@@ -121,7 +121,7 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
     resource.brand === 'openaiCompatibility' ? (resource.raw as OpenAIProviderConfig) : null;
   const apiKeyEntries = openaiConfig?.apiKeyEntries ?? [];
   // Only a custom base URL can be another proxy sharing its quota.
-  const upstreamQuotaTargets: Array<{ authIndex: string; title?: string }> = !resource.baseUrl
+  const rawUpstreamTargets: Array<{ authIndex: string; title?: string }> = !resource.baseUrl
     ? []
     : openaiConfig
       ? apiKeyEntries
@@ -136,6 +136,12 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
       : resource.authIndex
         ? [{ authIndex: resource.authIndex }]
         : [];
+  const seenAuthIndexes = new Set<string>();
+  const upstreamQuotaTargets = rawUpstreamTargets.filter((target) => {
+    if (seenAuthIndexes.has(target.authIndex)) return false;
+    seenAuthIndexes.add(target.authIndex);
+    return true;
+  });
 
   return (
     <div>
