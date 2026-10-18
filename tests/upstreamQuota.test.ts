@@ -11,7 +11,10 @@ import {
 } from '@/features/providers/upstreamQuota';
 import { claudeToResource, codexToResource, openaiToResource } from '@/features/providers/adapters';
 import { buildProviderGroups } from '@/features/providers/useProviderWorkbench';
-import { UpstreamQuotaSectionView } from '@/features/quota/components/UpstreamQuotaSection';
+import { UpstreamQuotaSection } from '@/features/quota/components/UpstreamQuotaSection';
+import { QuotaTimeline } from '@/features/quota/components/QuotaTimeline';
+import { buildUpstreamQuotaEntries } from '@/features/quota/hooks/useUpstreamQuotas';
+import { buildUpstreamTimelineLanes } from '@/features/quota/upstreamTimeline';
 import type { Config } from '@/types';
 import { maskApiKey } from '@/utils/format';
 import { QUOTA_RELAY_PROVIDER } from '@/utils/constants';
@@ -192,26 +195,123 @@ describe('upstream quota', () => {
         },
       ],
     } as Config;
-    const render = (value: Config | null) =>
-      renderToStaticMarkup(
-        createElement(UpstreamQuotaSectionView, { config: value, connectionKey: 'http://cpa' })
-      );
-    const markup = render(config);
-    expect(markup).toContain(i18n.t('quota_management.upstream_title'));
-    // One idle panel per key: a check button each, no result rendered yet.
-    expect(markup.match(/<button/g)).toHaveLength(2);
-    expect(markup).toContain(i18n.t('providersPage.upstreamQuota.check'));
-    expect(markup).not.toContain('<details');
-    expect(markup).toContain(
-      [
-        i18n.t('providersPage.providerNames.openaiCompatibility'),
-        'friend',
-        maskApiKey('sk-openai-relay-1'),
-      ].join(' · ')
-    );
+    const entries = buildUpstreamQuotaEntries(config);
+    expect(entries.map((entry) => entry.key)).toEqual(['c1', 'o1']);
+    expect(
+      buildUpstreamQuotaEntries({ codexApiKeys: [{ apiKey: 'sk-official' }] } as Config)
+    ).toEqual([]);
+    expect(buildUpstreamQuotaEntries(null)).toEqual([]);
 
-    expect(render({ codexApiKeys: [{ apiKey: 'sk-official' }] } as Config)).toBe('');
-    expect(render(null)).toBe('');
+    const render = (
+      states: Record<string, never> | Parameters<typeof UpstreamQuotaSection>[0]['states']
+    ) =>
+      renderToStaticMarkup(
+        createElement(UpstreamQuotaSection, {
+          entries,
+          states,
+          resolvedTheme: 'dark',
+          canRefresh: true,
+          onRefresh: () => {},
+        })
+      );
+    const idle = render({});
+    expect(idle).toContain(i18n.t('quota_management.upstream_title'));
+    // Same card shell as the OAuth credentials: one click-to-load body per key.
+    expect(idle.match(/<article/g)).toHaveLength(2);
+    expect(idle.match(/<button/g)).toHaveLength(2);
+    expect(idle).toContain(i18n.t('quota_management.upstream_idle'));
+    expect(idle).not.toContain('<details');
+    // The brand is the icon, so the name is the provider name and the masked key.
+    expect(idle).toContain(`friend · ${maskApiKey('sk-openai-relay-1')}`);
+
+    const loaded = render({
+      c1: { loading: false, result: { ok: true, credentials: normalizeUpstreamQuota(RELAYED)! } },
+      o1: { loading: false, result: { ok: false, reason: 'unsupported', message: '' } },
+    });
+    expect(loaded).toContain('team-a');
+    expect(loaded).toContain(i18n.t('providersPage.upstreamQuota.unsupported'));
+    expect(loaded).toContain(i18n.t('auth_files.quota_refresh_single'));
+    expect(loaded).not.toContain(i18n.t('quota_management.upstream_idle'));
+
+    expect(
+      renderToStaticMarkup(
+        createElement(UpstreamQuotaSection, {
+          entries: [],
+          states: {},
+          resolvedTheme: 'dark',
+          canRefresh: true,
+          onRefresh: () => {},
+        })
+      )
+    ).toBe('');
+  });
+
+  test('shared accounts become timeline lanes; relays and accounts without resets do not', () => {
+    const credentials = normalizeUpstreamQuota(RELAYED)!;
+    const label = (window: { id: string }) => `L:${window.id}`;
+    const weekly = buildUpstreamTimelineLanes([{ key: 'c1', credentials }], label, 14 * 24);
+    expect(weekly).toHaveLength(1);
+    expect(weekly[0]).toMatchObject({
+      name: 'upstream:c1/0/0',
+      displayName: 'team-a',
+      provider: 'codex',
+      // Weekly view anchors on the account-wide weekly window, which has no reset here,
+      // so the 5-hour one is the only window that can be projected.
+      anchorMs: Date.parse('2026-10-18T05:00:00Z'),
+      periodHours: 5,
+      remaining: 20,
+    });
+    // Like the Codex lanes, only windows that state a reset are summarized.
+    expect(weekly[0].limits).toEqual([{ label: 'L:five_hour', remaining: 20 }]);
+
+    // A window without period_seconds falls back to the known period of its id.
+    const noPeriod = buildUpstreamTimelineLanes(
+      [
+        {
+          key: 'x',
+          credentials: normalizeUpstreamQuota({
+            version: 2,
+            credentials: [
+              {
+                name: 'acct',
+                provider: 'claude',
+                windows: [
+                  { id: 'five_hour', used_percent: 10, reset_at: '2026-10-18T05:00:00Z' },
+                  { id: 'seven_day', used_percent: 40, reset_at: '2026-10-20T00:00:00Z' },
+                ],
+              },
+            ],
+          })!,
+        },
+      ],
+      label,
+      14 * 24
+    );
+    expect(noPeriod[0]).toMatchObject({ periodHours: 168, remaining: 60 });
+    const session = buildUpstreamTimelineLanes([{ key: 'x', credentials: [] }], label, 5);
+    expect(session).toEqual([]);
+  });
+
+  test('the timeline shows upstream lanes even without OAuth credentials', () => {
+    const credentials = normalizeUpstreamQuota(RELAYED)!;
+    const props = {
+      entries: [],
+      quotaFor: () => undefined,
+      displayNameFor: (name: string) => name,
+      resolvedTheme: 'light' as const,
+      now: Date.parse('2026-10-18T03:00:00Z'),
+    };
+    expect(renderToStaticMarkup(createElement(QuotaTimeline, props))).toBe('');
+    const markup = renderToStaticMarkup(
+      createElement(QuotaTimeline, {
+        ...props,
+        extraLanes: (max?: number) =>
+          buildUpstreamTimelineLanes([{ key: 'c1', credentials }], (w) => w.id, max),
+      })
+    );
+    expect(markup).toContain('team-a');
+    expect(markup).not.toContain('team-b');
+    expect(markup).not.toContain('friend');
   });
 
   test('explains an upstream without the endpoint', () => {

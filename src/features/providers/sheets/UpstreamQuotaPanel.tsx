@@ -9,27 +9,13 @@ import { formatQuotaResetTime } from '@/utils/quota';
 import {
   fetchUpstreamQuota,
   lowestRemainingPercent,
+  upstreamWindowLabel as windowLabel,
   type UpstreamQuotaBalance,
   type UpstreamQuotaCredential,
   type UpstreamQuotaResult,
   type UpstreamQuotaWindow,
 } from '../upstreamQuota';
 import styles from './UpstreamQuotaPanel.module.scss';
-
-const KNOWN_WINDOWS = new Set([
-  'five_hour',
-  'weekly',
-  'monthly',
-  'seven_day',
-  'seven_day_opus',
-  'seven_day_sonnet',
-  'seven_day_oauth_apps',
-  'seven_day_cowork',
-  'seven_day_fable',
-  'code_review_five_hour',
-  'code_review_weekly',
-  'code_review_monthly',
-]);
 
 const KNOWN_BALANCES = new Set([
   'credits',
@@ -38,13 +24,6 @@ const KNOWN_BALANCES = new Set([
   'on_demand',
   'prepaid',
 ]);
-
-const windowLabel = (t: TFunction, window: UpstreamQuotaWindow): string => {
-  const known = KNOWN_WINDOWS.has(window.id)
-    ? t(`providersPage.upstreamQuota.windows.${window.id}`)
-    : null;
-  return window.label && !known ? window.label : (known ?? window.label ?? window.id);
-};
 
 const balanceLabel = (t: TFunction, balance: UpstreamQuotaBalance): string =>
   KNOWN_BALANCES.has(balance.id)
@@ -209,19 +188,13 @@ interface UpstreamQuotaPanelProps {
   authIndex: string;
   baseUrl: string;
   title?: string;
-  className?: string;
 }
 
 /**
  * Reads, on demand, the quota an upstream CLIProxyAPI shares with this provider's
  * API key. Nothing is requested until the user asks.
  */
-export function UpstreamQuotaPanel({
-  authIndex,
-  baseUrl,
-  title,
-  className,
-}: UpstreamQuotaPanelProps) {
+export function UpstreamQuotaPanel({ authIndex, baseUrl, title }: UpstreamQuotaPanelProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<UpstreamQuotaResult | null>(null);
@@ -242,7 +215,7 @@ export function UpstreamQuotaPanel({
   }, [authIndex, baseUrl, t]);
 
   return (
-    <div className={className ? `${styles.panel} ${className}` : styles.panel}>
+    <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>{title ?? t('providersPage.upstreamQuota.title')}</span>
         <Button variant="secondary" size="sm" onClick={() => void load()} loading={loading}>

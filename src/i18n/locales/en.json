@@ -1605,6 +1605,8 @@
     "title": "Quota Management",
     "upstream_title": "Upstream quota",
     "upstream_desc": "Provider keys with a custom base URL can read the quota their upstream proxy shares with them. Nothing is requested until you check.",
+    "upstream_idle": "Click to check upstream quota",
+    "upstream_loading": "Reading upstream quota…",
     "refresh_all_credentials": "Refresh all credentials",
     "sort_label": "Sort",
     "sort_default": "Default",

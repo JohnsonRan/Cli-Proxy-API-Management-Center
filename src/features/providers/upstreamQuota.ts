@@ -4,6 +4,7 @@
  * the management api-call. React-free so tests consume it directly.
  */
 
+import type { TFunction } from 'i18next';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import type { OpenAIProviderConfig } from '@/types';
 import { maskApiKey } from '@/utils/format';
@@ -42,6 +43,29 @@ export interface UpstreamQuotaCredential {
   /** Accounts behind a relay credential, i.e. a proxy further up. */
   upstream: UpstreamQuotaCredential[];
 }
+
+const KNOWN_WINDOWS = new Set([
+  'five_hour',
+  'weekly',
+  'monthly',
+  'seven_day',
+  'seven_day_opus',
+  'seven_day_sonnet',
+  'seven_day_oauth_apps',
+  'seven_day_cowork',
+  'seven_day_fable',
+  'code_review_five_hour',
+  'code_review_weekly',
+  'code_review_monthly',
+]);
+
+/** A translated name for the core's window ids; anything else keeps the upstream label. */
+export const upstreamWindowLabel = (t: TFunction, window: UpstreamQuotaWindow): string => {
+  const known = KNOWN_WINDOWS.has(window.id)
+    ? t(`providersPage.upstreamQuota.windows.${window.id}`)
+    : null;
+  return window.label && !known ? window.label : (known ?? window.label ?? window.id);
+};
 
 /** Nesting the core produces is bounded at 3 relays; anything deeper is dropped. */
 const MAX_DEPTH = 6;
