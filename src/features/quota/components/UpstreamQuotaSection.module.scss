@@ -24,10 +24,11 @@
   color: var(--text-secondary);
 }
 
-/* Same grid as the OAuth cards above, so both sets line up column for column. */
+/* Same columns as the OAuth cards above. Cards keep their own height: one upstream can
+   share many accounts, and an unchecked card next to it should not stretch to match. */
 .grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  align-items: stretch;
+  align-items: start;
 }
