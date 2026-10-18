@@ -63,6 +63,18 @@ export const buildQuotaCredentialOptions = (
   );
 };
 
+/** Options whose label, provider or stored ID contains the query, case-insensitively. */
+export const filterQuotaCredentialOptions = (
+  options: readonly QuotaCredentialOption[],
+  query: string
+): readonly QuotaCredentialOption[] => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return options;
+  return options.filter((option) =>
+    [option.label, option.provider, option.id].some((text) => text.toLowerCase().includes(needle))
+  );
+};
+
 type RelayKey = { apiKey?: string; baseUrl?: string; authIndex?: string };
 
 /**

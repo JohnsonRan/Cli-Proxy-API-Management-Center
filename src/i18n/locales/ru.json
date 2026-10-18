@@ -2403,9 +2403,16 @@
       "load_failed": "Не удалось загрузить учётные данные.",
       "retry": "Повторить",
       "empty": "Нет OAuth-учётных данных Codex, Claude, Antigravity, xAI или Command Code и нет ключей провайдеров с собственным Base URL.",
-      "missing": "(удалено)",
-      "disabled": "(отключено)",
-      "own_key": "(ключ этого прокси, возможна петля)"
+      "missing": "Удалено",
+      "disabled": "Отключено",
+      "own_key": "Ключ этого прокси, возможна петля",
+      "trigger_empty": "Учётные данные не выбраны (пустой список)",
+      "trigger_summary": "Выбрано {{selected}} из {{total}}",
+      "search_placeholder": "Поиск по учётным данным, провайдерам или ID…",
+      "no_results": "Нет учётных данных по запросу «{{query}}»",
+      "select_all": "Выбрать все",
+      "clear": "Очистить",
+      "chip_remove": "Удалить {{name}}"
     }
   }
 }
