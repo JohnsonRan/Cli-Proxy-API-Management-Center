@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { authFilesApi } from '@/services/api/authFiles';
+import { useConfigStore } from '@/stores';
 import type { AuthFileItem } from '@/types/authFile';
-import { buildQuotaCredentialOptions } from '@/utils/quotaCredentials';
+import { buildQuotaCredentialOptions, buildQuotaRelayOptions } from '@/utils/quotaCredentials';
 import styles from './ApiKeysPage.module.scss';
 
 interface ClientKeyQuotaCredentialsFieldProps {
@@ -22,17 +23,19 @@ export function ClientKeyQuotaCredentialsField({
   const labelId = useId();
   const [files, setFiles] = useState<AuthFileItem[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const config = useConfigStore((store) => store.config);
+  const fetchConfig = useConfigStore((store) => store.fetchConfig);
 
   const load = useCallback(async () => {
     setState('loading');
     try {
-      const response = await authFilesApi.list();
+      const [response] = await Promise.all([authFilesApi.list(), fetchConfig()]);
       setFiles(response.files ?? []);
       setState('ready');
     } catch {
       setState('error');
     }
-  }, []);
+  }, [fetchConfig]);
 
   useEffect(() => {
     void load();
@@ -40,8 +43,11 @@ export function ClientKeyQuotaCredentialsField({
 
   // Until the list arrives every saved ID would look removed, so list nothing before then.
   const options = useMemo(
-    () => (state === 'ready' ? buildQuotaCredentialOptions(files, value) : []),
-    [files, state, value]
+    () =>
+      state === 'ready'
+        ? buildQuotaCredentialOptions(files, value, buildQuotaRelayOptions(config))
+        : [],
+    [config, files, state, value]
   );
   const selected = useMemo(() => new Set(value), [value]);
 
