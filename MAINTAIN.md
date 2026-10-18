@@ -152,10 +152,10 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
 
 16. **`patch/quota-api`**
     - **Goal**: Choose, per client API key, which OAuth credentials the key can read through the core's `GET /v1/usage`, and edit its cache TTL.
-    - **Scope**: The API keys page add/edit dialog lists the Codex, Claude, Antigravity, xAI and Command Code OAuth credentials as checkboxes (`ClientKeyQuotaCredentialsField`, options from `utils/quotaCredentials.ts`; only entries whose `account_type` is `oauth`, because the core probes no API-key credential even under the same provider), stored by core auth ID in `observability.quota-api.keys` (`services/api/quotaApiKeys.ts`). Saving writes the key's selection, a renamed key carries it, deleting a key drops it, and an unchanged selection writes nothing. A save or delete writes `access.api-keys` and a changed `observability.quota-api.keys` in one `PATCH /config` (sequences are replaced whole), so a failed write leaves both lists unchanged and a retry targets the same key; after a successful write the page keeps the new lists and closes the dialog even if the config refresh fails, records the keys with `updateConfigValue('api-keys')` and only warns; saved IDs whose credential is gone stay listed as removed once the credential list has loaded. The key table shows how many credentials a key can read. The logging section keeps `observability.quota-api.cache-ttl-seconds` after the usage statistics switch (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30); the former `enabled` switch is gone because the core ignores it. Localized in all 6 locales; tests in `tests/quotaApiKeys.test.ts` and `tests/quotaApiConfig.test.ts`.
+    - **Scope**: The API keys page add/edit dialog lists the Codex, Claude, Antigravity, xAI and Command Code OAuth credentials as checkboxes (`ClientKeyQuotaCredentialsField`, options from `utils/quotaCredentials.ts`; only entries whose `account_type` is `oauth`, because the core probes no API-key credential even under the same provider), stored by core auth ID in `observability.quota-api.keys` (`services/api/quotaApiKeys.ts`). Saving writes the key's selection, a renamed key carries it, deleting a key drops it, and an unchanged selection writes nothing. A save or delete writes `access.api-keys` and a changed `observability.quota-api.keys` in one `PATCH /config` (sequences are replaced whole), so a failed write leaves both lists unchanged and a retry targets the same key; after a successful write the page keeps the new lists and closes the dialog even if the config refresh fails, records the keys with `updateConfigValue('api-keys')` and only warns; saved IDs whose credential is gone stay listed as removed once the credential list has loaded. The key table shows how many credentials a key can read. The logging section keeps `observability.quota-api.cache-ttl-seconds` after the usage statistics switch (empty or 0 keeps the core default of 300 seconds, values below 30 are raised to 30); the former `enabled` switch is gone because the core ignores it. Localized in all 6 locales; tests in `tests/quotaApiKeys.test.ts` and `tests/quotaApiConfig.test.ts`. The dialog also lists provider API keys with a custom base URL (OpenAI-compatible entries of enabled providers, and Codex, Claude and Gemini keys with a base URL) as `relay` options, which the core relays to the upstream proxy's own `GET /v1/usage`; they are stored by the `auth_index` the config reports (`buildQuotaRelayOptions`), so editing such a key or its base URL changes the index and the old selection then shows as removed. Relay options need `patch/config-auth-index`.
     - **Stacked**: Branched from `patch/client-key-provider-scope` (it edits `ApiKeysPage`) and integrated as a seam-diff against it (see below), right after `patch/usage-exclude-embeddings`.
     - **Note**: The logging insertion point sits one unchanged line away from `patch/usage-exclude-embeddings` and `patch/codex-app-keepalive`, so those apply cleanly in any order.
-    - **Cross-repo**: Needs the core patch `patch/quota-api` (core `2628cfe5`); Command Code quota requires core `e3ddab10` or later. Against an older core the selection has no effect.
+    - **Cross-repo**: Needs the core patch `patch/quota-api` (core `2628cfe5`); Command Code quota requires core `e3ddab10` or later, and relay selections need the core's summary contract (version 2). Against an older core the selection has no effect.
 
 17. **`patch/commandcode-oauth`**
     - **Goal**: Log in to Command Code (commandcode.ai) like the other OAuth providers and show its quota.
@@ -164,6 +164,17 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
       - Built-in quota card `commandcode` (`features/quota/providers/commandcode`): through api-call with `Bearer $TOKEN$` it reads `GET https://api.commandcode.ai/alpha/billing/credits` (5-hour and weekly windows, remaining monthly/purchased/free credits) and `/alpha/billing/subscriptions` (plan and period end), the endpoints of the official CLI's `/usage`. The monthly row needs an active, known plan, because the API reports only the remaining monthly credits; the plan table is the CLI's. Rows reuse the Kimi row shape and meter, so reset scheduling and the timeline handle them the same way.
       - Icons, type colors, dashboard label; localized in all 6 locales; tests in `tests/commandCodeQuota.test.ts`.
     - **Cross-repo**: Needs the core patch `patch/commandcode-oauth`; automatic web UI callbacks need core `031e1255` or later, which serves Studio's POST on 54546. Core `09027cd9` stopped forcing the `commandcode/` model prefix (models follow the credential `prefix` and `force-model-prefix`), so the login hint names no prefix. Against a core without the patch the tile answers `provider_not_found`.
+
+18. **`patch/config-auth-index`**
+    - **Goal**: Carry each provider key's auth index from the config.
+    - **Scope**: The v8 core injects every provider key's live auth index into `GET /config` as `auth_index` (core `0fb50a18`), but `services/api/transformers.ts` read only `auth-index`, so provider keys never had an auth index and the provider detail view showed it as not set. The normalizer now accepts both spellings. Test in `tests/configAuthIndex.test.ts`.
+    - **Related Upstream Work**: None found (searched `auth_index` issues and pull requests on 2026-10-18). Suitable as an upstream PR.
+
+19. **`patch/upstream-quota`**
+    - **Goal**: Show the quota another proxy shares with one of this proxy's provider keys, so an upstream that is only reachable by API key is no longer a black box.
+    - **Scope**: The provider detail view (`sheets/ResourceDetailView.tsx`) offers "Check upstream quota" for each API key with a custom base URL. Through api-call with the key as Bearer token (the `TOKEN` placeholder) and the key's auth index it reads the upstream's `GET /v1/usage` (`features/providers/upstreamQuota.ts`; a base URL ending in `/v1` is normalized), accepts only the core's quota contract (`credentials` list), and renders each shared account as a collapsible row (`sheets/UpstreamQuotaPanel.tsx`): plan, remaining share of each rate-limit window with its reset time, and balances; relayed proxies nest their own accounts, and the row summary shows the tightest remaining window. A 404 or a foreign body reads as "does not share quota". Nothing is requested until the user asks. Localized in all 6 locales; tests in `tests/upstreamQuota.test.ts`.
+    - **Cross-repo**: The upstream proxy must run the core patch `patch/quota-api` with the summary contract and select its accounts for the key; a stock upstream shows "does not share quota". The button needs the key's auth index, so it relies on `patch/config-auth-index`.
+    - **Related Upstream Work**: None found (searched `upstream quota`, `v1/usage`, `quota passthrough` and `relay quota` issues and pull requests here and in the core on 2026-10-18).
 
 ## Temporary Compatibility Patches
 
@@ -185,7 +196,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota
 
 git checkout -B main upstream/main
 
@@ -260,6 +271,10 @@ git commit -m "merge patch/quota-api branch"
 
 git merge --squash origin/patch/commandcode-oauth
 git commit -m "merge patch/commandcode-oauth branch"
+git merge --squash origin/patch/config-auth-index
+git commit -m "merge patch/config-auth-index branch"
+git merge --squash origin/patch/upstream-quota
+git commit -m "merge patch/upstream-quota branch"
 
 bun install --frozen-lockfile
 bun run type-check
