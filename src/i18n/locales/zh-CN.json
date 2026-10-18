@@ -1642,6 +1642,8 @@
     "search_clear": "清空搜索",
     "title": "配额管理",
     "description": "集中查看 OAuth 额度与剩余情况",
+    "upstream_title": "上游额度",
+    "upstream_desc": "自定义 Base URL 的提供商密钥可读取上游代理共享给它的额度，点击查看后才会请求。",
     "refresh_all_credentials": "刷新全部凭证",
     "sort_label": "排序",
     "sort_default": "默认",
@@ -2165,6 +2167,45 @@
         "authIndex": "Auth Index",
         "excludedModels": "排除模型数",
         "apiKeyEntries": "密钥条目数"
+      }
+    },
+    "upstreamQuota": {
+      "title": "上游额度",
+      "titleForKey": "上游额度 · {{key}}",
+      "check": "查看上游额度",
+      "refresh": "刷新",
+      "unsupported": "该上游未共享额度（GET /v1/usage 不可用）。",
+      "noneShared": "上游未向此密钥共享任何账号。",
+      "failed": "读取上游额度失败",
+      "noData": "未返回额度数据。",
+      "unknown": "未知",
+      "remainingPercent": "剩余 {{percent}}%",
+      "remainingOf": "剩余 {{remaining}} / {{limit}}",
+      "usedAmount": "已用 {{used}}",
+      "resetsAt": "{{time}} 重置",
+      "observedAt": "观测于 {{time}}",
+      "unlimited": "不限量",
+      "relay": "上游代理",
+      "windows": {
+        "five_hour": "5 小时",
+        "weekly": "每周",
+        "monthly": "每月",
+        "seven_day": "7 天",
+        "seven_day_opus": "7 天 Opus",
+        "seven_day_sonnet": "7 天 Sonnet",
+        "seven_day_oauth_apps": "7 天 OAuth 应用",
+        "seven_day_cowork": "7 天 Cowork",
+        "seven_day_fable": "7 天 Fable",
+        "code_review_five_hour": "代码审查 5 小时",
+        "code_review_weekly": "代码审查每周",
+        "code_review_monthly": "代码审查每月"
+      },
+      "balances": {
+        "credits": "积分",
+        "rate_limit_resets": "限额重置次数",
+        "extra_usage": "额外用量",
+        "on_demand": "按需用量",
+        "prepaid": "预付余额"
       }
     },
     "form": {

@@ -1644,6 +1644,8 @@
     "search_clear": "Clear search",
     "title": "Quota Management",
     "description": "Monitor OAuth quota status for Antigravity, Codex, Claude, Kimi, and xAI credentials.",
+    "upstream_title": "Upstream quota",
+    "upstream_desc": "Provider keys with a custom base URL can read the quota their upstream proxy shares with them. Nothing is requested until you check.",
     "refresh_all_credentials": "Refresh all credentials",
     "sort_label": "Sort",
     "sort_default": "Default",
@@ -2167,6 +2169,45 @@
         "authIndex": "Auth Index",
         "excludedModels": "Excluded models",
         "apiKeyEntries": "API key entries"
+      }
+    },
+    "upstreamQuota": {
+      "title": "Upstream quota",
+      "titleForKey": "Upstream quota · {{key}}",
+      "check": "Check upstream quota",
+      "refresh": "Refresh",
+      "unsupported": "This upstream does not share quota (GET /v1/usage is unavailable).",
+      "noneShared": "The upstream shares no accounts with this key.",
+      "failed": "Failed to read upstream quota",
+      "noData": "No quota data reported.",
+      "unknown": "Unknown",
+      "remainingPercent": "{{percent}}% left",
+      "remainingOf": "{{remaining}} of {{limit}} left",
+      "usedAmount": "{{used}} used",
+      "resetsAt": "Resets {{time}}",
+      "observedAt": "Observed {{time}}",
+      "unlimited": "Unlimited",
+      "relay": "Upstream proxy",
+      "windows": {
+        "five_hour": "5-hour",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "seven_day": "7-day",
+        "seven_day_opus": "7-day Opus",
+        "seven_day_sonnet": "7-day Sonnet",
+        "seven_day_oauth_apps": "7-day OAuth apps",
+        "seven_day_cowork": "7-day Cowork",
+        "seven_day_fable": "7-day Fable",
+        "code_review_five_hour": "Code review 5-hour",
+        "code_review_weekly": "Code review weekly",
+        "code_review_monthly": "Code review monthly"
+      },
+      "balances": {
+        "credits": "Credits",
+        "rate_limit_resets": "Rate-limit resets",
+        "extra_usage": "Extra usage",
+        "on_demand": "On-demand",
+        "prepaid": "Prepaid balance"
       }
     },
     "form": {
