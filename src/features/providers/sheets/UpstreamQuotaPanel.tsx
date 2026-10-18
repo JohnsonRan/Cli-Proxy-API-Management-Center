@@ -209,13 +209,19 @@ interface UpstreamQuotaPanelProps {
   authIndex: string;
   baseUrl: string;
   title?: string;
+  className?: string;
 }
 
 /**
  * Reads, on demand, the quota an upstream CLIProxyAPI shares with this provider's
  * API key. Nothing is requested until the user asks.
  */
-export function UpstreamQuotaPanel({ authIndex, baseUrl, title }: UpstreamQuotaPanelProps) {
+export function UpstreamQuotaPanel({
+  authIndex,
+  baseUrl,
+  title,
+  className,
+}: UpstreamQuotaPanelProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<UpstreamQuotaResult | null>(null);
@@ -236,7 +242,7 @@ export function UpstreamQuotaPanel({ authIndex, baseUrl, title }: UpstreamQuotaP
   }, [authIndex, baseUrl, t]);
 
   return (
-    <div className={styles.panel}>
+    <div className={className ? `${styles.panel} ${className}` : styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>{title ?? t('providersPage.upstreamQuota.title')}</span>
         <Button variant="secondary" size="sm" onClick={() => void load()} loading={loading}>

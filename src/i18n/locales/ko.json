@@ -1603,6 +1603,8 @@
     "search_empty_desc": "다른 파일명이나 이메일을 입력하거나 검색을 초기화하세요.",
     "search_clear": "검색 초기화",
     "title": "할당량 관리",
+    "upstream_title": "업스트림 할당량",
+    "upstream_desc": "사용자 지정 Base URL을 쓰는 공급자 키는 업스트림 프록시가 공유한 할당량을 읽을 수 있습니다. 확인을 누를 때만 요청합니다.",
     "refresh_all_credentials": "모든 자격 증명 새로 고침",
     "sort_label": "정렬",
     "sort_default": "기본값",

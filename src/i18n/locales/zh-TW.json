@@ -1624,6 +1624,8 @@
     "search_empty_desc": "請嘗試其他檔案名稱或電子郵件，或清除搜尋。",
     "search_clear": "清除搜尋",
     "title": "配額管理",
+    "upstream_title": "上游配額",
+    "upstream_desc": "自訂 Base URL 的供應商金鑰可讀取上游代理共享給它的配額，點擊查看後才會發出請求。",
     "refresh_all_credentials": "重新整理全部憑證",
     "sort_label": "排序",
     "sort_default": "預設",
