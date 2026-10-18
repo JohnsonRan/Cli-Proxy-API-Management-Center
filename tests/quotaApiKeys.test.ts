@@ -174,6 +174,25 @@ describe('quota credential options', () => {
     expect(options.find((option) => option.id === 'idx-gone')?.missing).toBe(true);
   });
 
+  test('lists OAuth credentials before relays, and removed IDs last', () => {
+    const relays = buildQuotaRelayOptions({
+      codexApiKeys: [
+        { apiKey: 'sk-codex-relay-0123', baseUrl: 'https://relay.example', authIndex: 'idx-a' },
+      ],
+    });
+    const oauth = [
+      { id: 'xai.json', name: 'xai.json', provider: 'xai', account_type: 'oauth' },
+      { id: 'codex.json', name: 'codex.json', provider: 'codex', account_type: 'oauth' },
+    ] as AuthFileItem[];
+    const options = buildQuotaCredentialOptions(oauth, ['aaa-gone'], relays);
+    expect(options.map((option) => option.id)).toEqual([
+      'codex.json',
+      'xai.json',
+      'idx-a',
+      'aaa-gone',
+    ]);
+  });
+
   test('filters credential options by label, provider or stored ID', () => {
     const options = buildQuotaCredentialOptions(files, ['gone.json']);
     const ids = (query: string) =>

@@ -55,9 +55,12 @@ export const buildQuotaCredentialOptions = (
     if (!byId.has(id))
       byId.set(id, { id, label: id, provider: '', disabled: false, missing: true });
   });
+  // OAuth credentials first, then relays, then removed IDs; alphabetical within each group.
+  const rank = (option: QuotaCredentialOption) =>
+    option.missing ? 2 : option.provider === QUOTA_RELAY_PROVIDER ? 1 : 0;
   return [...byId.values()].sort(
     (left, right) =>
-      Number(left.missing) - Number(right.missing) ||
+      rank(left) - rank(right) ||
       left.provider.localeCompare(right.provider) ||
       left.label.localeCompare(right.label, undefined, { sensitivity: 'base' })
   );
