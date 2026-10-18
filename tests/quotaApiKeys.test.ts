@@ -172,6 +172,26 @@ describe('quota credential options', () => {
     expect(options.find((option) => option.id === 'idx-gone')?.missing).toBe(true);
   });
 
+  test("flags relays that use one of this proxy's own client keys", () => {
+    const relays = buildQuotaRelayOptions({
+      apiKeys: ['sk-mine-0123456789'],
+      openaiCompatibility: [
+        {
+          name: 'self',
+          baseUrl: 'https://me.example/v1',
+          apiKeyEntries: [
+            { apiKey: ' sk-mine-0123456789 ', authIndex: 'idx-self' },
+            { apiKey: 'sk-friend-0123456789', authIndex: 'idx-friend' },
+          ],
+        },
+      ],
+    });
+    expect(relays.map((option) => [option.id, option.ownKey])).toEqual([
+      ['idx-self', true],
+      ['idx-friend', false],
+    ]);
+  });
+
   test('loadQuotaCredentialsSources tolerates config failure but requires auth files', async () => {
     const sampleFiles = [{ name: 'codex.json', provider: 'codex' }] as AuthFileItem[];
     const okBoth = await loadQuotaCredentialsSources(

@@ -2518,7 +2518,8 @@
       "retry": "重试",
       "empty": "没有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 凭证，也没有带自定义 Base URL 的提供商密钥。",
       "missing": "（已移除）",
-      "disabled": "（已禁用）"
+      "disabled": "（已禁用）",
+      "own_key": "（本代理的密钥，可能指回自身）"
     }
   }
 }

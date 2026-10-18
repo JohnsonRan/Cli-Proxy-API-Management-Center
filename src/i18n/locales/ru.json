@@ -2514,7 +2514,8 @@
       "retry": "Повторить",
       "empty": "Нет OAuth-учётных данных Codex, Claude, Antigravity, xAI или Command Code и нет ключей провайдеров с собственным Base URL.",
       "missing": "(удалено)",
-      "disabled": "(отключено)"
+      "disabled": "(отключено)",
+      "own_key": "(ключ этого прокси, возможна петля)"
     }
   }
 }

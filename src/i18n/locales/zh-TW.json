@@ -2546,7 +2546,8 @@
       "retry": "重試",
       "empty": "沒有 Codex、Claude、Antigravity、xAI 或 Command Code 的 OAuth 憑證，也沒有帶自訂 Base URL 的提供商金鑰。",
       "missing": "（已移除）",
-      "disabled": "（已停用）"
+      "disabled": "（已停用）",
+      "own_key": "（本代理的金鑰，可能指回自身）"
     }
   }
 }
