@@ -10,6 +10,7 @@ import { ClientKeyQuotaCredentialsField } from '@/pages/ClientKeyQuotaCredential
 import {
   buildQuotaCredentialOptions,
   buildQuotaRelayOptions,
+  loadQuotaCredentialsSources,
   QUOTA_RELAY_PROVIDER,
 } from '@/utils/quotaCredentials';
 import {
@@ -169,6 +170,31 @@ describe('quota credential options', () => {
     const options = buildQuotaCredentialOptions(files, ['idx-friend', 'idx-gone'], relays);
     expect(options.find((option) => option.id === 'idx-friend')?.missing).toBe(false);
     expect(options.find((option) => option.id === 'idx-gone')?.missing).toBe(true);
+  });
+
+  test('loadQuotaCredentialsSources tolerates config failure but requires auth files', async () => {
+    const sampleFiles = [{ name: 'codex.json', provider: 'codex' }] as AuthFileItem[];
+    const okBoth = await loadQuotaCredentialsSources(
+      async () => ({ files: sampleFiles }),
+      async () => ({})
+    );
+    expect(okBoth).toEqual({ state: 'ready', files: sampleFiles });
+
+    const configFailed = await loadQuotaCredentialsSources(
+      async () => ({ files: sampleFiles }),
+      async () => {
+        throw new Error('500 server error');
+      }
+    );
+    expect(configFailed).toEqual({ state: 'ready', files: sampleFiles });
+
+    const filesFailed = await loadQuotaCredentialsSources(
+      async () => {
+        throw new Error('auth files failed');
+      },
+      async () => ({})
+    );
+    expect(filesFailed).toEqual({ state: 'error', files: [] });
   });
 });
 

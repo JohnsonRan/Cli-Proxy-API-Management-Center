@@ -5,7 +5,11 @@ import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { authFilesApi } from '@/services/api/authFiles';
 import { useConfigStore } from '@/stores';
 import type { AuthFileItem } from '@/types/authFile';
-import { buildQuotaCredentialOptions, buildQuotaRelayOptions } from '@/utils/quotaCredentials';
+import {
+  buildQuotaCredentialOptions,
+  buildQuotaRelayOptions,
+  loadQuotaCredentialsSources,
+} from '@/utils/quotaCredentials';
 import styles from './ApiKeysPage.module.scss';
 
 interface ClientKeyQuotaCredentialsFieldProps {
@@ -28,11 +32,14 @@ export function ClientKeyQuotaCredentialsField({
 
   const load = useCallback(async () => {
     setState('loading');
-    try {
-      const [response] = await Promise.all([authFilesApi.list(), fetchConfig()]);
-      setFiles(response.files ?? []);
+    const result = await loadQuotaCredentialsSources(
+      () => authFilesApi.list(),
+      () => fetchConfig()
+    );
+    if (result.state === 'ready') {
+      setFiles(result.files);
       setState('ready');
-    } catch {
+    } else {
       setState('error');
     }
   }, [fetchConfig]);

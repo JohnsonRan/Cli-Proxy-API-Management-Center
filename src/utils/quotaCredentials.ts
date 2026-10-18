@@ -99,3 +99,23 @@ export const buildQuotaRelayOptions = (
   groups.forEach(([name, keys]) => (keys ?? []).forEach((key) => add(key, name)));
   return options;
 };
+
+export interface QuotaCredentialsLoadResult {
+  state: 'ready' | 'error';
+  files: AuthFileItem[];
+}
+
+/**
+ * Loads the auth-files list and refreshes config for relay options. A config fetch failure
+ * must not block OAuth credentials visibility; only an auth-files failure is fatal.
+ */
+export async function loadQuotaCredentialsSources(
+  fetchFiles: () => Promise<{ files?: AuthFileItem[] }>,
+  fetchCfg: () => Promise<unknown>
+): Promise<QuotaCredentialsLoadResult> {
+  const [filesResult] = await Promise.allSettled([fetchFiles(), fetchCfg()]);
+  if (filesResult.status !== 'fulfilled') {
+    return { state: 'error', files: [] };
+  }
+  return { state: 'ready', files: filesResult.value.files ?? [] };
+}
