@@ -44,8 +44,17 @@ function parseApiKeysText(raw: unknown): string {
 
   const keys: string[] = [];
   for (const item of raw) {
-    const key = typeof item === 'string' ? item.trim() : '';
-    if (key) keys.push(key);
+    if (typeof item === 'string') {
+      const key = item.trim();
+      if (key) keys.push(key);
+    } else if (item && typeof item === 'object') {
+      const key = String(
+        (item as Record<string, unknown>)['api-key'] ??
+          (item as Record<string, unknown>)['key'] ??
+          ''
+      ).trim();
+      if (key) keys.push(key);
+    }
   }
   return keys.join('\n');
 }
@@ -1732,7 +1741,22 @@ export function useVisualConfig() {
             .map((key) => key.trim())
             .filter(Boolean);
           if (apiKeys.length > 0) {
-            doc.setIn(['access', 'api-keys'], apiKeys);
+            const existingRaw = doc.getIn(['access', 'api-keys'], true);
+            let preservedItems: unknown[] = apiKeys;
+            if (isSeq(existingRaw)) {
+              preservedItems = apiKeys.map((key) => {
+                for (const item of existingRaw.items) {
+                  if (isMap(item)) {
+                    const k = item.get('api-key') ?? item.get('key');
+                    if (k === key) {
+                      return item;
+                    }
+                  }
+                }
+                return key;
+              });
+            }
+            doc.setIn(['access', 'api-keys'], preservedItems);
           } else if (docHas(doc, ['access', 'api-keys'])) {
             doc.deleteIn(['access', 'api-keys']);
           }
