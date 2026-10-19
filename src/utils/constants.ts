@@ -54,3 +54,6 @@ export const SUPPORTED_LANGUAGES = LANGUAGE_ORDER;
 
 // 通知持续时间
 export const NOTIFICATION_DURATION_MS = 3000;
+
+// Provider name the core's GET /v1/usage gives a relayed upstream proxy.
+export const QUOTA_RELAY_PROVIDER = 'relay';
