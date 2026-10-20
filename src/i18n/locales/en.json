@@ -1402,6 +1402,8 @@
           "usage_exclude_embeddings_desc": "Leave /v1/embeddings requests out of usage statistics (the usage queue). They still appear in request and application logs. Rerank requests are still counted. Ignored in Home mode.",
           "redis_usage_retention": "Redis Usage Queue Retention (seconds)",
           "redis_usage_retention_hint": "In-memory retention for RESP LPOP/RPOP usage output, max 3600 seconds",
+          "quota_api_cache_ttl": "Quota cache (seconds)",
+          "quota_api_cache_ttl_hint": "How long upstream quota results are reused. Empty or 0 uses 300 seconds; values below 30 are raised to 30.",
           "antigravity_sensitive_words": "Sensitive Word Obfuscation",
           "antigravity_sensitive_words_desc": "Insert zero-width characters into matching words in Antigravity system instructions to reduce exact keyword matching upstream",
           "antigravity_sensitive_words_label": "OAuth sensitive words (oauth.providers.antigravity.sensitive-words)",
@@ -2411,6 +2413,25 @@
       "error_prefix_required": "Enter a key prefix.",
       "error_providers_required": "Add at least one provider; the backend ignores a rule without providers.",
       "error_prefix_duplicate": "Another rule already uses this prefix; only the first one applies."
+    },
+    "quota_credentials": {
+      "label": "Quota visibility (GET /v1/usage)",
+      "hint": "This key can read, through GET /v1/usage, a quota summary of the selected OAuth credentials and of the selected upstream proxies (provider keys with a custom base URL, whose own GET /v1/usage is relayed). Nothing is selected by default, and a key with no selection gets an empty list.",
+      "tag": "Quota: {{n}} credentials",
+      "loading": "Loading credentials…",
+      "load_failed": "Could not load the credentials.",
+      "retry": "Retry",
+      "empty": "No Codex, Claude, Antigravity, xAI or Command Code OAuth credentials, and no provider key with a custom base URL.",
+      "missing": "Removed",
+      "disabled": "Disabled",
+      "own_key": "This proxy's own key, may loop back",
+      "trigger_empty": "No credentials (empty list)",
+      "trigger_summary": "{{selected}} / {{total}} selected",
+      "search_placeholder": "Search credentials, providers or IDs…",
+      "no_results": "No credentials match “{{query}}”",
+      "select_all": "Select all",
+      "clear": "Clear",
+      "chip_remove": "Remove {{name}}"
     }
   }
 }
