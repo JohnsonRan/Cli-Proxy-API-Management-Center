@@ -355,6 +355,8 @@
     "note_label": "Ghi chú",
     "note_placeholder": "Nhập ghi chú, ví dụ: Tài khoản của John",
     "excluded_models_label": "Model bị loại trừ (excluded_models)",
+    "allowed_models_label": "Model được phép (allowed_models)",
+    "allowed_models_hint": "Khi được đặt, thông tin xác thực này chỉ phục vụ các model khớp (hỗ trợ ký tự đại diện '*'); danh sách loại trừ vẫn áp dụng. Quy tắc so khớp tên model gốc, không gồm tiền tố hay bí danh. Để trống nghĩa là không giới hạn.",
     "headers_label": "Header tùy chỉnh (headers)",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_invalid_json": "Header tùy chỉnh phải là JSON hợp lệ.",
