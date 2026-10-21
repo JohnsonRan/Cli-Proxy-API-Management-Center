@@ -7,6 +7,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   aistudio: 'AI Studio',
   codex: 'Codex',
   claude: 'Claude',
+  commandcode: 'Command Code',
   devin: 'Devin',
   meta: 'Muse (Meta)',
   xai: 'xAI',
