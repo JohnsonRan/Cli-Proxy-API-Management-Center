@@ -186,6 +186,14 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
     - **Scope**: `tests/authFileCooldowns.test.ts` compared raw translations against `renderToStaticMarkup` output. React escapes the apostrophe in the English reset hint ("credential's" becomes `credential&#x27;s`), so the assertion fails whenever the shared i18n instance is on `en`. `claudeResetGrantDetails` and `xaiQuotaUnavailable` switch it to `en` without restoring it, and Bun runs files in readdir order, which differs between Windows (alphabetical, cooldowns first) and Linux runners, so the sync job failed while local runs passed. The test now compares `Bun.escapeHTML` of each translation. Test-only.
     - **Related Upstream Work**: PR [#473](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/473) (CLOSED, not merged, no review comments) made the same test locale-safe. No other patch touches this file, so its position does not matter. Retire it once upstream fixes the test.
 
+22. **`patch/auth-file-allowed-models`**
+    - **Goal**: Edit an auth file's `allowed_models` allow-list next to its excluded models.
+    - **Scope**: `AuthFileDetailsSheet` renders a second `AuthFileExcludedModelsField` with `tone="allow"` (the allow copy of `patch/client-api-key-models`), its own label and hint in all 6 locales. The editor reads `allowed_models`, writes it through `PATCH /credentials/fields` only when changed, and clears it with an empty array. An allow-list hides every model it does not match, so the credential's registered list alone cannot offer new models: the allow field also merges the provider's static catalog (`/routing/model-definitions/<provider>`, failures ignored) and folds the saved `prefix` routes (`team/x`) into bare upstream IDs, which is what the rules match. The excluded field is unchanged. Tests in `tests/authFileWeight.test.ts`.
+    - **Known limits**: Providers without a static catalog (Command Code, discovered models) offer only the currently registered models plus exact rules already saved; other models are added as typed rules.
+    - **Stacked**: Branched from `patch/client-api-key-models` and integrated last through a seam-diff (see below).
+    - **Cross-repo**: Needs the core patch `patch/auth-file-allowed-models`. Against a core without it the field is saved but ignored.
+    - **Related Upstream Work**: None found (searched `allowed_models`, whitelist models auth file, 白名单, allowed models on 2026-10-21; PR [#126](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/126), CLOSED, is a client API key whitelist).
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/commandcode-quota-api` was folded into `patch/quota-api` on 2026-10-18: the picker's provider list belongs to that patch. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -200,13 +208,15 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 `patch/quota-api` is stacked on `patch/client-key-provider-scope`: its credential picker extends the same `ApiKeysPage`. It is integrated after `patch/usage-exclude-embeddings` with `git diff origin/patch/client-key-provider-scope origin/patch/quota-api | git apply --3way`; the sync fails closed unless `client-key-provider-scope` is an ancestor of it. Rebase it whenever `client-key-provider-scope` moves.
 
+`patch/auth-file-allowed-models` is stacked on `patch/client-api-key-models` for the picker's allow tone. It is integrated last with `git diff origin/patch/client-api-key-models origin/patch/auth-file-allowed-models | git apply --3way`; the sync fails closed unless `client-api-key-models` is an ancestor of it. Rebase it whenever `client-api-key-models` moves.
+
 `patch/systemone-endpoint` is stacked on `patch/embeddings-and-rerank` the same way: it extends the same model flags and connectivity-test branch, so squashing it would re-add the embeddings changes and conflict. It is integrated right after `embeddings-and-rerank` with `git diff origin/patch/embeddings-and-rerank origin/patch/systemone-endpoint | git apply --3way`, and the sync fails closed unless `embeddings-and-rerank` is an ancestor of `systemone-endpoint`. Rebase it whenever `embeddings-and-rerank` moves.
 
 ## Rebuild & Validation Procedure
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models
 
 git checkout -B main upstream/main
 
@@ -290,6 +300,12 @@ git commit -m "merge patch/plugin-iframe-no-flash branch"
 
 git merge --squash origin/patch/fix-cooldown-test-i18n
 git commit -m "merge patch/fix-cooldown-test-i18n branch"
+
+git merge-base --is-ancestor origin/patch/client-api-key-models origin/patch/auth-file-allowed-models || { echo 'auth-file-allowed-models is behind client-api-key-models; aborting'; exit 1; }
+git diff origin/patch/client-api-key-models origin/patch/auth-file-allowed-models | git apply --3way || { echo 'seam-diff did not apply; aborting'; exit 1; }
+git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
+git add -A
+git commit -m "merge patch/auth-file-allowed-models branch"
 
 bun install --frozen-lockfile
 bun run type-check
