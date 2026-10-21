@@ -40,7 +40,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash
+          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n
           echo "PREVIOUS_MAIN=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
           git reset --hard upstream/main
 
@@ -191,6 +191,9 @@ jobs:
 
           git merge --squash origin/patch/plugin-iframe-no-flash
           git commit -m "merge patch/plugin-iframe-no-flash branch"
+
+          git merge --squash origin/patch/fix-cooldown-test-i18n
+          git commit -m "merge patch/fix-cooldown-test-i18n branch"
 
       - name: Validate build and tests
         run: |

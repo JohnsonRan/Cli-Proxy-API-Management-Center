@@ -181,6 +181,11 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
     - **Scope**: `features/plugins/PluginResourcePage.tsx` mounted the iframe as soon as the plugin list resolved, so the browser's blank canvas showed until the plugin document loaded. The iframe now stays at `opacity: 0` behind a themed loading overlay until its `load` event, then fades in with the shared motion tokens (no transition under reduced motion); it is keyed by its URL so switching menus starts a hidden frame again. Header refreshes and `plugin-resources-refresh` events keep the loaded iframe mounted instead of swapping the page to its loading state. A plugin that paints white after `load` (asynchronous rendering) still needs its own dark styles. Tests in `tests/pluginResourceFrameLoading.test.ts`.
     - **Related Upstream Work**: Issue [#443](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/443) (CLOSED) and PR [#444](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/444) (CLOSED, not merged). Upstream `23564214` only replaced the hard-coded white backgrounds and the maintainer named the `onLoad` reveal as a possible follow-up; this patch is that follow-up and is suitable as an upstream PR.
 
+21. **`patch/fix-cooldown-test-i18n`**
+    - **Goal**: Keep the cooldown rendering assertions independent of the shared i18n locale and test file order.
+    - **Scope**: `tests/authFileCooldowns.test.ts` compared raw translations against `renderToStaticMarkup` output. React escapes the apostrophe in the English reset hint ("credential's" becomes `credential&#x27;s`), so the assertion fails whenever the shared i18n instance is on `en`. `claudeResetGrantDetails` and `xaiQuotaUnavailable` switch it to `en` without restoring it, and Bun runs files in readdir order, which differs between Windows (alphabetical, cooldowns first) and Linux runners, so the sync job failed while local runs passed. The test now compares `Bun.escapeHTML` of each translation. Test-only.
+    - **Related Upstream Work**: PR [#473](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/473) (CLOSED, not merged, no review comments) made the same test locale-safe. No other patch touches this file, so its position does not matter. Retire it once upstream fixes the test.
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/commandcode-quota-api` was folded into `patch/quota-api` on 2026-10-18: the picker's provider list belongs to that patch. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -201,7 +206,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n
 
 git checkout -B main upstream/main
 
@@ -282,6 +287,9 @@ git merge --squash origin/patch/upstream-quota
 git commit -m "merge patch/upstream-quota branch"
 git merge --squash origin/patch/plugin-iframe-no-flash
 git commit -m "merge patch/plugin-iframe-no-flash branch"
+
+git merge --squash origin/patch/fix-cooldown-test-i18n
+git commit -m "merge patch/fix-cooldown-test-i18n branch"
 
 bun install --frozen-lockfile
 bun run type-check
