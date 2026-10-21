@@ -1,5 +1,4 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { IconAlertTriangle, IconChevronDown, IconLoader2 } from '@/components/ui/icons';
 import { ExcludedModelChipRow, ExcludedModelRuleChip } from './ExcludedModelRuleChip';
 import { ExcludedModelsPanel, type ExcludedModelCandidate } from './ExcludedModelsPanel';
@@ -14,6 +13,7 @@ import {
   toggleExcludedRule,
 } from './excludedModelRules';
 import styles from './ExcludedModelsPicker.module.scss';
+import { useModelRulesCopy, type ModelRulesTone } from './useModelRulesCopy';
 
 export type { ExcludedModelCandidate };
 
@@ -43,6 +43,8 @@ export interface ExcludedModelsPickerProps {
 
   labelledBy?: string;
   className?: string;
+  /** allow keeps the same list, but the copy says allowed instead of excluded. */
+  tone?: ModelRulesTone;
 }
 
 export function ExcludedModelsPicker({
@@ -57,8 +59,9 @@ export function ExcludedModelsPicker({
   showRuleEditor = true,
   labelledBy,
   className,
+  tone = 'exclude',
 }: ExcludedModelsPickerProps) {
-  const { t } = useTranslation();
+  const copy = useModelRulesCopy(tone);
   const baseId = useId();
   const panelId = `${baseId}-panel`;
   const listboxId = `${baseId}-listbox`;
@@ -136,17 +139,17 @@ export function ExcludedModelsPicker({
   }, []);
 
   const summaryText = () => {
-    if (catalogState === 'loading') return t('excluded_models.catalog_loading');
+    if (catalogState === 'loading') return copy('catalog_loading');
     if (hasCatalog) {
-      if (stats.excluded === 0 && rules.length === 0) return t('excluded_models.trigger_empty');
-      return t('excluded_models.trigger_summary', {
+      if (stats.excluded === 0 && rules.length === 0) return copy('trigger_empty');
+      return copy('trigger_summary', {
         excluded: stats.excluded,
         available: stats.available,
       });
     }
     // 无目录：只能诚实地报规则条数，不能假装知道「还剩几个可用」。
-    if (rules.length === 0) return t('excluded_models.trigger_empty');
-    return t('excluded_models.trigger_summary_rules', { n: rules.length });
+    if (rules.length === 0) return copy('trigger_empty');
+    return copy('trigger_summary_rules', { n: rules.length });
   };
 
   return (
@@ -182,7 +185,7 @@ export function ExcludedModelsPicker({
           <span
             className={styles.meter}
             role="img"
-            aria-label={t('excluded_models.meter_aria', {
+            aria-label={copy('meter_aria', {
               excluded: stats.excluded,
               total: stats.total,
             })}
@@ -212,19 +215,20 @@ export function ExcludedModelsPicker({
               listboxId={listboxId}
               autoFocus={open}
               onDismiss={dismissPanel}
+              tone={tone}
             />
           ) : (
             <div className={styles.catalogNotice}>
               <span>
                 {catalogState === 'loading'
-                  ? t('excluded_models.catalog_loading')
+                  ? copy('catalog_loading')
                   : catalogState === 'error'
-                    ? t('excluded_models.catalog_error')
-                    : t('excluded_models.catalog_unavailable')}
+                    ? copy('catalog_error')
+                    : copy('catalog_unavailable')}
               </span>
               {onRetryCatalog && catalogState !== 'loading' ? (
                 <button type="button" className={styles.retryButton} onClick={onRetryCatalog}>
-                  {t('excluded_models.catalog_retry')}
+                  {copy('catalog_retry')}
                 </button>
               ) : null}
             </div>
@@ -240,7 +244,7 @@ export function ExcludedModelsPicker({
               label={rule}
               variant="exact"
               onRemove={() => commit(toggleExcludedRule(rules, rule, false))}
-              removeAriaLabel={t('excluded_models.chip_remove', { rule })}
+              removeAriaLabel={copy('chip_remove', { rule })}
               disabled={disabled}
             />
           ))}
@@ -250,12 +254,12 @@ export function ExcludedModelsPicker({
               label={item.id}
               variant="wildcard"
               detail={item.rule}
-              title={t('excluded_models.wildcard_reason', { rule: item.rule })}
+              title={copy('wildcard_reason', { rule: item.rule })}
             />
           ))}
           {derivedModels.length > DERIVED_CHIP_LIMIT ? (
             <span className={styles.chipsMore}>
-              {t('excluded_models.chips_more', { n: derivedModels.length - DERIVED_CHIP_LIMIT })}
+              {copy('chips_more', { n: derivedModels.length - DERIVED_CHIP_LIMIT })}
             </span>
           ) : null}
           {unknownRules.map((rule) => (
@@ -263,9 +267,9 @@ export function ExcludedModelsPicker({
               key={`unknown-${rule.toLowerCase()}`}
               label={rule}
               variant="unknown"
-              detail={t('excluded_models.badge_unknown')}
+              detail={copy('badge_unknown')}
               onRemove={() => commit(toggleExcludedRule(rules, rule, false))}
-              removeAriaLabel={t('excluded_models.chip_remove', { rule })}
+              removeAriaLabel={copy('chip_remove', { rule })}
               disabled={disabled}
             />
           ))}
@@ -275,13 +279,13 @@ export function ExcludedModelsPicker({
       {showRuleEditor ? (
         <div className={styles.ruleEditor}>
           <label className={styles.ruleLabel} htmlFor={`${baseId}-rules`}>
-            {t('excluded_models.rules_label')}
+            {copy('rules_label')}
           </label>
           <textarea
             id={`${baseId}-rules`}
             className="input"
             value={formatExcludedRulesText(customRules)}
-            placeholder={t('excluded_models.rules_placeholder')}
+            placeholder={copy('rules_placeholder')}
             rows={3}
             disabled={disabled}
             spellCheck={false}
@@ -291,7 +295,7 @@ export function ExcludedModelsPicker({
           {reservedHit ? (
             <p className={styles.ruleWarning}>
               <IconAlertTriangle size={12} aria-hidden="true" />
-              {reservedRuleMessage ?? t('excluded_models.rules_reserved')}
+              {reservedRuleMessage ?? copy('rules_reserved')}
             </p>
           ) : null}
 
@@ -304,14 +308,14 @@ export function ExcludedModelsPicker({
                 >
                   <code>{summary.rule}</code>
                   {summary.matchCount === 0
-                    ? t('excluded_models.rules_match_none')
-                    : t('excluded_models.rules_match_count', { n: summary.matchCount })}
+                    ? copy('rules_match_none')
+                    : copy('rules_match_count', { n: summary.matchCount })}
                 </li>
               ))}
             </ul>
           ) : null}
 
-          <p className="hint">{t('excluded_models.rules_hint')}</p>
+          <p className="hint">{copy('rules_hint')}</p>
         </div>
       ) : null}
     </div>
