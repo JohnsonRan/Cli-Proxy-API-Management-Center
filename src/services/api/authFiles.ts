@@ -47,6 +47,7 @@ export type AuthFileFieldsPatch = {
   note?: string;
   excluded_models?: string[];
   'excluded-models'?: string[];
+  allowed_models?: string[];
   expired?: string;
 };
 type AuthFileBatchFailure = { name: string; error: string };

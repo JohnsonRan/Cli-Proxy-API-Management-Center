@@ -423,6 +423,8 @@
     "note_placeholder": "메모를 입력하세요(예: John의 계정)",
     "note_hint": "선택 사항입니다. 이 자격 증명의 용도나 소유자를 설명하는 데 사용되며, 생략하려면 비워 두세요.",
     "excluded_models_label": "제외 모델 (excluded_models)",
+    "allowed_models_label": "허용 모델 (allowed_models)",
+    "allowed_models_hint": "설정하면 이 자격 증명은 일치하는 모델만 제공합니다 ('*' 와일드카드 지원). 제외 모델은 계속 적용됩니다. 규칙은 접두사와 별칭 없이 업스트림 모델 이름과 비교합니다. 비워 두면 제한이 없습니다.",
     "headers_label": "사용자 정의 헤더 (headers)",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_hint": "사용자 정의 HTTP 헤더를 JSON 객체로 입력하세요(예: {\"X-My-Header\": \"value\"}).",

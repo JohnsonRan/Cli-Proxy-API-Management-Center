@@ -421,6 +421,8 @@
     "note_placeholder": "輸入備註資訊，例如：張三的帳號",
     "note_hint": "選填，用於標記憑證用途或歸屬；留空則不寫入。",
     "excluded_models_label": "排除模型（excluded_models）",
+    "allowed_models_label": "允許模型（allowed_models）",
+    "allowed_models_hint": "設定後此憑證只提供符合的模型（支援 '*' 萬用字元），排除模型仍然生效。規則比對上游模型名稱，不含前綴與別名。留空表示不限制。",
     "headers_label": "自訂請求標頭（headers）",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_hint": "以 JSON 物件格式輸入自訂 HTTP 請求標頭，例如：{\"X-My-Header\": \"value\"}",

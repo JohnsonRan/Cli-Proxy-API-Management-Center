@@ -31,6 +31,8 @@ const makeEditor = (json: Record<string, unknown>, weight: string): PrefixProxyE
   noteTouched: false,
   excludedModelsText: '',
   excludedModelsTouched: false,
+  allowedModelsText: '',
+  allowedModelsTouched: false,
   headersText: '',
   headersTouched: false,
   headersError: null,
@@ -150,5 +152,27 @@ describe('auth-file excluded models patch', () => {
         resolveError
       )
     ).toEqual({ excluded_models: [] });
+  });
+});
+
+describe('auth-file allowed models patch', () => {
+  test('writes normalized allow rules and clears them with an empty array', () => {
+    const editor = {
+      ...makeEditor({ excluded_models: ['keep'] }, ''),
+      allowedModelsText: ' gpt-5-*\nGPT-5-*\no3 ',
+      allowedModelsTouched: true,
+    };
+    expect(buildAuthFileFieldsPatch(editor, resolveError)).toEqual({
+      allowed_models: ['gpt-5-*', 'o3'],
+    });
+
+    const original = { allowed_models: ['o3'] };
+    expect(buildAuthFileFieldsPatch(makeEditor(original, ''), resolveError)).toEqual({});
+    expect(
+      buildAuthFileFieldsPatch(
+        { ...makeEditor(original, ''), allowedModelsText: '', allowedModelsTouched: true },
+        resolveError
+      )
+    ).toEqual({ allowed_models: [] });
   });
 });
