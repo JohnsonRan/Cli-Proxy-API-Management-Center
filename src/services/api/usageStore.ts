@@ -21,6 +21,7 @@ export interface UsageTokens {
 export interface UsageAggregate {
   requests: number;
   failed: number;
+  substituted: number;
   tokens: UsageTokens;
   cost: number;
   unpricedRequests: number;
@@ -86,6 +87,8 @@ export interface UsageEvent {
   priced: boolean;
   clientIp: string;
   userAgent: string;
+  responseModel: string;
+  substituted: boolean;
 }
 
 export interface UsageEventsPage {
@@ -119,6 +122,7 @@ export interface UsageEventsQuery {
   apiKeyId?: string;
   authIndex?: string;
   failed?: boolean;
+  substituted?: boolean;
   before?: number;
   limit?: number;
 }
@@ -185,6 +189,7 @@ const normalizeAggregate = (value: unknown): UsageAggregate => {
   return {
     requests: num(a.requests),
     failed: num(a.failed),
+    substituted: num(a.substituted),
     tokens: normalizeTokens(a.tokens),
     cost: num(a.cost),
     unpricedRequests: num(a.unpriced_requests),
@@ -251,6 +256,8 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       priced: e.priced === true,
       clientIp: str(e.client_ip),
       userAgent: str(e.user_agent),
+      responseModel: str(e.response_model),
+      substituted: e.substituted === true,
     })),
   };
 };
@@ -354,6 +361,7 @@ const eventParams = (query: UsageEventsQuery) => ({
   api_key_id: query.apiKeyId || undefined,
   auth_index: query.authIndex || undefined,
   failed: query.failed,
+  substituted: query.substituted,
   before: query.before || undefined,
   limit: query.limit,
 });
