@@ -189,10 +189,6 @@
   cursor: help;
 }
 
-.filter {
-  width: 160px;
-}
-
 .loadMore {
   display: flex;
   justify-content: center;
@@ -230,40 +226,275 @@
   background: var(--bg-primary);
 }
 
-/* ---------- Chart ---------- */
+/* ---------- Tabs ---------- */
 
-.chart {
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.tab,
+.tabActive {
+  @include button-reset;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ---------- Charts ---------- */
+
+.chartBox {
+  position: relative;
+  height: 280px;
+}
+
+.chartBoxSmall {
+  position: relative;
+  height: 230px;
+}
+
+/* ---------- Summary changes ---------- */
+
+.changeGood,
+.changeBad,
+.changeFlat {
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.changeGood {
+  color: var(--viz-success);
+}
+
+.changeBad {
+  color: var(--viz-failure);
+}
+
+.changeFlat {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Tables ---------- */
+
+.clickableRow {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.share {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+  min-width: 72px;
+}
+
+.shareBar {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: var(--primary-color);
+  opacity: 0.25;
+}
+
+.shareText {
+  position: relative;
+}
+
+.badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.invalidRow td {
+  background: var(--bg-error-light);
+}
+
+.cellInput,
+.cellInputNumber {
+  width: 100%;
+  min-width: 90px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 12.5px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 0;
+  }
+}
+
+.cellInput {
+  min-width: 200px;
+}
+
+/* ---------- Events toolbar ---------- */
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filterLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.popoverWrap {
+  position: relative;
+}
+
+.popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 6px 14px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------- Event detail ---------- */
+
+.detailList {
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.chartSvg {
-  width: 100%;
-  height: 160px;
-  display: block;
-}
+.detailRow {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 13px;
 
-.chartBar {
-  fill: var(--primary-color);
-  opacity: 0.85;
+  dt {
+    color: var(--text-tertiary);
+  }
 
-  &:hover {
-    opacity: 1;
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
   }
 }
 
-.chartBarFailed {
-  fill: var(--viz-failure);
-  pointer-events: none;
+.detailError {
+  margin-top: 14px;
+
+  pre {
+    margin: 6px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    font-family: $font-mono;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 }
 
-.chartAxis {
+/* ---------- Heatmap ---------- */
+
+.heatmap {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 3px;
+  overflow-x: auto;
+}
+
+.heatRow {
+  display: grid;
+  grid-template-columns: 36px repeat(24, minmax(10px, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.heatDay,
+.heatHour {
   font-family: $font-mono;
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--text-tertiary);
+}
+
+.heatCell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--viz-success);
+
+  &[data-empty='true'] {
+    background: var(--bg-secondary);
+  }
 }

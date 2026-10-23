@@ -1,7 +1,12 @@
-import type { UsageAggregate, UsageSeriesPoint } from '@/services/api/usageStore';
+import type { UsageAggregate } from '@/services/api/usageStore';
 
 export const USAGE_RANGES = ['24h', '7d', '30d', '90d'] as const;
 export type UsageRange = (typeof USAGE_RANGES)[number];
+
+export const USAGE_TABS = ['overview', 'analysis', 'events', 'pricing'] as const;
+export type UsageTab = (typeof USAGE_TABS)[number];
+export const isUsageTab = (value: string | null): value is UsageTab =>
+  USAGE_TABS.includes(value as UsageTab);
 
 export const USAGE_METRICS = ['requests', 'tokens', 'cost'] as const;
 export type UsageMetric = (typeof USAGE_METRICS)[number];
@@ -12,6 +17,25 @@ const RANGE_SECONDS: Record<UsageRange, number> = {
   '30d': 30 * 86400,
   '90d': 90 * 86400,
 };
+
+/** The window of the same length right before `window`, for period-over-period comparison. */
+export const previousWindow = (window: { from: number; to: number }) => ({
+  from: window.from - (window.to - window.from),
+  to: window.from,
+});
+
+/** Relative change in percent, or null when there is no previous value to compare with. */
+export const changePercent = (current: number, previous: number): number | null =>
+  previous > 0 ? ((current - previous) / previous) * 100 : null;
+
+/** Share of input tokens served from cache, in percent, or null without input. */
+export const cacheHitRate = (a: UsageAggregate): number | null => {
+  const input = inputTokens(a);
+  return input > 0 ? (a.tokens.cacheRead / input) * 100 : null;
+};
+
+export const formatPercent = (value: number | null, digits = 1): string =>
+  value === null ? '—' : `${value.toFixed(digits)}%`;
 
 /** Unix-second window ending now; tz offset is minutes east of UTC as the backend expects. */
 export const rangeWindow = (range: UsageRange, nowMs = Date.now()) => {
@@ -61,19 +85,6 @@ export const successRate = (a: Pick<UsageAggregate, 'requests' | 'failed'>): num
 /** Input tokens including cache reads and writes. */
 export const inputTokens = (a: UsageAggregate): number =>
   a.tokens.inputUncached + a.tokens.cacheRead + a.tokens.cacheWrite;
-
-export const metricValue = (point: UsageAggregate, metric: UsageMetric): number =>
-  metric === 'requests' ? point.requests : metric === 'tokens' ? point.tokens.total : point.cost;
-
-export const formatMetric = (value: number, metric: UsageMetric): string =>
-  metric === 'cost' ? formatCost(value) : formatCompact(value);
-
-/** Bar heights as fractions of the largest bucket (0 when the series is empty). */
-export const barFractions = (series: UsageSeriesPoint[], metric: UsageMetric): number[] => {
-  const values = series.map((p) => metricValue(p, metric));
-  const max = Math.max(0, ...values);
-  return values.map((v) => (max > 0 ? v / max : 0));
-};
 
 export const formatBucketLabel = (
   timeSec: number,
