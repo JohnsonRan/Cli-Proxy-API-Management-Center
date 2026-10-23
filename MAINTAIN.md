@@ -194,6 +194,12 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
     - **Cross-repo**: Needs the core patch `patch/auth-file-allowed-models`. Against a core without it the field is saved but ignored.
     - **Related Upstream Work**: None found (searched `allowed_models`, whitelist models auth file, 白名单, allowed models on 2026-10-21; PR [#126](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/126), CLOSED, is a client API key whitelist).
 
+23. **`patch/usage-store`** (protected, downstream-only)
+    - **Goal**: Show persisted usage statistics and estimated cost without cpa-usage-keeper.
+    - **Scope**: New `/usage` page in the Observe group (`src/features/usage/`, `src/services/api/usageStore.ts`, sidebar icon and route). It reads `/observability/usage/{stats,events,pricing}`: range picker (24h/7d/30d/90d, day buckets at local midnight via `tz_offset`), summary cards, an SVG trend chart (requests/tokens/cost), breakdowns by model, client key (masked) and credential (auth-file name when the auth index matches), paginated recent requests with a failed-only filter, and a pricing panel with models.dev status and refresh. `409 usage_store_disabled` shows an enable action that writes `observability.usage.store.enable` through the v8 config path API. Strings in all 6 locales (`usage_stats`); tests in `tests/usageStore.test.ts`.
+    - **Cross-repo**: Needs the core patch `patch/usage-store`. Against a core without it the page reports a request error.
+    - **Related Upstream Work**: Upstream removed its statistics page with the core statistics: Issues [#254](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/254), [#259](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/259), [#270](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/270) (all CLOSED) and PRs [#332](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/332), [#367](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/367) (CLOSED). Searched `usage statistics`, `统计` and `cost` on 2026-10-23. Upstream will not absorb it; keep the page when an upstream change conflicts.
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/commandcode-quota-api` was folded into `patch/quota-api` on 2026-10-18: the picker's provider list belongs to that patch. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -216,7 +222,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store
 
 git checkout -B main upstream/main
 
@@ -306,6 +312,9 @@ git diff origin/patch/client-api-key-models origin/patch/auth-file-allowed-model
 git diff --quiet --diff-filter=U -- || { echo 'seam-diff left conflicts; aborting'; exit 1; }
 git add -A
 git commit -m "merge patch/auth-file-allowed-models branch"
+
+git merge --squash origin/patch/usage-store
+git commit -m "merge patch/usage-store branch"
 
 bun install --frozen-lockfile
 bun run type-check
