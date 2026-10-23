@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { IconCheck, IconSearch } from '@/components/ui/icons';
 import {
   getModelExclusionState,
@@ -7,6 +6,7 @@ import {
   type ModelExclusionState,
 } from './excludedModelRules';
 import styles from './ExcludedModelsPicker.module.scss';
+import { useModelRulesCopy, type ModelRulesCopy, type ModelRulesTone } from './useModelRulesCopy';
 
 export interface ExcludedModelCandidate {
   id: string;
@@ -27,6 +27,7 @@ interface ExcludedModelsPanelProps {
   autoFocus: boolean;
   /** 收起面板并把焦点还给 trigger。 */
   onDismiss: () => void;
+  tone?: ModelRulesTone;
 }
 
 const matchesQuery = (candidate: ExcludedModelCandidate, query: string): boolean =>
@@ -44,8 +45,9 @@ export function ExcludedModelsPanel({
   listboxId,
   autoFocus,
   onDismiss,
+  tone = 'exclude',
 }: ExcludedModelsPanelProps) {
-  const { t } = useTranslation();
+  const copy = useModelRulesCopy(tone);
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -136,8 +138,8 @@ export function ExcludedModelsPanel({
             setHighlight(0);
           }}
           onKeyDown={handleKeyDown}
-          placeholder={t('excluded_models.search_placeholder')}
-          aria-label={t('excluded_models.search_aria')}
+          placeholder={copy('search_placeholder')}
+          aria-label={copy('search_aria')}
           aria-controls={listboxId}
           aria-activedescendant={activeId}
           disabled={disabled}
@@ -151,13 +153,13 @@ export function ExcludedModelsPanel({
         className={styles.list}
         role="listbox"
         aria-multiselectable="true"
-        aria-label={t('excluded_models.list_aria')}
+        aria-label={copy('list_aria')}
       >
         {visible.length === 0 ? (
           <p className={styles.noResults}>
             {query.trim()
-              ? t('excluded_models.no_results', { query: query.trim() })
-              : t('excluded_models.catalog_empty')}
+              ? copy('no_results', { query: query.trim() })
+              : copy('catalog_empty')}
           </p>
         ) : (
           visible.map((candidate, index) => (
@@ -169,6 +171,7 @@ export function ExcludedModelsPanel({
               highlighted={index === activeIndex}
               onHover={() => setHighlight(index)}
               onToggle={() => toggleAt(index)}
+              copy={copy}
             />
           ))
         )}
@@ -176,7 +179,7 @@ export function ExcludedModelsPanel({
 
       <div className={styles.footer}>
         <span className={styles.footerCount}>
-          {t('excluded_models.footer_count', { excluded: stats.excluded, total: stats.total })}
+          {copy('footer_count', { excluded: stats.excluded, total: stats.total })}
         </span>
         <span className={styles.footerActions}>
           <button
@@ -185,16 +188,16 @@ export function ExcludedModelsPanel({
             onClick={onSelectAll}
             disabled={disabled || candidates.length === 0}
           >
-            {t('excluded_models.select_all')}
+            {copy('select_all')}
           </button>
           <button
             type="button"
             className={styles.footerButton}
             onClick={onClear}
             disabled={disabled}
-            aria-label={t('excluded_models.clear_aria')}
+            aria-label={copy('clear_aria')}
           >
-            {t('excluded_models.clear')}
+            {copy('clear')}
           </button>
         </span>
       </div>
@@ -209,6 +212,7 @@ interface ExcludedModelRowProps {
   highlighted: boolean;
   onHover: () => void;
   onToggle: () => void;
+  copy: ModelRulesCopy;
 }
 
 function ExcludedModelRow({
@@ -218,8 +222,8 @@ function ExcludedModelRow({
   highlighted,
   onHover,
   onToggle,
+  copy,
 }: ExcludedModelRowProps) {
-  const { t } = useTranslation();
   const excluded = state.state === 'excluded';
   const lockedByRule = state.state === 'excluded' && state.by === 'wildcard';
   // 把「哪条规则、用哪句话解释」在一处收敛好，下面的 JSX 就不必再做类型收窄。
@@ -229,8 +233,8 @@ function ExcludedModelRow({
           rule: state.rule,
           text:
             state.by === 'wildcard'
-              ? t('excluded_models.wildcard_locked', { rule: state.rule })
-              : t('excluded_models.also_wildcard', { rule: state.rule }),
+              ? copy('wildcard_locked', { rule: state.rule })
+              : copy('also_wildcard', { rule: state.rule }),
           muted: state.by === 'both',
         }
       : null;
@@ -269,7 +273,7 @@ function ExcludedModelRow({
       </span>
       {wildcardReason ? (
         <span className={`${styles.badge} ${wildcardReason.muted ? styles.badgeMuted : ''}`.trim()}>
-          {t('excluded_models.badge_wildcard')}
+          {copy('badge_wildcard')}
         </span>
       ) : null}
     </div>
