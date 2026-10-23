@@ -15,6 +15,7 @@ import {
 import { useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
 import { EventDetailModal } from '../components/EventDetailModal';
+import { PanelHeading } from '../components/PanelBits';
 import { formatCompact, formatCost, formatMs } from '../format';
 import {
   EVENT_COLUMNS,
@@ -232,10 +233,10 @@ export function EventsTab({
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
-        <div>
-          <h2 className={styles.panelTitle}>{t('usage_stats.events_title')}</h2>
-          <p className={styles.muted}>{t('usage_stats.events_subtitle')}</p>
-        </div>
+        <PanelHeading
+          title={t('usage_stats.events_title')}
+          desc={t('usage_stats.events_subtitle')}
+        />
         <div className={styles.toolbarActions}>
           <div className={styles.popoverWrap}>
             <Button
