@@ -464,6 +464,7 @@ export function UsagePage() {
               }}
               ariaLabel={t('usage_stats.range_label')}
               size="sm"
+              className={styles.rangeSelect}
               disabled={!connected || disabled}
             />
 
