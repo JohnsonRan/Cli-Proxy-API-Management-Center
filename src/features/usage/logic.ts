@@ -68,6 +68,7 @@ export const toEventsQuery = (
   apiKeyId: filter.api_key_id,
   authIndex: filter.auth_index,
   failed: filter.result === 'failed' ? true : filter.result === 'success' ? false : undefined,
+  substituted: filter.result === 'substituted' ? true : undefined,
 });
 
 /** Editable row: prices stay strings while typing so "0." and "" are not coerced away. */

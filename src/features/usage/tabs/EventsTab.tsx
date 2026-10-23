@@ -68,6 +68,15 @@ function FilterSummary({
   const items: [string, string, string][] = [
     [t('usage_stats.card_requests'), formatCompact(totals.requests), METRIC_ACCENTS.requests],
     [t('usage_stats.card_failed_short'), formatCompact(totals.failed), 'var(--viz-failure)'],
+    ...(totals.substituted > 0
+      ? [
+          [t('usage_stats.card_substituted'), formatCompact(totals.substituted), '#d97706'] as [
+            string,
+            string,
+            string,
+          ],
+        ]
+      : []),
     [t('usage_stats.card_tokens'), formatCompact(totals.tokens.total), METRIC_ACCENTS.tokens],
     [t('usage_stats.card_cost'), formatCost(totals.cost), METRIC_ACCENTS.cost],
     [t('usage_stats.card_latency'), formatMs(totals.avgLatencyMs), METRIC_ACCENTS.latency],
@@ -222,6 +231,7 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
       all,
       { value: 'success', label: t('usage_stats.result_success') },
       { value: 'failed', label: t('usage_stats.result_failed') },
+      { value: 'substituted', label: t('usage_stats.result_substituted') },
     ],
   };
   const filterKeys = Object.keys(filterOptions) as (keyof EventsFilter)[];
@@ -263,7 +273,21 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
           <TableCell>
             <span className={styles.rankText}>
               <span className={`${styles.cellStrong} ${styles.mono}`}>
-                {e.model}
+                {e.substituted ? (
+                  <>
+                    <span>
+                      {e.model} → {e.responseModel}
+                    </span>
+                    <span
+                      className={styles.substitutedBadge}
+                      title={t('usage_stats.substituted_hint')}
+                    >
+                      {t('usage_stats.substituted_tag')}
+                    </span>
+                  </>
+                ) : (
+                  e.model
+                )}
                 {e.stream && <span className={styles.badge}>{t('usage_stats.stream')}</span>}
               </span>
               <span className={styles.cellSub}>

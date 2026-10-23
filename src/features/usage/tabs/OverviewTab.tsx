@@ -440,7 +440,21 @@ export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: Overview
                     <RankName
                       rank={index + 1}
                       color={rankColor(index)}
-                      name={m.model}
+                      name={
+                        <>
+                          <span>{m.model}</span>
+                          {m.substituted > 0 && (
+                            <span
+                              className={styles.substitutedBadge}
+                              title={t('usage_stats.model_substituted_count', {
+                                count: m.substituted,
+                              })}
+                            >
+                              {m.substituted}
+                            </span>
+                          )}
+                        </>
+                      }
                       sub={<ProviderBadge provider={m.provider} />}
                       mono
                     />
