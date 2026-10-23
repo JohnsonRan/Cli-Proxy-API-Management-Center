@@ -6,7 +6,13 @@ import axios from 'axios';
 import { normalizeModelList } from '@/utils/models';
 import { normalizeApiBase } from '@/utils/connection';
 import { apiCallApi, getApiCallErrorMessage } from './apiCall';
+import { apiClient } from './client';
 import { isRecord } from '@/utils/helpers';
+
+export type ManagementCatalogModel = {
+  id: string;
+  display_name?: string;
+};
 
 const DEFAULT_CLAUDE_BASE_URL = 'https://api.anthropic.com';
 const DEFAULT_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com';
@@ -83,6 +89,31 @@ const resolveBearerTokenFromAuthorization = (headers: Record<string, string>): s
 };
 
 export const modelsApi = {
+  /**
+   * Unfiltered model catalog from the management API.
+   * /v1/models is trimmed by the client key used to call it, so it cannot
+   * populate that key's own allow/deny list.
+   */
+  async listCatalog(): Promise<ManagementCatalogModel[]> {
+    const data = await apiClient.get<{ models?: Array<{ id?: string; display_name?: string }> }>(
+      '/models'
+    );
+    const models = Array.isArray(data?.models) ? data.models : [];
+    const byId = new Map<string, ManagementCatalogModel>();
+    models.forEach((item) => {
+      const id = item?.id?.trim();
+      if (!id || byId.has(id.toLowerCase())) return;
+      const displayName = item.display_name?.trim();
+      byId.set(id.toLowerCase(), {
+        id,
+        display_name: displayName || undefined,
+      });
+    });
+    return [...byId.values()].sort((left, right) =>
+      left.id.localeCompare(right.id, undefined, { sensitivity: 'base' })
+    );
+  },
+
   /**
    * Fetch available models from /v1/models endpoint (for system info page)
    */
