@@ -34,6 +34,7 @@ import {
   providerDisplay,
   readEventColumns,
   toEventsQuery,
+  withSelectedOption,
   type EventColumn,
   type EventsFilter,
 } from '../logic';
@@ -56,10 +57,10 @@ interface EventsTabProps {
 /** Inline summary of the requests matching the current filter. */
 function FilterSummary({
   summary,
-  failedOnly,
+  showResultHint,
 }: {
   summary: UsageStats | null;
-  failedOnly: boolean;
+  showResultHint: boolean;
 }) {
   const { t } = useTranslation();
   if (!summary) return <div className={styles.summaryStrip} aria-hidden="true" />;
@@ -92,7 +93,9 @@ function FilterSummary({
           <Rate value={successRate(totals)} />
         </span>
       </div>
-      {failedOnly && <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>}
+      {showResultHint && (
+        <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>
+      )}
     </div>
   );
 }
@@ -389,7 +392,7 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
             <span className={styles.filterLabel}>{t(`usage_stats.filter_${key}`)}</span>
             <Select
               value={filter[key] ?? ''}
-              options={filterOptions[key]}
+              options={withSelectedOption(filterOptions[key], filter[key])}
               onChange={(value) => onFilterChange({ ...filter, [key]: value || undefined })}
               ariaLabel={t(`usage_stats.filter_${key}`)}
               size="sm"
@@ -404,7 +407,7 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
         )}
       </div>
 
-      <FilterSummary summary={summary} failedOnly={filter.result === 'failed'} />
+      <FilterSummary summary={summary} showResultHint={Boolean(filter.result)} />
 
       {events.length === 0 && !loading ? (
         <p className={styles.muted}>{t('usage_stats.events_empty')}</p>
