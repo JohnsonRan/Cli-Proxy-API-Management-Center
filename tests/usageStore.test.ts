@@ -436,3 +436,36 @@ describe('usage analysis and pricing helpers', () => {
     expect(markup).toContain('gpt-5');
   });
 });
+
+describe('usage realtime', () => {
+  test('normalizes the realtime payload', async () => {
+    const { normalizeUsageRealtime } = await import('@/services/api/usageStore');
+    const rt = normalizeUsageRealtime({
+      now: 120,
+      last_id: 9,
+      current: { rpm_1m: 3, tpm_1m: 900, rpm_5m: 1.5, failed_5m: 2, avg_latency_5m: 420 },
+      series: [{ time: 60, requests: 3, failed: 1, tokens: 900, avg_latency_ms: 400 }, 'junk'],
+    });
+    expect(rt.lastId).toBe(9);
+    expect(rt.current).toEqual({
+      rpm1m: 3,
+      tpm1m: 900,
+      rpm5m: 1.5,
+      tpm5m: 0,
+      failed5m: 2,
+      avgLatency5m: 420,
+    });
+    expect(rt.series).toHaveLength(1);
+    expect(rt.series[0]).toMatchObject({ time: 60, requests: 3, failed: 1, avgLatencyMs: 400 });
+  });
+
+  test('merges ascending pages into a newest-first capped feed', async () => {
+    const { mergeRealtimeFeed } = await import('@/features/usage/logic');
+    const feed = [{ id: 5 }, { id: 4 }];
+    const merged = mergeRealtimeFeed(feed, [{ id: 5 }, { id: 6 }, { id: 7 }], 3);
+    expect(merged.feed.map((e) => e.id)).toEqual([7, 6, 5]);
+    expect(merged.added).toEqual([7, 6]);
+    expect(mergeRealtimeFeed(feed, []).feed.map((e) => e.id)).toEqual([5, 4]);
+    expect(mergeRealtimeFeed(feed, []).added).toEqual([]);
+  });
+});

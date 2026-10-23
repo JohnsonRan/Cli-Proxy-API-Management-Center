@@ -39,6 +39,7 @@ import {
 } from './format';
 import { OverviewTab } from './tabs/OverviewTab';
 import { AnalysisTab } from './tabs/AnalysisTab';
+import { RealtimeTab } from './tabs/RealtimeTab';
 import { EventsTab } from './tabs/EventsTab';
 import {
   emptyGlobalFilter,
@@ -465,7 +466,7 @@ export function UsagePage() {
               ariaLabel={t('usage_stats.range_label')}
               size="sm"
               className={styles.rangeSelect}
-              disabled={!connected || disabled}
+              disabled={!connected || disabled || tab === 'realtime'}
             />
 
             {globalFilter.range === 'custom' && (
@@ -587,6 +588,7 @@ export function UsagePage() {
               onOpenEvents={handleOpenEventsFromOverview}
             />
           )}
+          {tab === 'realtime' && <RealtimeTab dimensionFilter={dimensionFilter} labels={labels} />}
           {tab === 'analysis' && (
             <AnalysisTab
               usageWindow={usageWindow}
