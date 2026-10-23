@@ -11,30 +11,41 @@ import {
   normalizeUsageStats,
 } from '@/services/api/usageStore';
 import {
+  DEFAULT_EVENT_COLUMNS,
+  clientKeyEntries,
+  clientKeyId,
+  emptyGlobalFilter,
+  filterMultiSelectOptions,
+  histogramLabels,
+  mergeSelectedOptions,
+  parseDraftRows,
+  parseGlobalFilterFromSearchParams,
+  providerDisplay,
+  readEventColumns,
+  serializeGlobalFilterToSearchParams,
+  toEventsQuery,
+  withSelectedOption,
+} from '@/features/usage/logic';
+import {
   cacheHitRate,
   changePercent,
   formatCompact,
   formatCost,
+  formatDatetimeLocal,
   formatMs,
+  parseDatetimeLocal,
   previousWindow,
   rangeWindow,
   successRate,
+  validateCustomRange,
 } from '@/features/usage/format';
-import {
-  DEFAULT_EVENT_COLUMNS,
-  clientKeyEntries,
-  clientKeyId,
-  providerDisplay,
-  histogramLabels,
-  parseDraftRows,
-  readEventColumns,
-  toEventsQuery,
-  withSelectedOption,
-} from '@/features/usage/logic';
+import { EventDetailModal } from '@/features/usage/components/EventDetailModal';
 import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
 import {
+  buildUsageParams,
   normalizePriceOverrides,
   normalizeUsageAnalysis,
+  normalizeUsageOptions,
   serializePriceOverrides,
 } from '@/services/api/usageStore';
 
@@ -150,6 +161,31 @@ describe('usage formatting', () => {
     expect(changePercent(5, 0)).toBeNull();
     const totals = normalizeUsageStats({ totals: aggregate(1, 0, 0) }).totals;
     expect(cacheHitRate(totals)).toBe(40);
+
+    // Range window extensions: today, yesterday, custom
+    const nowMs = new Date(2026, 9, 24, 15, 30, 0).getTime();
+    const todayWindow = rangeWindow('today', nowMs);
+    const startOfToday = new Date(2026, 9, 24, 0, 0, 0).getTime() / 1000;
+    expect(todayWindow.from).toBe(startOfToday);
+    expect(todayWindow.to).toBe(Math.floor(nowMs / 1000));
+
+    const yestWindow = rangeWindow('yesterday', nowMs);
+    const startOfYesterday = new Date(2026, 9, 23, 0, 0, 0).getTime() / 1000;
+    expect(yestWindow.from).toBe(startOfYesterday);
+    expect(yestWindow.to).toBe(startOfToday);
+
+    const customWindow = rangeWindow('custom', nowMs, 1000, 2000);
+    expect(customWindow.from).toBe(1000);
+    expect(customWindow.to).toBe(2000);
+
+    // Datetime-local formatting and custom validation
+    const dtStr = formatDatetimeLocal(startOfToday);
+    expect(parseDatetimeLocal(dtStr)).toBe(startOfToday);
+    expect(validateCustomRange(100, 200, 500)).toEqual({ valid: true });
+    expect(validateCustomRange(200, 100, 500)).toEqual({ valid: false, error: 'order' });
+    expect(validateCustomRange(100, 100, 500)).toEqual({ valid: false, error: 'order' });
+    expect(validateCustomRange(100, 600, 500)).toEqual({ valid: false, error: 'future' });
+    expect(validateCustomRange(null, 200, 500)).toEqual({ valid: false, error: 'empty' });
   });
 });
 
@@ -203,18 +239,100 @@ describe('usage analysis and pricing helpers', () => {
     expect(readEventColumns('{bad')).toEqual(DEFAULT_EVENT_COLUMNS);
     expect(readEventColumns('["cost","bogus","time"]')).toEqual(['time', 'cost']);
     const window = { from: 10, to: 20, tzOffset: 0 };
-    expect(toEventsQuery(window, { model: 'm', result: 'failed' })).toMatchObject({
+    const globalFilter = {
+      ...emptyGlobalFilter(),
+      models: ['m1', 'm2'],
+      providers: ['p1'],
+    };
+    expect(toEventsQuery(window, globalFilter, 'failed')).toMatchObject({
       from: 10,
       to: 20,
-      model: 'm',
+      model: ['m1', 'm2'],
+      provider: ['p1'],
       failed: true,
     });
-    expect(toEventsQuery(window, { result: 'success' }).failed).toBe(false);
-    expect(toEventsQuery(window, { result: 'substituted' })).toMatchObject({
+    expect(toEventsQuery(window, globalFilter, 'success').failed).toBe(false);
+    expect(toEventsQuery(window, globalFilter, 'substituted')).toMatchObject({
       substituted: true,
       failed: undefined,
     });
-    expect(toEventsQuery(window, {}).failed).toBeUndefined();
+    expect(toEventsQuery(window, emptyGlobalFilter()).failed).toBeUndefined();
+  });
+
+  test('parses and serializes global filter URL search parameters', () => {
+    const params = new URLSearchParams(
+      'range=custom&from=100&to=200&model=m1,m2&provider=p1&api_key_id=k1&auth_index=a1,a2&tab=events&result=failed'
+    );
+    const filter = parseGlobalFilterFromSearchParams(params);
+    expect(filter).toEqual({
+      range: 'custom',
+      customFrom: 100,
+      customTo: 200,
+      models: ['m1', 'm2'],
+      providers: ['p1'],
+      apiKeyIds: ['k1'],
+      authIndexes: ['a1', 'a2'],
+    });
+
+    const serialized = serializeGlobalFilterToSearchParams(filter, 'events', 'failed');
+    expect(serialized.get('tab')).toBe('events');
+    expect(serialized.get('range')).toBe('custom');
+    expect(serialized.get('from')).toBe('100');
+    expect(serialized.get('to')).toBe('200');
+    expect(serialized.get('model')).toBe('m1,m2');
+    expect(serialized.get('provider')).toBe('p1');
+    expect(serialized.get('api_key_id')).toBe('k1');
+    expect(serialized.get('auth_index')).toBe('a1,a2');
+    expect(serialized.get('result')).toBe('failed');
+  });
+
+  test('builds multi-value repeated query parameters for backend requests', () => {
+    const search = buildUsageParams({
+      from: 100,
+      to: 200,
+      model: ['m1', 'm2'],
+      empty: [],
+      nil: undefined,
+    });
+    expect(search.getAll('model')).toEqual(['m1', 'm2']);
+    expect(search.get('from')).toBe('100');
+    expect(search.get('to')).toBe('200');
+    expect(search.has('empty')).toBe(false);
+    expect(search.has('nil')).toBe(false);
+  });
+
+  test('normalizes options payload and filters multi-select options', () => {
+    const options = normalizeUsageOptions({
+      models: [{ model: 'gpt-5', provider: 'codex', requests: 10 }],
+      providers: [{ provider: 'codex', requests: 10 }],
+      api_keys: [{ api_key_id: 'k1', api_key: 'sk-1234', requests: 5 }],
+      credentials: [
+        {
+          auth_index: 'a1',
+          provider: 'codex',
+          auth_type: 'oauth',
+          source: 'user@test',
+          requests: 5,
+        },
+      ],
+    });
+    expect(options.models).toHaveLength(1);
+    expect(options.models[0]).toEqual({ model: 'gpt-5', provider: 'codex', requests: 10 });
+    expect(options.providers[0]).toEqual({ provider: 'codex', requests: 10 });
+    expect(options.apiKeys[0].apiKeyId).toBe('k1');
+    expect(options.credentials[0].source).toBe('user@test');
+
+    const multiOpts = [
+      { value: 'gpt-5', label: 'GPT-5 Model' },
+      { value: 'claude-3-5', label: 'Claude 3.5 Sonnet' },
+    ];
+    expect(filterMultiSelectOptions(multiOpts, 'gpt')).toEqual([multiOpts[0]]);
+    expect(filterMultiSelectOptions(multiOpts, 'sonnet')).toEqual([multiOpts[1]]);
+    expect(filterMultiSelectOptions(multiOpts, '  ')).toEqual(multiOpts);
+
+    const merged = mergeSelectedOptions(multiOpts, ['gpt-5', 'unknown-model']);
+    expect(merged).toHaveLength(3);
+    expect(merged[0]).toEqual({ value: 'unknown-model', label: 'unknown-model' });
   });
 
   test('keeps URL-seeded or stale selected options visible in filter selects', () => {
@@ -269,5 +387,52 @@ describe('usage analysis and pricing helpers', () => {
     expect(markup).toContain('opacity:1');
     expect(markup).toContain('opacity:0.575');
     expect(markup.match(/data-empty="true"/g)).toHaveLength(7 * 24 - 2);
+  });
+
+  test('EventDetailModal renders with closeOnBackdrop', () => {
+    const markup = renderToStaticMarkup(
+      createElement(EventDetailModal, {
+        event: {
+          id: 1,
+          timestamp: 1000,
+          requestId: 'req-1',
+          provider: 'codex',
+          model: 'gpt-5',
+          alias: '',
+          endpoint: 'POST /v1/chat/completions',
+          authIndex: 'a1',
+          source: 'user@test',
+          apiKeyId: 'k1',
+          apiKey: 'sk-1234',
+          serviceTier: 'default',
+          reasoningEffort: '',
+          stream: false,
+          failed: false,
+          statusCode: 200,
+          error: '',
+          latencyMs: 100,
+          ttftMs: 50,
+          tokens: {
+            inputUncached: 10,
+            cacheRead: 0,
+            cacheWrite: 0,
+            output: 5,
+            reasoning: 0,
+            unclassified: 0,
+            total: 15,
+          },
+          cost: 0.001,
+          priced: true,
+          clientIp: '127.0.0.1',
+          userAgent: 'curl',
+          responseModel: '',
+          substituted: false,
+        },
+        labels: { credential: () => 'cred', keyName: () => 'key' },
+        onClose: () => {},
+      })
+    );
+    expect(markup).toContain('modal-overlay');
+    expect(markup).toContain('gpt-5');
   });
 });

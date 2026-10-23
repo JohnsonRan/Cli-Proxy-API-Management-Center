@@ -1,17 +1,20 @@
 import type { UsageAggregate } from '@/services/api/usageStore';
 
-export const USAGE_RANGES = ['24h', '7d', '30d', '90d'] as const;
+export const USAGE_RANGES = ['24h', '7d', '30d', '90d', 'today', 'yesterday', 'custom'] as const;
 export type UsageRange = (typeof USAGE_RANGES)[number];
 
 export const USAGE_TABS = ['overview', 'analysis', 'events', 'pricing'] as const;
 export type UsageTab = (typeof USAGE_TABS)[number];
+export const isUsageRange = (value: string | null): value is UsageRange =>
+  typeof value === 'string' && (USAGE_RANGES as readonly string[]).includes(value);
+
 export const isUsageTab = (value: string | null): value is UsageTab =>
   USAGE_TABS.includes(value as UsageTab);
 
 export const USAGE_METRICS = ['requests', 'tokens', 'cost'] as const;
 export type UsageMetric = (typeof USAGE_METRICS)[number];
 
-const RANGE_SECONDS: Record<UsageRange, number> = {
+const RANGE_SECONDS: Record<Extract<UsageRange, '24h' | '7d' | '30d' | '90d'>, number> = {
   '24h': 24 * 3600,
   '7d': 7 * 86400,
   '30d': 30 * 86400,
@@ -37,13 +40,90 @@ export const cacheHitRate = (a: UsageAggregate): number | null => {
 export const formatPercent = (value: number | null, digits = 1): string =>
   value === null ? '—' : `${value.toFixed(digits)}%`;
 
-/** Unix-second window ending now; tz offset is minutes east of UTC as the backend expects. */
-export const rangeWindow = (range: UsageRange, nowMs = Date.now()) => {
-  const to = Math.floor(nowMs / 1000);
+export const formatDatetimeLocal = (sec: number): string => {
+  const d = new Date(sec * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+export const parseDatetimeLocal = (value: string): number | null => {
+  if (!value || typeof value !== 'string') return null;
+  const d = new Date(value);
+  const ms = d.getTime();
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+};
+
+export interface CustomRangeValidation {
+  valid: boolean;
+  error?: 'empty' | 'order' | 'future';
+}
+
+export const validateCustomRange = (
+  fromSec?: number | null,
+  toSec?: number | null,
+  nowSec = Math.floor(Date.now() / 1000)
+): CustomRangeValidation => {
+  if (
+    fromSec === undefined ||
+    fromSec === null ||
+    !Number.isFinite(fromSec) ||
+    toSec === undefined ||
+    toSec === null ||
+    !Number.isFinite(toSec)
+  ) {
+    return { valid: false, error: 'empty' };
+  }
+  if (fromSec >= toSec) {
+    return { valid: false, error: 'order' };
+  }
+  // Allow 60 seconds tolerance for clock drift between local machine and server.
+  if (toSec > nowSec + 60) {
+    return { valid: false, error: 'future' };
+  }
+  return { valid: true };
+};
+
+/** Unix-second window; tz offset is minutes east of UTC as the backend expects. */
+export const rangeWindow = (
+  range: UsageRange,
+  nowMs = Date.now(),
+  customFromSec?: number,
+  customToSec?: number
+) => {
+  const nowSec = Math.floor(nowMs / 1000);
+  const tzOffset = -new Date(nowMs).getTimezoneOffset();
+
+  if (range === 'custom') {
+    const from =
+      typeof customFromSec === 'number' && Number.isFinite(customFromSec)
+        ? customFromSec
+        : nowSec - 24 * 3600;
+    const to =
+      typeof customToSec === 'number' && Number.isFinite(customToSec) ? customToSec : nowSec;
+    return { from, to, tzOffset };
+  }
+
+  if (range === 'today') {
+    const start = new Date(nowMs);
+    start.setHours(0, 0, 0, 0);
+    const from = Math.floor(start.getTime() / 1000);
+    const to = Math.max(nowSec, from + 1);
+    return { from, to, tzOffset };
+  }
+
+  if (range === 'yesterday') {
+    const start = new Date(nowMs);
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    const from = Math.floor(start.getTime() / 1000);
+    const to = from + 86400;
+    return { from, to, tzOffset };
+  }
+
   return {
-    from: to - RANGE_SECONDS[range],
-    to,
-    tzOffset: -new Date(nowMs).getTimezoneOffset(),
+    from: nowSec - RANGE_SECONDS[range],
+    to: nowSec,
+    tzOffset,
   };
 };
 
