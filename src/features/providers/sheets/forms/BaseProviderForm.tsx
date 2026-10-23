@@ -136,6 +136,8 @@ function buildInitialForm(
             alias: m.alias ?? '',
             priority: m.priority,
             image: m.image === true,
+            embedding: m.embedding === true,
+            rerank: m.rerank === true,
             thinkingJson: formatJsonObject(m.thinking),
             ...readModelOptions(m),
           }))
