@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import '@/i18n';
@@ -20,6 +22,8 @@ import {
 } from '@/features/usage/format';
 import {
   DEFAULT_EVENT_COLUMNS,
+  clientKeyId,
+  providerDisplay,
   histogramLabels,
   parseDraftRows,
   readEventColumns,
@@ -188,6 +192,19 @@ describe('usage analysis and pricing helpers', () => {
     });
     expect(toEventsQuery(window, { result: 'success' }).failed).toBe(false);
     expect(toEventsQuery(window, {}).failed).toBeUndefined();
+  });
+
+  test('labels providers and client keys like the rest of the panel', () => {
+    expect(providerDisplay('openai-compatible-acme')).toEqual({
+      type: 'openai',
+      name: 'acme',
+      compat: true,
+    });
+    expect(providerDisplay('gemini-cli')).toEqual({ type: 'gemini', name: null, compat: false });
+    expect(providerDisplay('codex')).toEqual({ type: 'codex', name: null, compat: false });
+    // Must match the core's hex(sha256(key)[:6]) grouping id; sha256("abc") starts with ba7816bf8f01.
+    const digest = bytesToHex(sha256(new TextEncoder().encode('abc')));
+    expect(clientKeyId(digest)).toBe('ba7816bf8f01');
   });
 
   test('heatmap renders a 7x24 grid scaled to the busiest cell', () => {

@@ -1,5 +1,14 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { useTranslation } from 'react-i18next';
+import { getTypeLabel } from '@/features/authFiles/constants';
 import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -14,11 +23,15 @@ import {
 } from '@/components/ui/Table';
 import { useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
+import { METRIC_ACCENTS } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
-import { PanelHeading } from '../components/PanelBits';
-import { formatCompact, formatCost, formatMs } from '../format';
+import { ProviderBadge } from '../components/Labels';
+import { PanelHeading, Rate } from '../components/PanelBits';
+import { formatCompact, formatCost, formatMs, successRate } from '../format';
+import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   EVENT_COLUMNS,
+  providerDisplay,
   readEventColumns,
   toEventsQuery,
   type EventColumn,
@@ -28,26 +41,67 @@ import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
 
 const PAGE_SIZE = 50;
-const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns';
+// v2: columns were regrouped into composite cells.
+const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v2';
+const NUMERIC_COLUMNS = new Set<EventColumn>(['tokens', 'latency', 'cost']);
 
 interface EventsTabProps {
   usageWindow: UsageWindow;
   stats: UsageStats;
   filter: EventsFilter;
   onFilterChange: (filter: EventsFilter) => void;
-  credentialLabel: (authIndex: string) => string;
+  labels: UsageLabels;
 }
 
-export function EventsTab({
-  usageWindow,
-  stats,
-  filter,
-  onFilterChange,
-  credentialLabel,
-}: EventsTabProps) {
+/** Inline summary of the requests matching the current filter. */
+function FilterSummary({
+  summary,
+  failedOnly,
+}: {
+  summary: UsageStats | null;
+  failedOnly: boolean;
+}) {
+  const { t } = useTranslation();
+  if (!summary) return <div className={styles.summaryStrip} aria-hidden="true" />;
+  const totals = summary.totals;
+  const items: [string, string, string][] = [
+    [t('usage_stats.card_requests'), formatCompact(totals.requests), METRIC_ACCENTS.requests],
+    [t('usage_stats.card_failed_short'), formatCompact(totals.failed), 'var(--viz-failure)'],
+    [t('usage_stats.card_tokens'), formatCompact(totals.tokens.total), METRIC_ACCENTS.tokens],
+    [t('usage_stats.card_cost'), formatCost(totals.cost), METRIC_ACCENTS.cost],
+    [t('usage_stats.card_latency'), formatMs(totals.avgLatencyMs), METRIC_ACCENTS.latency],
+  ];
+  return (
+    <div className={styles.summaryStrip} aria-label={t('usage_stats.events_summary')}>
+      {items.map(([label, value, color]) => (
+        <div
+          key={label}
+          className={styles.summaryItem}
+          style={{ '--accent': color } as CSSProperties}
+        >
+          <span className={styles.summaryLabel}>{label}</span>
+          <span className={styles.summaryValue}>{value}</span>
+        </div>
+      ))}
+      <div
+        className={styles.summaryItem}
+        style={{ '--accent': METRIC_ACCENTS.success } as CSSProperties}
+      >
+        <span className={styles.summaryLabel}>{t('usage_stats.card_success_rate')}</span>
+        <span className={styles.summaryValue}>
+          <Rate value={successRate(totals)} />
+        </span>
+      </div>
+      {failedOnly && <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>}
+    </div>
+  );
+}
+
+export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }: EventsTabProps) {
   const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [events, setEvents] = useState<UsageEvent[]>([]);
+  const [summary, setSummary] = useState<UsageStats | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<'' | 'csv' | 'json'>('');
@@ -59,6 +113,7 @@ export function EventsTab({
   );
   const [columnsOpen, setColumnsOpen] = useState(false);
   const requestRef = useRef(0);
+  const summaryRef = useRef(0);
   const query = useMemo(() => toEventsQuery(usageWindow, filter), [usageWindow, filter]);
 
   const load = useCallback(
@@ -83,13 +138,23 @@ export function EventsTab({
     [query, showNotification, t]
   );
 
-  // `stats` changes on every refresh, so the first page follows the header refresh too.
+  // `stats` changes on every refresh, so the list and summary follow the header refresh too.
   useEffect(() => {
     void load(0);
+    const summaryId = ++summaryRef.current;
+    usageStoreApi
+      .getStats(usageWindow.from, usageWindow.to, usageWindow.tzOffset, query)
+      .then((next) => {
+        if (summaryId === summaryRef.current) setSummary(next);
+      })
+      .catch(() => {
+        if (summaryId === summaryRef.current) setSummary(null);
+      });
     return () => {
       requestRef.current += 1;
+      summaryRef.current += 1;
     };
-  }, [load, stats]);
+  }, [load, query, stats, usageWindow]);
 
   const exportAs = async (format: 'csv' | 'json') => {
     setExporting(format);
@@ -114,25 +179,40 @@ export function EventsTab({
     localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(next));
   };
 
+  const providerLabel = (provider: string) => {
+    const display = providerDisplay(provider);
+    return display.compat
+      ? `${display.name} (${t('usage_stats.compat_tag')})`
+      : getTypeLabel(t, display.type);
+  };
+  const keyOptionLabel = (apiKeyId: string, masked: string) => {
+    const name = labels.keyName(apiKeyId);
+    const maskedText = masked || t('usage_stats.none');
+    return name ? `${name} · ${maskedText}` : maskedText;
+  };
+
   const all = { value: '', label: t('usage_stats.filter_all') };
   const filterOptions = {
     model: [all, ...unique(stats.models.map((m) => m.model)).map((v) => ({ value: v, label: v }))],
     provider: [
       all,
-      ...unique(stats.models.map((m) => m.provider)).map((v) => ({ value: v, label: v })),
+      ...unique(stats.models.map((m) => m.provider)).map((v) => ({
+        value: v,
+        label: providerLabel(v),
+      })),
     ],
     api_key_id: [
       all,
       ...stats.apiKeys.map((k) => ({
         value: k.apiKeyId,
-        label: k.apiKey || t('usage_stats.none'),
+        label: keyOptionLabel(k.apiKeyId, k.apiKey),
       })),
     ],
     auth_index: [
       all,
       ...stats.credentials.map((c) => ({
         value: c.authIndex,
-        label: credentialLabel(c.authIndex),
+        label: `${labels.credential(c.authIndex, c.source)} · ${providerLabel(c.provider)}`,
       })),
     ],
     result: [
@@ -156,6 +236,9 @@ export function EventsTab({
     [i18n.language]
   );
 
+  // A request is "slow" when it takes over twice the average of the matching requests.
+  const slowAfterMs = (summary?.totals.avgLatencyMs ?? 0) * 2;
+
   const cell = (column: EventColumn, e: UsageEvent) => {
     switch (column) {
       case 'time':
@@ -164,46 +247,76 @@ export function EventsTab({
             {timeFormatter.format(new Date(e.timestamp))}
           </TableCell>
         );
-      case 'model':
-        return (
-          <TableCell className={styles.mono}>
-            {e.model}
-            {e.stream && <span className={styles.badge}>{t('usage_stats.stream')}</span>}
-          </TableCell>
-        );
-      case 'provider':
-        return <TableCell>{e.provider}</TableCell>;
-      case 'credential':
-        return <TableCell>{credentialLabel(e.authIndex)}</TableCell>;
-      case 'key':
-        return <TableCell className={styles.mono}>{e.apiKey || t('usage_stats.none')}</TableCell>;
       case 'status':
         return (
-          <TableCell alignRight>
-            <span className={e.failed ? styles.statusFailed : styles.statusOk}>
+          <TableCell>
+            <span className={e.failed ? styles.pillFailed : styles.pillOk}>
               {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
             </span>
           </TableCell>
         );
-      case 'latency':
-        return <TableCell alignRight>{formatMs(e.latencyMs)}</TableCell>;
-      case 'ttft':
-        return <TableCell alignRight>{formatMs(e.ttftMs)}</TableCell>;
-      case 'input':
+      case 'model':
         return (
-          <TableCell alignRight>
-            {formatCompact(e.tokens.inputUncached + e.tokens.cacheRead + e.tokens.cacheWrite)}
+          <TableCell>
+            <span className={styles.rankText}>
+              <span className={`${styles.cellStrong} ${styles.mono}`}>
+                {e.model}
+                {e.stream && <span className={styles.badge}>{t('usage_stats.stream')}</span>}
+              </span>
+              <span className={styles.cellSub}>
+                <ProviderBadge provider={e.provider} />
+              </span>
+            </span>
           </TableCell>
         );
-      case 'cached':
-        return <TableCell alignRight>{formatCompact(e.tokens.cacheRead)}</TableCell>;
-      case 'output':
-        return <TableCell alignRight>{formatCompact(e.tokens.output)}</TableCell>;
+      case 'route':
+        return (
+          <TableCell>
+            <span className={styles.rankText}>
+              <span className={styles.cellMain}>{labels.credential(e.authIndex, e.source)}</span>
+              <span className={styles.cellSub}>
+                <KeyLabelInline name={labels.keyName(e.apiKeyId)} masked={e.apiKey} />
+              </span>
+            </span>
+          </TableCell>
+        );
+      case 'tokens': {
+        const input = e.tokens.inputUncached + e.tokens.cacheRead + e.tokens.cacheWrite;
+        return (
+          <TableCell alignRight>
+            <span className={styles.rankText}>
+              <span className={styles.cellStrong}>
+                {formatCompact(input)} → {formatCompact(e.tokens.output)}
+              </span>
+              <span className={styles.cellSub}>
+                {t('usage_stats.tokens_cached', { value: formatCompact(e.tokens.cacheRead) })}
+              </span>
+            </span>
+          </TableCell>
+        );
+      }
+      case 'latency':
+        return (
+          <TableCell alignRight>
+            <span className={styles.rankText}>
+              <span
+                className={
+                  slowAfterMs > 0 && e.latencyMs > slowAfterMs
+                    ? styles.slowValue
+                    : styles.cellStrong
+                }
+              >
+                {formatMs(e.latencyMs)}
+              </span>
+              <span className={styles.cellSub}>TTFT {formatMs(e.ttftMs)}</span>
+            </span>
+          </TableCell>
+        );
       case 'cost':
         return (
           <TableCell alignRight>
             {e.priced ? (
-              formatCost(e.cost)
+              <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
             ) : (
               <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
             )}
@@ -219,16 +332,6 @@ export function EventsTab({
         return <TableCell>{e.clientIp}</TableCell>;
     }
   };
-
-  const numeric = new Set<EventColumn>([
-    'status',
-    'latency',
-    'ttft',
-    'input',
-    'cached',
-    'output',
-    'cost',
-  ]);
 
   return (
     <section className={styles.panel}>
@@ -301,6 +404,8 @@ export function EventsTab({
         )}
       </div>
 
+      <FilterSummary summary={summary} failedOnly={filter.result === 'failed'} />
+
       {events.length === 0 && !loading ? (
         <p className={styles.muted}>{t('usage_stats.events_empty')}</p>
       ) : (
@@ -308,7 +413,7 @@ export function EventsTab({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={column} alignRight={numeric.has(column)}>
+                <TableHead key={column} alignRight={NUMERIC_COLUMNS.has(column)}>
                   {t(`usage_stats.column_${column}`)}
                 </TableHead>
               ))}
@@ -318,7 +423,9 @@ export function EventsTab({
             {events.map((e) => (
               <TableRow
                 key={e.id}
-                className={styles.clickableRow}
+                className={
+                  e.failed ? `${styles.clickableRow} ${styles.failedRow}` : styles.clickableRow
+                }
                 tabIndex={0}
                 aria-label={t('usage_stats.open_detail')}
                 onClick={() => setSelected(e)}
@@ -352,12 +459,21 @@ export function EventsTab({
           </Button>
         )}
       </div>
-      <EventDetailModal
-        event={selected}
-        credentialLabel={credentialLabel}
-        onClose={() => setSelected(null)}
-      />
+      <EventDetailModal event={selected} labels={labels} onClose={() => setSelected(null)} />
     </section>
+  );
+}
+
+/** Key note name and masked key on one line for the compact route cell. */
+function KeyLabelInline({ name, masked }: { name: string | null; masked: string }) {
+  const { t } = useTranslation();
+  const maskedText = masked || t('usage_stats.none');
+  return name ? (
+    <>
+      {name} <span className={styles.mono}>· {maskedText}</span>
+    </>
+  ) : (
+    <span className={styles.mono}>{maskedText}</span>
   );
 }
 
