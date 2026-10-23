@@ -91,6 +91,7 @@ export function EventDetailModal({
   return (
     <Modal
       open
+      closeOnBackdrop
       title={t('usage_stats.detail_title')}
       onClose={onClose}
       width={640}

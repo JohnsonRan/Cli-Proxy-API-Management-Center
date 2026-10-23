@@ -1,5 +1,115 @@
+import type { ReactNode } from 'react';
 import type { UsageEventsQuery, UsagePriceOverride } from '@/services/api/usageStore';
+import { isUsageRange, type UsageRange } from './format';
 import type { UsageWindow } from './UsagePage';
+
+/** Global dimension and range filters applied across all usage views. */
+export interface UsageGlobalFilter {
+  range: UsageRange;
+  customFrom?: number;
+  customTo?: number;
+  models: string[];
+  providers: string[];
+  apiKeyIds: string[];
+  authIndexes: string[];
+}
+
+export const emptyGlobalFilter = (): UsageGlobalFilter => ({
+  range: '24h',
+  models: [],
+  providers: [],
+  apiKeyIds: [],
+  authIndexes: [],
+});
+
+export const hasActiveGlobalFilters = (filter: UsageGlobalFilter): boolean =>
+  filter.range !== '24h' ||
+  filter.models.length > 0 ||
+  filter.providers.length > 0 ||
+  filter.apiKeyIds.length > 0 ||
+  filter.authIndexes.length > 0;
+
+export const parseCommaList = (value: string | null): string[] => {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+export const parseGlobalFilterFromSearchParams = (params: URLSearchParams): UsageGlobalFilter => {
+  const rangeParam = params.get('range');
+  const range: UsageRange = isUsageRange(rangeParam) ? rangeParam : '24h';
+  const fromParam = params.get('from');
+  const toParam = params.get('to');
+  const fromNum = fromParam ? Number(fromParam) : NaN;
+  const toNum = toParam ? Number(toParam) : NaN;
+  const customFrom = Number.isFinite(fromNum) ? fromNum : undefined;
+  const customTo = Number.isFinite(toNum) ? toNum : undefined;
+
+  return {
+    range,
+    customFrom,
+    customTo,
+    models: parseCommaList(params.get('model')),
+    providers: parseCommaList(params.get('provider')),
+    apiKeyIds: parseCommaList(params.get('api_key_id')),
+    authIndexes: parseCommaList(params.get('auth_index')),
+  };
+};
+
+export const serializeGlobalFilterToSearchParams = (
+  filter: UsageGlobalFilter,
+  tab?: string,
+  result?: string
+): URLSearchParams => {
+  const params = new URLSearchParams();
+  if (tab) params.set('tab', tab);
+  if (filter.range && filter.range !== '24h') params.set('range', filter.range);
+  if (filter.range === 'custom') {
+    if (filter.customFrom !== undefined) params.set('from', String(filter.customFrom));
+    if (filter.customTo !== undefined) params.set('to', String(filter.customTo));
+  }
+  if (filter.models.length) params.set('model', filter.models.join(','));
+  if (filter.providers.length) params.set('provider', filter.providers.join(','));
+  if (filter.apiKeyIds.length) params.set('api_key_id', filter.apiKeyIds.join(','));
+  if (filter.authIndexes.length) params.set('auth_index', filter.authIndexes.join(','));
+  if (result) params.set('result', result);
+  return params;
+};
+
+export interface MultiSelectOption {
+  value: string;
+  label: string;
+  renderLabel?: ReactNode;
+  requests?: number;
+}
+
+export const filterMultiSelectOptions = (
+  options: MultiSelectOption[],
+  search: string
+): MultiSelectOption[] => {
+  const query = search.trim().toLowerCase();
+  if (!query) return options;
+  return options.filter(
+    (o) => o.value.toLowerCase().includes(query) || o.label.toLowerCase().includes(query)
+  );
+};
+
+export const mergeSelectedOptions = (
+  options: MultiSelectOption[],
+  selected: string[]
+): MultiSelectOption[] => {
+  const existing = new Set(options.map((o) => o.value));
+  const missing: MultiSelectOption[] = [];
+  for (const s of selected) {
+    if (s && !existing.has(s)) {
+      missing.push({ value: s, label: s });
+      existing.add(s);
+    }
+  }
+  return missing.length ? [...missing, ...options] : options;
+};
 
 /** Histogram bucket labels such as "≤0.5s", "1–2s" and ">60s". */
 export const histogramLabels = (boundsMs: number[]): string[] => {
@@ -30,7 +140,6 @@ export const EVENT_COLUMNS = [
   'latency',
   'cost',
   'tier',
-  'endpoint',
   'client',
 ] as const;
 export type EventColumn = (typeof EVENT_COLUMNS)[number];
@@ -59,16 +168,17 @@ export const readEventColumns = (raw: string | null): EventColumn[] => {
 
 export const toEventsQuery = (
   usageWindow: UsageWindow,
-  filter: EventsFilter
+  globalFilter: UsageGlobalFilter,
+  resultFilter?: string
 ): UsageEventsQuery => ({
   from: usageWindow.from,
   to: usageWindow.to,
-  model: filter.model,
-  provider: filter.provider,
-  apiKeyId: filter.api_key_id,
-  authIndex: filter.auth_index,
-  failed: filter.result === 'failed' ? true : filter.result === 'success' ? false : undefined,
-  substituted: filter.result === 'substituted' ? true : undefined,
+  model: globalFilter.models.length ? globalFilter.models : undefined,
+  provider: globalFilter.providers.length ? globalFilter.providers : undefined,
+  apiKeyId: globalFilter.apiKeyIds.length ? globalFilter.apiKeyIds : undefined,
+  authIndex: globalFilter.authIndexes.length ? globalFilter.authIndexes : undefined,
+  failed: resultFilter === 'failed' ? true : resultFilter === 'success' ? false : undefined,
+  substituted: resultFilter === 'substituted' ? true : undefined,
 });
 
 /** Editable row: prices stay strings while typing so "0." and "" are not coerced away. */

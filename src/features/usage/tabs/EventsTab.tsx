@@ -8,7 +8,6 @@ import {
   type CSSProperties,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getTypeLabel } from '@/features/authFiles/constants';
 import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -31,26 +30,28 @@ import { formatCompact, formatCost, formatMs, successRate } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   EVENT_COLUMNS,
-  providerDisplay,
   readEventColumns,
   toEventsQuery,
-  withSelectedOption,
   type EventColumn,
-  type EventsFilter,
+  type UsageGlobalFilter,
 } from '../logic';
 import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
 
 const PAGE_SIZE = 50;
-// v2: columns were regrouped into composite cells.
-const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v2';
+const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v3';
 const NUMERIC_COLUMNS = new Set<EventColumn>(['tokens', 'latency', 'cost']);
 
 interface EventsTabProps {
   usageWindow: UsageWindow;
   stats: UsageStats;
-  filter: EventsFilter;
-  onFilterChange: (filter: EventsFilter) => void;
+  globalFilter: UsageGlobalFilter;
+  resultFilter?: string;
+  onResultFilterChange: (result?: string) => void;
+  onAddFilter: (
+    dimension: 'model' | 'provider' | 'api_key_id' | 'auth_index',
+    value: string
+  ) => void;
   labels: UsageLabels;
 }
 
@@ -68,15 +69,6 @@ function FilterSummary({
   const items: [string, string, string][] = [
     [t('usage_stats.card_requests'), formatCompact(totals.requests), METRIC_ACCENTS.requests],
     [t('usage_stats.card_failed_short'), formatCompact(totals.failed), 'var(--viz-failure)'],
-    ...(totals.substituted > 0
-      ? [
-          [t('usage_stats.card_substituted'), formatCompact(totals.substituted), '#d97706'] as [
-            string,
-            string,
-            string,
-          ],
-        ]
-      : []),
     [t('usage_stats.card_tokens'), formatCompact(totals.tokens.total), METRIC_ACCENTS.tokens],
     [t('usage_stats.card_cost'), formatCost(totals.cost), METRIC_ACCENTS.cost],
     [t('usage_stats.card_latency'), formatMs(totals.avgLatencyMs), METRIC_ACCENTS.latency],
@@ -102,6 +94,12 @@ function FilterSummary({
           <Rate value={successRate(totals)} />
         </span>
       </div>
+      {totals.substituted > 0 && (
+        <div className={styles.summaryItem} style={{ '--accent': '#d97706' } as CSSProperties}>
+          <span className={styles.summaryLabel}>{t('usage_stats.card_substituted')}</span>
+          <span className={styles.summaryValue}>{formatCompact(totals.substituted)}</span>
+        </div>
+      )}
       {showResultHint && (
         <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>
       )}
@@ -109,7 +107,15 @@ function FilterSummary({
   );
 }
 
-export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }: EventsTabProps) {
+export function EventsTab({
+  usageWindow,
+  stats,
+  globalFilter,
+  resultFilter,
+  onResultFilterChange,
+  onAddFilter,
+  labels,
+}: EventsTabProps) {
   const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -126,7 +132,10 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
   const [columnsOpen, setColumnsOpen] = useState(false);
   const requestRef = useRef(0);
   const summaryRef = useRef(0);
-  const query = useMemo(() => toEventsQuery(usageWindow, filter), [usageWindow, filter]);
+  const query = useMemo(
+    () => toEventsQuery(usageWindow, globalFilter, resultFilter),
+    [usageWindow, globalFilter, resultFilter]
+  );
 
   const load = useCallback(
     async (before: number) => {
@@ -150,12 +159,17 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
     [query, showNotification, t]
   );
 
-  // `stats` changes on every refresh, so the list and summary follow the header refresh too.
+  // Reload when query, stats or globalFilter changes.
   useEffect(() => {
     void load(0);
     const summaryId = ++summaryRef.current;
     usageStoreApi
-      .getStats(usageWindow.from, usageWindow.to, usageWindow.tzOffset, query)
+      .getStats(usageWindow.from, usageWindow.to, usageWindow.tzOffset, {
+        model: globalFilter.models,
+        provider: globalFilter.providers,
+        apiKeyId: globalFilter.apiKeyIds,
+        authIndex: globalFilter.authIndexes,
+      })
       .then((next) => {
         if (summaryId === summaryRef.current) setSummary(next);
       })
@@ -166,7 +180,7 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
       requestRef.current += 1;
       summaryRef.current += 1;
     };
-  }, [load, query, stats, usageWindow]);
+  }, [load, query, stats, usageWindow, globalFilter]);
 
   const exportAs = async (format: 'csv' | 'json') => {
     setExporting(format);
@@ -191,51 +205,15 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
     localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(next));
   };
 
-  const providerLabel = (provider: string) => {
-    const display = providerDisplay(provider);
-    return display.compat
-      ? `${display.name} (${t('usage_stats.compat_tag')})`
-      : getTypeLabel(t, display.type);
-  };
-  const keyOptionLabel = (apiKeyId: string, masked: string) => {
-    const name = labels.keyName(apiKeyId);
-    const maskedText = masked || t('usage_stats.none');
-    return name ? `${name} · ${maskedText}` : maskedText;
-  };
-
-  const all = { value: '', label: t('usage_stats.filter_all') };
-  const filterOptions = {
-    model: [all, ...unique(stats.models.map((m) => m.model)).map((v) => ({ value: v, label: v }))],
-    provider: [
-      all,
-      ...unique(stats.models.map((m) => m.provider)).map((v) => ({
-        value: v,
-        label: providerLabel(v),
-      })),
-    ],
-    api_key_id: [
-      all,
-      ...stats.apiKeys.map((k) => ({
-        value: k.apiKeyId,
-        label: keyOptionLabel(k.apiKeyId, k.apiKey),
-      })),
-    ],
-    auth_index: [
-      all,
-      ...stats.credentials.map((c) => ({
-        value: c.authIndex,
-        label: `${labels.credential(c.authIndex, c.source)} · ${providerLabel(c.provider)}`,
-      })),
-    ],
-    result: [
-      all,
+  const resultOptions = useMemo(
+    () => [
+      { value: '', label: t('usage_stats.filter_all') },
       { value: 'success', label: t('usage_stats.result_success') },
       { value: 'failed', label: t('usage_stats.result_failed') },
       { value: 'substituted', label: t('usage_stats.result_substituted') },
     ],
-  };
-  const filterKeys = Object.keys(filterOptions) as (keyof EventsFilter)[];
-  const activeFilters = filterKeys.filter((k) => filter[k]).length;
+    [t]
+  );
 
   const timeFormatter = useMemo(
     () =>
@@ -263,9 +241,28 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
       case 'status':
         return (
           <TableCell>
-            <span className={e.failed ? styles.pillFailed : styles.pillOk}>
-              {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
-            </span>
+            <div className={styles.statusCell}>
+              <button
+                type="button"
+                className={styles.filterTagBtn}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onResultFilterChange(e.failed ? 'failed' : 'success');
+                }}
+                title={t('usage_stats.filter_by_this', {
+                  name: e.failed ? t('usage_stats.result_failed') : t('usage_stats.result_success'),
+                })}
+              >
+                <span className={e.failed ? styles.pillFailed : styles.pillOk}>
+                  {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
+                </span>
+              </button>
+              {e.endpoint && (
+                <span className={styles.endpointSub} title={e.endpoint}>
+                  {e.endpoint}
+                </span>
+              )}
+            </div>
           </TableCell>
         );
       case 'model':
@@ -273,25 +270,50 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
           <TableCell>
             <span className={styles.rankText}>
               <span className={`${styles.cellStrong} ${styles.mono}`}>
-                {e.substituted ? (
-                  <>
-                    <span>
-                      {e.model} → {e.responseModel}
-                    </span>
-                    <span
-                      className={styles.substitutedBadge}
-                      title={t('usage_stats.substituted_hint')}
-                    >
-                      {t('usage_stats.substituted_tag')}
-                    </span>
-                  </>
-                ) : (
-                  e.model
-                )}
+                <button
+                  type="button"
+                  className={styles.filterTagBtn}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onAddFilter('model', e.model);
+                  }}
+                  title={t('usage_stats.filter_by_this', { name: e.model })}
+                >
+                  {e.substituted ? (
+                    <>
+                      <span>{e.model}</span>
+                      <span className={styles.subArrow}>→</span>
+                      <span>{e.responseModel}</span>
+                      <span
+                        className={styles.substitutedBadge}
+                        title={t('usage_stats.substituted_hint')}
+                      >
+                        {t('usage_stats.substituted_tag')}
+                      </span>
+                    </>
+                  ) : (
+                    e.model
+                  )}
+                </button>
                 {e.stream && <span className={styles.badge}>{t('usage_stats.stream')}</span>}
               </span>
               <span className={styles.cellSub}>
-                <ProviderBadge provider={e.provider} />
+                <button
+                  type="button"
+                  className={styles.filterTagBtn}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onAddFilter('provider', e.provider);
+                  }}
+                  title={t('usage_stats.filter_by_this', { name: e.provider })}
+                >
+                  <ProviderBadge provider={e.provider} />
+                </button>
+                {e.reasoningEffort && (
+                  <span className={styles.badge} title={t('usage_stats.detail_tier')}>
+                    {e.reasoningEffort}
+                  </span>
+                )}
               </span>
             </span>
           </TableCell>
@@ -300,9 +322,35 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
         return (
           <TableCell>
             <span className={styles.rankText}>
-              <span className={styles.cellMain}>{labels.credential(e.authIndex, e.source)}</span>
+              <span className={styles.cellMain}>
+                <button
+                  type="button"
+                  className={styles.filterTagBtn}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    if (e.authIndex) onAddFilter('auth_index', e.authIndex);
+                  }}
+                  title={t('usage_stats.filter_by_this', {
+                    name: labels.credential(e.authIndex, e.source),
+                  })}
+                >
+                  {labels.credential(e.authIndex, e.source)}
+                </button>
+              </span>
               <span className={styles.cellSub}>
-                <KeyLabelInline name={labels.keyName(e.apiKeyId)} masked={e.apiKey} />
+                <button
+                  type="button"
+                  className={styles.filterTagBtn}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    if (e.apiKeyId) onAddFilter('api_key_id', e.apiKeyId);
+                  }}
+                  title={t('usage_stats.filter_by_this', {
+                    name: labels.keyName(e.apiKeyId) || e.apiKey,
+                  })}
+                >
+                  <KeyLabelInline name={labels.keyName(e.apiKeyId)} masked={e.apiKey} />
+                </button>
               </span>
             </span>
           </TableCell>
@@ -350,11 +398,7 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
           </TableCell>
         );
       case 'tier':
-        return (
-          <TableCell>{[e.serviceTier, e.reasoningEffort].filter(Boolean).join(' · ')}</TableCell>
-        );
-      case 'endpoint':
-        return <TableCell className={styles.mono}>{e.endpoint}</TableCell>;
+        return <TableCell>{e.serviceTier || '—'}</TableCell>;
       case 'client':
         return <TableCell>{e.clientIp}</TableCell>;
     }
@@ -411,27 +455,25 @@ export function EventsTab({ usageWindow, stats, filter, onFilterChange, labels }
       </div>
 
       <div className={styles.filters}>
-        {filterKeys.map((key) => (
-          <label key={key} className={styles.filterField}>
-            <span className={styles.filterLabel}>{t(`usage_stats.filter_${key}`)}</span>
-            <Select
-              value={filter[key] ?? ''}
-              options={withSelectedOption(filterOptions[key], filter[key])}
-              onChange={(value) => onFilterChange({ ...filter, [key]: value || undefined })}
-              ariaLabel={t(`usage_stats.filter_${key}`)}
-              size="sm"
-              fullWidth
-            />
-          </label>
-        ))}
-        {activeFilters > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => onFilterChange({})}>
+        <label className={styles.filterField} style={{ maxWidth: 200 }}>
+          <span className={styles.filterLabel}>{t('usage_stats.filter_result')}</span>
+          <Select
+            value={resultFilter ?? ''}
+            options={resultOptions}
+            onChange={(value) => onResultFilterChange(value || undefined)}
+            ariaLabel={t('usage_stats.filter_result')}
+            size="sm"
+            fullWidth
+          />
+        </label>
+        {resultFilter && (
+          <Button variant="ghost" size="sm" onClick={() => onResultFilterChange(undefined)}>
             {t('usage_stats.clear_filters')}
           </Button>
         )}
       </div>
 
-      <FilterSummary summary={summary} showResultHint={Boolean(filter.result)} />
+      <FilterSummary summary={summary} showResultHint={Boolean(resultFilter)} />
 
       {events.length === 0 && !loading ? (
         <p className={styles.muted}>{t('usage_stats.events_empty')}</p>
@@ -503,5 +545,3 @@ function KeyLabelInline({ name, masked }: { name: string | null; masked: string 
     <span className={styles.mono}>{maskedText}</span>
   );
 }
-
-const unique = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
