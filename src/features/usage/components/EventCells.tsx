@@ -48,7 +48,7 @@ export function EventStatusCell({
   onResult?: (result: 'failed' | 'success') => void;
 }) {
   const { t } = useTranslation();
-  const transport = eventTransport(e.endpoint, e.stream);
+  const transport = eventTransport(e.endpoint, e.stream, e.transport);
   return (
     <span className={styles.rankText}>
       <span className={styles.cellLine}>
