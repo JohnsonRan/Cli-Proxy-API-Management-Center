@@ -435,6 +435,56 @@ export const buildUsageParams = (params: Record<string, unknown>): URLSearchPara
   return search;
 };
 
+export interface UsageRealtimePoint {
+  time: number;
+  requests: number;
+  failed: number;
+  substituted: number;
+  tokens: number;
+  cost: number;
+  avgLatencyMs: number;
+}
+
+export interface UsageRealtime {
+  now: number;
+  lastId: number;
+  current: {
+    rpm1m: number;
+    tpm1m: number;
+    rpm5m: number;
+    tpm5m: number;
+    failed5m: number;
+    avgLatency5m: number;
+  };
+  series: UsageRealtimePoint[];
+}
+
+export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
+  const d = rec(data);
+  const c = rec(d.current);
+  return {
+    now: num(d.now),
+    lastId: num(d.last_id),
+    current: {
+      rpm1m: num(c.rpm_1m),
+      tpm1m: num(c.tpm_1m),
+      rpm5m: num(c.rpm_5m),
+      tpm5m: num(c.tpm_5m),
+      failed5m: num(c.failed_5m),
+      avgLatency5m: num(c.avg_latency_5m),
+    },
+    series: list(d.series).map((p) => ({
+      time: num(p.time),
+      requests: num(p.requests),
+      failed: num(p.failed),
+      substituted: num(p.substituted),
+      tokens: num(p.tokens),
+      cost: num(p.cost),
+      avgLatencyMs: num(p.avg_latency_ms),
+    })),
+  };
+};
+
 const OVERRIDES_PATH = '/config/observability/usage/store/pricing/overrides';
 
 /** True when the backend reports the store is turned off (409 usage_store_disabled). */
@@ -454,6 +504,18 @@ export const usageStoreApi = {
           from,
           to,
           tz_offset: tzOffsetMinutes,
+          model: filter.model,
+          provider: filter.provider,
+          api_key_id: filter.apiKeyId,
+          auth_index: filter.authIndex,
+        }),
+      })
+    ),
+  getRealtime: async (minutes: number, filter: UsageDimensionFilter = {}) =>
+    normalizeUsageRealtime(
+      await apiClient.get('/observability/usage/realtime', {
+        params: buildUsageParams({
+          minutes,
           model: filter.model,
           provider: filter.provider,
           api_key_id: filter.apiKeyId,

@@ -3,7 +3,7 @@ import type { UsageAggregate } from '@/services/api/usageStore';
 export const USAGE_RANGES = ['24h', '7d', '30d', '90d', 'today', 'yesterday', 'custom'] as const;
 export type UsageRange = (typeof USAGE_RANGES)[number];
 
-export const USAGE_TABS = ['overview', 'analysis', 'events', 'pricing'] as const;
+export const USAGE_TABS = ['overview', 'realtime', 'analysis', 'events', 'pricing'] as const;
 export type UsageTab = (typeof USAGE_TABS)[number];
 export const isUsageRange = (value: string | null): value is UsageRange =>
   typeof value === 'string' && (USAGE_RANGES as readonly string[]).includes(value);

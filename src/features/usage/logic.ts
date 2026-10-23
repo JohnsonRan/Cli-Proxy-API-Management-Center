@@ -301,3 +301,20 @@ export const clientKeyEntries = (raw: unknown): { key: string; name?: string }[]
     return [];
   });
 };
+
+/** Realtime feed cap: older rows fall off the bottom. */
+export const REALTIME_FEED_LIMIT = 100;
+
+/**
+ * Merges an ascending `after` page into a newest-first feed, dropping duplicates and keeping
+ * at most `limit` rows. Returns the merged feed and the ids that are new.
+ */
+export const mergeRealtimeFeed = <T extends { id: number }>(
+  feed: T[],
+  ascendingPage: T[],
+  limit = REALTIME_FEED_LIMIT
+): { feed: T[]; added: number[] } => {
+  const known = new Set(feed.map((e) => e.id));
+  const fresh = ascendingPage.filter((e) => !known.has(e.id)).reverse();
+  return { feed: [...fresh, ...feed].slice(0, limit), added: fresh.map((e) => e.id) };
+};

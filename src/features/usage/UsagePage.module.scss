@@ -1151,3 +1151,67 @@
   gap: 4px;
   width: 200px;
 }
+
+/* ---------- Realtime ---------- */
+
+.realtimeBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.realtimeStatus {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.liveDot,
+.liveDotPaused {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.liveDot {
+  background: var(--viz-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--viz-success) 60%, transparent);
+  animation: usage-live 1.6s ease-out infinite;
+}
+
+.liveDotPaused {
+  background: var(--text-tertiary);
+}
+
+@keyframes usage-live {
+  to {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.freshRow td {
+  animation: usage-fresh 4s ease-out;
+}
+
+@keyframes usage-fresh {
+  from {
+    background: color-mix(in srgb, var(--viz-success) 22%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot,
+  .freshRow td {
+    animation: none;
+  }
+
+  .freshRow td {
+    background: color-mix(in srgb, var(--viz-success) 10%, transparent);
+  }
+}
