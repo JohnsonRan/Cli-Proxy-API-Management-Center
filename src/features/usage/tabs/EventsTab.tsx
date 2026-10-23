@@ -175,6 +175,8 @@ export function EventsTab({
         provider: globalFilter.providers,
         apiKeyId: globalFilter.apiKeyIds,
         authIndex: globalFilter.authIndexes,
+        failed: query.failed,
+        substituted: query.substituted,
       })
       .then((next) => {
         if (summaryId === summaryRef.current) setSummary(next);
@@ -369,7 +371,7 @@ export function EventsTab({
         )}
       </div>
 
-      <FilterSummary summary={summary} showResultHint={Boolean(resultFilter)} />
+      <FilterSummary summary={summary} showResultHint={Boolean(summary?.partial)} />
 
       {events.length === 0 && !loading ? (
         <p className={styles.muted}>{t('usage_stats.events_empty')}</p>

@@ -42,6 +42,8 @@ interface OverviewTabProps {
   prevStats: UsageStats | null;
   labels: UsageLabels;
   onOpenEvents: (filter: EventsFilter) => void;
+  /** Narrows the global time range to one trend bucket and opens its requests. */
+  onDrillDown: (from: number, to: number) => void;
 }
 
 /** Request count with a share bar in the row's colour. */
@@ -85,7 +87,13 @@ function RankName({
   );
 }
 
-export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: OverviewTabProps) {
+export function OverviewTab({
+  stats,
+  prevStats,
+  labels,
+  onOpenEvents,
+  onDrillDown,
+}: OverviewTabProps) {
   const { t, i18n } = useTranslation();
   const theme = useChartTheme();
   const [metric, setMetric] = useState<UsageMetric>('requests');
@@ -100,7 +108,19 @@ export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: Overview
   );
 
   const trend = useMemo(() => {
-    const options = baseCartesianOptions(theme, metric !== 'cost');
+    const step = stats.bucket === 'day' ? 86400 : 3600;
+    const options = {
+      ...baseCartesianOptions(theme, metric !== 'cost'),
+      // Clicking a bucket narrows the range to it and opens its requests.
+      onClick: (_event: unknown, elements: { index: number }[]) => {
+        const point = elements[0] ? stats.series[elements[0].index] : undefined;
+        if (point) onDrillDown(point.time, point.time + step);
+      },
+      onHover: (event: { native: Event | null }, elements: unknown[]) => {
+        const target = event.native?.target as HTMLElement | null;
+        if (target) target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+      },
+    };
     if (metric === 'requests') {
       return {
         kind: 'bar' as const,
@@ -174,7 +194,7 @@ export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: Overview
         ],
       },
     };
-  }, [bucketLabels, metric, stats.series, t, theme]);
+  }, [bucketLabels, metric, onDrillDown, stats.bucket, stats.series, t, theme]);
 
   const composition = useMemo(() => {
     const parts = [
@@ -347,7 +367,10 @@ export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: Overview
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
-          <PanelHeading title={t('usage_stats.trend_title')} desc={t('usage_stats.trend_desc')} />
+          <PanelHeading
+            title={t('usage_stats.trend_title')}
+            desc={`${t('usage_stats.trend_desc')} ${t('usage_stats.trend_drill_hint')}`}
+          />
           <div className={styles.segmented} role="group" aria-label={t('usage_stats.metric_label')}>
             {USAGE_METRICS.map((value) => (
               <button
