@@ -82,8 +82,11 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
   );
 
   const tick = useCallback(
-    async (initial: boolean) => {
-      if (inFlightRef.current && !initial) return;
+    async (requestedInitial: boolean) => {
+      if (inFlightRef.current && !requestedInitial) return;
+      // Without a cursor (e.g. the first load failed) reload instead of sending after=0,
+      // which the backend treats as "no cursor" and answers newest-first.
+      const initial = requestedInitial || cursorRef.current <= 0;
       const generation = generationRef.current;
       inFlightRef.current = true;
       try {
