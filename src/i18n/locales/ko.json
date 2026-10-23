@@ -1008,7 +1008,7 @@
     "card_failed_short": "실패",
     "compat_tag": "OpenAI 호환",
     "events_summary": "조건에 맞는 요청 요약",
-    "events_summary_hint": "요약은 모든 결과를 포함하며 아래 목록은 실패한 요청만 보여 줍니다.",
+    "events_summary_hint": "요약은 성공 및 실패 요청을 모두 포함하며, 결과 필터는 아래 목록에만 적용됩니다.",
     "tokens_cached": "캐시 {{value}}",
     "card_cost": "예상 비용",
     "card_cost_sub": "USD, 모델 가격 기준",

@@ -136,6 +136,25 @@ export const emptyRow = (): DraftRow => ({
   cacheWrite: '',
 });
 
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Appends a fallback option for `value` if it is not already in `options`,
+ * ensuring URL-seeded or stale filters still render a readable label in Select.
+ */
+export const withSelectedOption = (
+  options: FilterOption[],
+  value: string | undefined | null
+): FilterOption[] => {
+  if (!value || options.some((opt) => opt.value === value)) {
+    return options;
+  }
+  return [...options, { value, label: value }];
+};
+
 const COMPAT_PREFIX = 'openai-compatible-';
 
 /** How a usage provider key is shown: OpenAI-compatible upstreams by their configured name. */

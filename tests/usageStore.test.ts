@@ -29,6 +29,7 @@ import {
   parseDraftRows,
   readEventColumns,
   toEventsQuery,
+  withSelectedOption,
 } from '@/features/usage/logic';
 import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
 import {
@@ -193,6 +194,21 @@ describe('usage analysis and pricing helpers', () => {
     });
     expect(toEventsQuery(window, { result: 'success' }).failed).toBe(false);
     expect(toEventsQuery(window, {}).failed).toBeUndefined();
+  });
+
+  test('keeps URL-seeded or stale selected options visible in filter selects', () => {
+    const options = [
+      { value: '', label: 'All' },
+      { value: 'gpt-5', label: 'gpt-5' },
+    ];
+    expect(withSelectedOption(options, 'gpt-5')).toBe(options);
+    expect(withSelectedOption(options, '')).toBe(options);
+    expect(withSelectedOption(options, undefined)).toBe(options);
+    expect(withSelectedOption(options, 'gpt-4')).toEqual([
+      { value: '', label: 'All' },
+      { value: 'gpt-5', label: 'gpt-5' },
+      { value: 'gpt-4', label: 'gpt-4' },
+    ]);
   });
 
   test('labels providers and client keys like the rest of the panel', () => {
