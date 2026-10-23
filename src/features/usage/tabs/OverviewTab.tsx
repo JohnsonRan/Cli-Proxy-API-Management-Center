@@ -449,6 +449,9 @@ export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: Overview
                               title={t('usage_stats.model_substituted_count', {
                                 count: m.substituted,
                               })}
+                              aria-label={t('usage_stats.model_substituted_count', {
+                                count: m.substituted,
+                              })}
                             >
                               {m.substituted}
                             </span>
