@@ -454,8 +454,8 @@ export function EventsTab({
         </div>
       </div>
 
-      <div className={styles.filters}>
-        <label className={styles.filterField} style={{ maxWidth: 200 }}>
+      <div className={styles.resultFilterRow}>
+        <label className={styles.resultFilterField}>
           <span className={styles.filterLabel}>{t('usage_stats.filter_result')}</span>
           <Select
             value={resultFilter ?? ''}
