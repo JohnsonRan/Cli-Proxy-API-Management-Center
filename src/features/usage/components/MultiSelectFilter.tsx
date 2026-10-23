@@ -94,7 +94,7 @@ export function MultiSelectFilter({
           .join(' ')}
         onClick={() => setIsOpen((prev) => !prev)}
         disabled={disabled}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
         <span>{triggerText}</span>
@@ -140,19 +140,15 @@ export function MultiSelectFilter({
             )}
           </div>
 
-          <div className={styles.multiSelectList} role="listbox" aria-label={label}>
+          {/* Native checkboxes carry the semantics; the list is a labelled group. */}
+          <div className={styles.multiSelectList} role="group" aria-label={label}>
             {filtered.length === 0 ? (
               <div className={styles.multiSelectEmpty}>{t('usage_stats.no_matching_options')}</div>
             ) : (
               filtered.map((opt) => {
                 const isChecked = selected.includes(opt.value);
                 return (
-                  <div
-                    key={opt.value}
-                    role="option"
-                    aria-selected={isChecked}
-                    className={styles.multiSelectOption}
-                  >
+                  <div key={opt.value} className={styles.multiSelectOption}>
                     <SelectionCheckbox
                       checked={isChecked}
                       onChange={(checked) => handleToggle(opt.value, checked)}

@@ -1061,8 +1061,6 @@
     "none": "Нет",
     "unpriced": "Нет цены",
     "failed": "Ошибка",
-    "yes": "Да",
-    "no": "Нет",
     "col_model": "Модель",
     "col_provider": "Провайдер",
     "col_requests": "Запросы",

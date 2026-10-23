@@ -1058,8 +1058,6 @@
     "none": "없음",
     "unpriced": "가격 없음",
     "failed": "실패",
-    "yes": "예",
-    "no": "아니요",
     "col_model": "모델",
     "col_provider": "공급자",
     "col_requests": "요청",
