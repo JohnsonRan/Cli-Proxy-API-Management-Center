@@ -43,6 +43,21 @@ export function EventDetailModal({
       t('usage_stats.col_model'),
       event.alias && event.alias !== event.model ? `${event.alias} → ${event.model}` : event.model,
     ],
+    ...(event.responseModel
+      ? [
+          [
+            t('usage_stats.detail_served_model'),
+            <span key="served" className={styles.mono}>
+              {event.responseModel}
+              {event.substituted && (
+                <span className={styles.substitutedBadge} title={t('usage_stats.substituted_hint')}>
+                  {t('usage_stats.substituted_tag')}
+                </span>
+              )}
+            </span>,
+          ] as [string, ReactNode],
+        ]
+      : []),
     [t('usage_stats.col_provider'), <ProviderBadge provider={event.provider} />],
     [t('usage_stats.col_credential'), labels.credential(event.authIndex, event.source)],
     [

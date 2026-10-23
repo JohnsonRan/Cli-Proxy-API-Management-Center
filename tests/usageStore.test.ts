@@ -38,9 +38,10 @@ import {
   serializePriceOverrides,
 } from '@/services/api/usageStore';
 
-const aggregate = (requests: number, failed: number, cost: number) => ({
+const aggregate = (requests: number, failed: number, cost: number, substituted = 0) => ({
   requests,
   failed,
+  substituted,
   cost,
   unpriced_requests: 0,
   avg_latency_ms: 120,
@@ -76,11 +77,27 @@ describe('usage store API normalization', () => {
     const page = normalizeUsageEvents({
       next_before: 7,
       events: [
-        { id: 7, timestamp: 1000, model: 'm', failed: true, status_code: 429, priced: false },
+        {
+          id: 7,
+          timestamp: 1000,
+          model: 'm',
+          failed: true,
+          status_code: 429,
+          priced: false,
+          response_model: 'm-sub',
+          substituted: true,
+        },
       ],
     });
     expect(page.nextBefore).toBe(7);
-    expect(page.events[0]).toMatchObject({ id: 7, failed: true, statusCode: 429, priced: false });
+    expect(page.events[0]).toMatchObject({
+      id: 7,
+      failed: true,
+      statusCode: 429,
+      priced: false,
+      responseModel: 'm-sub',
+      substituted: true,
+    });
 
     const pricing = normalizeUsagePricing({
       models_dev: { enabled: true, count: 10, updated_at: '2026-10-23T00:00:00Z', last_error: '' },
@@ -193,6 +210,10 @@ describe('usage analysis and pricing helpers', () => {
       failed: true,
     });
     expect(toEventsQuery(window, { result: 'success' }).failed).toBe(false);
+    expect(toEventsQuery(window, { result: 'substituted' })).toMatchObject({
+      substituted: true,
+      failed: undefined,
+    });
     expect(toEventsQuery(window, {}).failed).toBeUndefined();
   });
 
