@@ -1043,7 +1043,7 @@
     "card_failed_short": "失敗",
     "compat_tag": "OpenAI 相容",
     "events_summary": "符合條件的請求彙總",
-    "events_summary_hint": "彙總包含全部結果，下方列表只顯示失敗的請求。",
+    "events_summary_hint": "彙總包含成功與失敗的全部請求，結果篩選僅對下方列表生效。",
     "tokens_cached": "快取 {{value}}",
     "card_cost": "預估費用",
     "card_cost_sub": "美元，依模型價格計算",

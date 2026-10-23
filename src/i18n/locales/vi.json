@@ -972,7 +972,7 @@
     "card_failed_short": "Thất bại",
     "compat_tag": "Tương thích OpenAI",
     "events_summary": "Tổng hợp yêu cầu phù hợp",
-    "events_summary_hint": "Tổng hợp gồm mọi kết quả; danh sách bên dưới chỉ có yêu cầu thất bại.",
+    "events_summary_hint": "Tổng hợp bao gồm cả yêu cầu thành công và thất bại; bộ lọc kết quả chỉ áp dụng cho danh sách bên dưới.",
     "tokens_cached": "đệm {{value}}",
     "card_cost": "Chi phí ước tính",
     "card_cost_sub": "USD, theo giá mô hình",

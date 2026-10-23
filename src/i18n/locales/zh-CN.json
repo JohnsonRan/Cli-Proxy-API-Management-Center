@@ -1015,7 +1015,7 @@
     "card_failed_short": "失败",
     "compat_tag": "OpenAI 兼容",
     "events_summary": "符合条件的请求汇总",
-    "events_summary_hint": "汇总包含全部结果，下方列表只显示失败的请求。",
+    "events_summary_hint": "汇总包含成功与失败的全部请求，结果筛选仅对下方列表生效。",
     "tokens_cached": "缓存 {{value}}",
     "card_cost": "预估费用",
     "card_cost_sub": "美元，按模型价格计算",

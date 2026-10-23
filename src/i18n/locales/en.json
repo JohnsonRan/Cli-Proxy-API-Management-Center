@@ -1016,7 +1016,7 @@
     "card_failed_short": "Failed",
     "compat_tag": "OpenAI compatible",
     "events_summary": "Summary of matching requests",
-    "events_summary_hint": "The summary covers all results; the list below shows failed requests only.",
+    "events_summary_hint": "The summary covers both successful and failed requests; the result filter only applies to the list below.",
     "tokens_cached": "cached {{value}}",
     "card_cost": "Estimated cost",
     "card_cost_sub": "USD, from model prices",
