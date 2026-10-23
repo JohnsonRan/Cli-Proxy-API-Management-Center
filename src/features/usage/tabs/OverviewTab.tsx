@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import type { UsageAggregate, UsageStats } from '@/services/api/usageStore';
@@ -33,12 +33,14 @@ import {
   type UsageMetric,
 } from '../format';
 import type { EventsFilter } from '../logic';
+import { KeyLabel, ProviderBadge } from '../components/Labels';
+import type { UsageLabels } from '../hooks/useUsageLabels';
 import styles from '../UsagePage.module.scss';
 
 interface OverviewTabProps {
   stats: UsageStats;
   prevStats: UsageStats | null;
-  credentialLabel: (authIndex: string) => string;
+  labels: UsageLabels;
   onOpenEvents: (filter: EventsFilter) => void;
 }
 
@@ -65,8 +67,8 @@ function RankName({
 }: {
   rank: number;
   color: string;
-  name: string;
-  sub?: string;
+  name: ReactNode;
+  sub?: ReactNode;
   mono?: boolean;
 }) {
   return (
@@ -83,7 +85,7 @@ function RankName({
   );
 }
 
-export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }: OverviewTabProps) {
+export function OverviewTab({ stats, prevStats, labels, onOpenEvents }: OverviewTabProps) {
   const { t, i18n } = useTranslation();
   const theme = useChartTheme();
   const [metric, setMetric] = useState<UsageMetric>('requests');
@@ -92,7 +94,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
   const rate = successRate(totals);
   const prevRate = prev ? successRate(prev) : null;
 
-  const labels = useMemo(
+  const bucketLabels = useMemo(
     () => stats.series.map((p) => formatBucketLabel(p.time, stats.bucket, i18n.language)),
     [stats.series, stats.bucket, i18n.language]
   );
@@ -104,7 +106,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
         kind: 'bar' as const,
         options,
         data: {
-          labels,
+          labels: bucketLabels,
           datasets: [
             {
               label: t('usage_stats.series_success'),
@@ -133,7 +135,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
         kind: 'bar' as const,
         options,
         data: {
-          labels,
+          labels: bucketLabels,
           datasets: series.map(([key, pick], index) => ({
             label: t(`usage_stats.${key}`),
             data: stats.series.map(pick),
@@ -158,7 +160,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
         },
       },
       data: {
-        labels,
+        labels: bucketLabels,
         datasets: [
           {
             label: t('usage_stats.metric_cost'),
@@ -172,7 +174,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
         ],
       },
     };
-  }, [labels, metric, stats.series, t, theme]);
+  }, [bucketLabels, metric, stats.series, t, theme]);
 
   const composition = useMemo(() => {
     const parts = [
@@ -439,7 +441,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
                       rank={index + 1}
                       color={rankColor(index)}
                       name={m.model}
-                      sub={m.provider}
+                      sub={<ProviderBadge provider={m.provider} />}
                       mono
                     />
                   </TableCell>
@@ -480,14 +482,16 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
                 {stats.apiKeys.map((k, index) => (
                   <TableRow
                     key={k.apiKeyId || 'none'}
-                    {...rowProps({ api_key_id: k.apiKeyId }, k.apiKey || t('usage_stats.none'))}
+                    {...rowProps(
+                      { api_key_id: k.apiKeyId },
+                      labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none')
+                    )}
                   >
                     <TableCell>
                       <RankName
                         rank={index + 1}
                         color={rankColor(index)}
-                        name={k.apiKey || t('usage_stats.none')}
-                        mono
+                        name={<KeyLabel name={labels.keyName(k.apiKeyId)} masked={k.apiKey} />}
                       />
                     </TableCell>
                     <TableCell alignRight>
@@ -523,14 +527,17 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
                 {stats.credentials.map((c, index) => (
                   <TableRow
                     key={c.authIndex || 'none'}
-                    {...rowProps({ auth_index: c.authIndex }, credentialLabel(c.authIndex))}
+                    {...rowProps(
+                      { auth_index: c.authIndex },
+                      labels.credential(c.authIndex, c.source)
+                    )}
                   >
                     <TableCell>
                       <RankName
                         rank={index + 1}
                         color={rankColor(index)}
-                        name={credentialLabel(c.authIndex)}
-                        sub={c.provider}
+                        name={labels.credential(c.authIndex, c.source)}
+                        sub={<ProviderBadge provider={c.provider} />}
                       />
                     </TableCell>
                     <TableCell alignRight>

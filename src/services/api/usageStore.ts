@@ -46,6 +46,8 @@ export interface UsageApiKeyStat extends UsageAggregate {
 export interface UsageCredentialStat extends UsageAggregate {
   authIndex: string;
   provider: string;
+  authType: string;
+  source: string;
 }
 
 export interface UsageStats {
@@ -214,6 +216,8 @@ export const normalizeUsageStats = (data: unknown): UsageStats => {
       ...normalizeAggregate(c),
       authIndex: str(c.auth_index),
       provider: str(c.provider),
+      authType: str(c.auth_type),
+      source: str(c.source),
     })),
   };
 };
@@ -361,10 +365,23 @@ export const isUsageStoreDisabled = (error: unknown): boolean =>
   isRecord(error) && error.status === 409 && error.apiCode === USAGE_STORE_DISABLED;
 
 export const usageStoreApi = {
-  getStats: async (from: number, to: number, tzOffsetMinutes: number) =>
+  getStats: async (
+    from: number,
+    to: number,
+    tzOffsetMinutes: number,
+    filter: Pick<UsageEventsQuery, 'model' | 'provider' | 'apiKeyId' | 'authIndex'> = {}
+  ) =>
     normalizeUsageStats(
       await apiClient.get('/observability/usage/stats', {
-        params: { from, to, tz_offset: tzOffsetMinutes },
+        params: {
+          from,
+          to,
+          tz_offset: tzOffsetMinutes,
+          model: filter.model || undefined,
+          provider: filter.provider || undefined,
+          api_key_id: filter.apiKeyId || undefined,
+          auth_index: filter.authIndex || undefined,
+        },
       })
     ),
   getEvents: async (query: UsageEventsQuery) =>
