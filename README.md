@@ -19,6 +19,8 @@ Manage providers, credentials, quotas, and logs — from a single HTML file.
 
 </div>
 
+> **Downstream Fork Notice**: This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-API-Management-Center](https://github.com/router-for-me/Cli-Proxy-API-Management-Center) following the `downstream-fork-maintain` workflow. See [MAINTAIN.md](MAINTAIN.md) for branch structure and sync instructions.
+
 ---
 
 ## One place to manage your instance
