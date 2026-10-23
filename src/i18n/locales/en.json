@@ -400,7 +400,7 @@
     "use_siwc_label": "Use SIWC (use_siwc)",
     "use_siwc_hint": "Use the bound SIWC credential when enabled. Turning this off only disables SIWC and preserves binding data. Complete binding before enabling.",
     "websockets_label": "WebSockets (websockets)",
-    "websockets_hint": "Enable Responses API websocket transport for this credential.",
+    "websockets_hint": "Enable Responses API websocket transport for this credential. For Codex credentials this also bridges HTTP/SSE clients to the upstream WebSocket and overrides the global setting.",
     "using_api_label": "Use official API (using_api)",
     "using_api_hint": "Use the official xAI API when enabled; use Grok CLI chat-proxy when disabled.",
     "policy_alias_name": "Alias",
@@ -1239,6 +1239,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "Stream bootstrap timeout",
           "hint": "Optional buffering time limit, e.g. 20s. Default: 0 (unlimited time; frame and byte budgets still apply). Checked as upstream frames arrive; not a hard deadline for every network stall. Headers may still wait for translated output."
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "WebSocket upstream for HTTP clients",
+          "hint": "Route Codex OAuth credentials through the upstream WebSocket transport even when the client connects over HTTP/SSE, falling back to HTTP on 426. /responses/compact and image requests stay on HTTP. A credential's own WebSockets setting overrides this. Disabled by default."
         },
         "codexOptimizeMultiAgentV2": {
           "label": "Optimize multi-agent v2",
