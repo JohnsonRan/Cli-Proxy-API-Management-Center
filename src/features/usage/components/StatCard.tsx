@@ -1,50 +1,72 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ReactNode } from 'react';
+import { METRIC_ACCENTS, type MetricAccent } from '../charts';
 import { formatPercent } from '../format';
+import { MetricIcon } from './MetricIcon';
+import { Sparkline } from './Sparkline';
 import styles from '../UsagePage.module.scss';
 
 /**
- * Summary card with an optional change against the previous period.
- * `goodWhenUp` colours the change: more requests is good, more latency is not.
+ * Headline metric card. The accent colours the icon, top edge, tint and sparkline so each
+ * metric keeps one colour across the page. `goodWhenUp` colours the period change.
  */
 export function StatCard({
   label,
   value,
   sub,
   change,
+  changeUnit = '%',
   goodWhenUp = true,
+  accent,
+  spark,
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
   change?: number | null;
+  changeUnit?: '%' | 'pt';
   goodWhenUp?: boolean;
+  accent: MetricAccent;
+  spark?: number[];
 }) {
   const { t } = useTranslation();
+  const color = METRIC_ACCENTS[accent];
+  const hasChange = change !== undefined && change !== null;
   const tone =
-    change === undefined || change === null || Math.abs(change) < 0.05
+    !hasChange || Math.abs(change) < 0.05
       ? styles.changeFlat
       : change > 0 === goodWhenUp
         ? styles.changeGood
         : styles.changeBad;
+  const changeText = hasChange
+    ? `${change > 0 ? '+' : ''}${changeUnit === 'pt' ? change.toFixed(1) + ' pt' : formatPercent(change)}`
+    : '';
   return (
-    <div className={styles.statCard}>
-      <span className={styles.statLabel}>{label}</span>
-      <span className={styles.statValue}>{value}</span>
-      <span className={styles.statSub}>
-        {change !== undefined && change !== null && (
+    <div className={styles.statCard} style={{ '--accent': color } as CSSProperties}>
+      <div className={styles.statTop}>
+        <span className={styles.statLabel}>{label}</span>
+        <span className={styles.statIcon}>
+          <MetricIcon name={accent} />
+        </span>
+      </div>
+      <div className={styles.statValueRow}>
+        <span className={styles.statValue}>{value}</span>
+        {hasChange && (
           <span
             className={tone}
             title={t('usage_stats.change_hint')}
-            aria-label={t('usage_stats.change_label', {
-              value: formatPercent(change),
-            })}
+            aria-label={t('usage_stats.change_label', { value: changeText })}
           >
-            {`${change > 0 ? '+' : ''}${formatPercent(change)}`}
+            {changeText}
           </span>
         )}
-        {sub}
-      </span>
+      </div>
+      {sub && <span className={styles.statSub}>{sub}</span>}
+      {spark && (
+        <div className={styles.statSpark}>
+          <Sparkline values={spark} color={color} />
+        </div>
+      )}
     </div>
   );
 }

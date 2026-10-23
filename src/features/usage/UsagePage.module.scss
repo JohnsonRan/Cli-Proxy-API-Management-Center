@@ -83,37 +83,6 @@
   gap: 12px;
 }
 
-.statCard {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  background: var(--bg-primary);
-  min-width: 0;
-}
-
-.statLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.statValue {
-  font-family: $font-mono;
-  font-size: 24px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-.statSub {
-  font-size: 12px;
-  color: var(--text-secondary);
-  @include text-ellipsis;
-}
-
 /* ---------- Panels ---------- */
 
 .panel {
@@ -133,13 +102,6 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-}
-
-.panelTitle {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--text-primary);
 }
 
 .split {
@@ -284,27 +246,6 @@
 
 /* ---------- Summary changes ---------- */
 
-.changeGood,
-.changeBad,
-.changeFlat {
-  font-family: $font-mono;
-  font-size: 11.5px;
-  font-weight: 600;
-  margin-right: 6px;
-}
-
-.changeGood {
-  color: var(--viz-success);
-}
-
-.changeBad {
-  color: var(--viz-failure);
-}
-
-.changeFlat {
-  color: var(--text-tertiary);
-}
-
 /* ---------- Tables ---------- */
 
 .clickableRow {
@@ -314,28 +255,6 @@
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
   }
-}
-
-.share {
-  position: relative;
-  display: inline-flex;
-  justify-content: flex-end;
-  min-width: 72px;
-}
-
-.shareBar {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  height: 4px;
-  transform: translateY(-50%);
-  border-radius: 2px;
-  background: var(--primary-color);
-  opacity: 0.25;
-}
-
-.shareText {
-  position: relative;
 }
 
 .badge {
@@ -492,9 +411,244 @@
 .heatCell {
   aspect-ratio: 1;
   border-radius: 3px;
-  background: var(--viz-success);
+  background: #3b82f6;
 
   &[data-empty='true'] {
-    background: var(--bg-secondary);
+    background: var(--border-color);
+    opacity: 0.6;
   }
+}
+
+/* ---------- Headline cards ---------- */
+
+.statCard {
+  --accent: var(--primary-color);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px 16px 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%),
+    var(--bg-primary);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      var(--accent),
+      color-mix(in srgb, var(--accent) 20%, transparent)
+    );
+  }
+}
+
+.statTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.statLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.statIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.statValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statValue {
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.statSub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: 6px;
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
+
+.statSpark {
+  height: 34px;
+  margin: 2px -4px 0;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.changeGood,
+.changeBad,
+.changeFlat {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.changeGood {
+  color: var(--viz-success);
+  background: color-mix(in srgb, var(--viz-success) 14%, transparent);
+}
+
+.changeBad {
+  color: var(--viz-failure);
+  background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
+}
+
+.changeFlat {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+}
+
+/* ---------- Section headings ---------- */
+
+.panelHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.panelDesc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Ranked rows ---------- */
+
+.rankName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rank {
+  min-width: 14px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rankText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cellStrong {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.share {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 72px;
+}
+
+.shareText {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.shareTrack {
+  width: 72px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.shareBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.rateGood {
+  font-weight: 600;
+  color: var(--viz-success);
+}
+
+.rateWarn {
+  font-weight: 600;
+  color: #d97706;
+}
+
+.rateBad {
+  font-weight: 600;
+  color: var(--viz-failure);
+}
+
+.table td {
+  font-variant-numeric: tabular-nums;
 }

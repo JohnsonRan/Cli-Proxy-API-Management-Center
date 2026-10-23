@@ -11,7 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { SERIES_COLORS, baseCartesianOptions, useChartTheme } from '../charts';
+import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
+import { PanelHeading } from '../components/PanelBits';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 import { StatCard } from '../components/StatCard';
 import { USAGE_METRICS, formatCompact, formatMs, type UsageMetric } from '../format';
@@ -67,7 +68,7 @@ export function AnalysisTab({
           {
             label: t('usage_stats.metric_requests'),
             data: analysis.histogram,
-            backgroundColor: SERIES_COLORS[0],
+            backgroundColor: METRIC_ACCENTS.latency,
             borderRadius: 3,
           },
         ],
@@ -97,15 +98,25 @@ export function AnalysisTab({
   return (
     <>
       <section className={styles.cards} aria-label={t('usage_stats.latency_title')}>
-        <StatCard label={t('usage_stats.latency_p50')} value={formatMs(latency.p50)} />
-        <StatCard label={t('usage_stats.latency_p95')} value={formatMs(latency.p95)} />
         <StatCard
+          accent="latency"
+          label={t('usage_stats.latency_p50')}
+          value={formatMs(latency.p50)}
+        />
+        <StatCard
+          accent="latency"
+          label={t('usage_stats.latency_p95')}
+          value={formatMs(latency.p95)}
+        />
+        <StatCard
+          accent="latency"
           label={t('usage_stats.latency_p99')}
           value={formatMs(latency.p99)}
           sub={t('usage_stats.latency_max', { value: formatMs(latency.max) })}
         />
-        <StatCard label={t('usage_stats.ttft_p50')} value={formatMs(ttft.p50)} />
+        <StatCard accent="ttft" label={t('usage_stats.ttft_p50')} value={formatMs(ttft.p50)} />
         <StatCard
+          accent="ttft"
           label={t('usage_stats.ttft_p95')}
           value={formatMs(ttft.p95)}
           sub={t('usage_stats.samples', { count: formatCompact(latency.count) })}
@@ -115,7 +126,10 @@ export function AnalysisTab({
 
       <div className={styles.split}>
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.histogram_title')}</h2>
+          <PanelHeading
+            title={t('usage_stats.histogram_title')}
+            desc={t('usage_stats.histogram_desc')}
+          />
           <div
             className={styles.chartBoxSmall}
             role="img"
@@ -126,7 +140,10 @@ export function AnalysisTab({
         </section>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h2 className={styles.panelTitle}>{t('usage_stats.heatmap_title')}</h2>
+            <PanelHeading
+              title={t('usage_stats.heatmap_title')}
+              desc={t('usage_stats.heatmap_desc')}
+            />
             <div
               className={styles.segmented}
               role="group"
@@ -150,7 +167,10 @@ export function AnalysisTab({
       </div>
 
       <section className={styles.panel}>
-        <h2 className={styles.panelTitle}>{t('usage_stats.model_latency_title')}</h2>
+        <PanelHeading
+          title={t('usage_stats.model_latency_title')}
+          desc={t('usage_stats.latency_hint')}
+        />
         {analysis.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
@@ -181,7 +201,6 @@ export function AnalysisTab({
             </TableBody>
           </Table>
         )}
-        <p className={styles.muted}>{t('usage_stats.latency_hint')}</p>
       </section>
     </>
   );
