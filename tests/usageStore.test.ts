@@ -469,3 +469,21 @@ describe('usage realtime', () => {
     expect(mergeRealtimeFeed(feed, []).added).toEqual([]);
   });
 });
+
+describe('usage event cells', () => {
+  test('derives the downstream transport and cache hit rate', async () => {
+    const { eventTransport, eventCacheHitRate, DEFAULT_EVENT_COLUMNS, EVENT_COLUMNS } =
+      await import('@/features/usage/logic');
+    expect(eventTransport('GET /v1/responses', true)).toBe('ws');
+    expect(eventTransport('get /v1/realtime', false)).toBe('ws');
+    expect(eventTransport('POST /v1/chat/completions', true)).toBe('sse');
+    expect(eventTransport('POST /v1/chat/completions', false)).toBe('http');
+    expect(eventTransport('', false)).toBe('http');
+    expect(eventCacheHitRate({ inputUncached: 25, cacheRead: 75, cacheWrite: 0 })).toBe(75);
+    expect(eventCacheHitRate({ inputUncached: 0, cacheRead: 0, cacheWrite: 0 })).toBeNull();
+    expect(EVENT_COLUMNS).not.toContain('tier');
+    expect(
+      DEFAULT_EVENT_COLUMNS.every((c) => (EVENT_COLUMNS as readonly string[]).includes(c))
+    ).toBe(true);
+  });
+});

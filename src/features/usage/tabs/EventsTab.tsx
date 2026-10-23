@@ -24,7 +24,13 @@ import { useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
 import { METRIC_ACCENTS } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
-import { ProviderBadge } from '../components/Labels';
+import {
+  EventLatencyCell,
+  EventModelCell,
+  EventRouteCell,
+  EventStatusCell,
+  EventTokensCell,
+} from '../components/EventCells';
 import { PanelHeading, Rate } from '../components/PanelBits';
 import { formatCompact, formatCost, formatMs, successRate } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
@@ -39,7 +45,7 @@ import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
 
 const PAGE_SIZE = 50;
-const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v3';
+const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v4';
 const NUMERIC_COLUMNS = new Set<EventColumn>(['tokens', 'latency', 'cost']);
 
 interface EventsTabProps {
@@ -241,150 +247,31 @@ export function EventsTab({
       case 'status':
         return (
           <TableCell>
-            <div className={styles.statusCell}>
-              <button
-                type="button"
-                className={styles.filterTagBtn}
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onResultFilterChange(e.failed ? 'failed' : 'success');
-                }}
-                title={t('usage_stats.filter_by_this', {
-                  name: e.failed ? t('usage_stats.result_failed') : t('usage_stats.result_success'),
-                })}
-              >
-                <span className={e.failed ? styles.pillFailed : styles.pillOk}>
-                  {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
-                </span>
-              </button>
-              {e.endpoint && (
-                <span className={styles.endpointSub} title={e.endpoint}>
-                  {e.endpoint}
-                </span>
-              )}
-            </div>
+            <EventStatusCell event={e} onResult={onResultFilterChange} />
           </TableCell>
         );
       case 'model':
         return (
           <TableCell>
-            <span className={styles.rankText}>
-              <span className={`${styles.cellStrong} ${styles.mono}`}>
-                <button
-                  type="button"
-                  className={styles.filterTagBtn}
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    onAddFilter('model', e.model);
-                  }}
-                  title={t('usage_stats.filter_by_this', { name: e.model })}
-                >
-                  {e.substituted ? (
-                    <>
-                      <span>{e.model}</span>
-                      <span className={styles.subArrow}>→</span>
-                      <span>{e.responseModel}</span>
-                      <span
-                        className={styles.substitutedBadge}
-                        title={t('usage_stats.substituted_hint')}
-                      >
-                        {t('usage_stats.substituted_tag')}
-                      </span>
-                    </>
-                  ) : (
-                    e.model
-                  )}
-                </button>
-                {e.stream && <span className={styles.badge}>{t('usage_stats.stream')}</span>}
-              </span>
-              <span className={styles.cellSub}>
-                <button
-                  type="button"
-                  className={styles.filterTagBtn}
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    onAddFilter('provider', e.provider);
-                  }}
-                  title={t('usage_stats.filter_by_this', { name: e.provider })}
-                >
-                  <ProviderBadge provider={e.provider} />
-                </button>
-                {e.reasoningEffort && (
-                  <span className={styles.badge} title={t('usage_stats.detail_tier')}>
-                    {e.reasoningEffort}
-                  </span>
-                )}
-              </span>
-            </span>
+            <EventModelCell event={e} onAdd={onAddFilter} />
           </TableCell>
         );
       case 'route':
         return (
           <TableCell>
-            <span className={styles.rankText}>
-              <span className={styles.cellMain}>
-                <button
-                  type="button"
-                  className={styles.filterTagBtn}
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    if (e.authIndex) onAddFilter('auth_index', e.authIndex);
-                  }}
-                  title={t('usage_stats.filter_by_this', {
-                    name: labels.credential(e.authIndex, e.source),
-                  })}
-                >
-                  {labels.credential(e.authIndex, e.source)}
-                </button>
-              </span>
-              <span className={styles.cellSub}>
-                <button
-                  type="button"
-                  className={styles.filterTagBtn}
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    if (e.apiKeyId) onAddFilter('api_key_id', e.apiKeyId);
-                  }}
-                  title={t('usage_stats.filter_by_this', {
-                    name: labels.keyName(e.apiKeyId) || e.apiKey,
-                  })}
-                >
-                  <KeyLabelInline name={labels.keyName(e.apiKeyId)} masked={e.apiKey} />
-                </button>
-              </span>
-            </span>
+            <EventRouteCell event={e} labels={labels} onAdd={onAddFilter} />
           </TableCell>
         );
-      case 'tokens': {
-        const input = e.tokens.inputUncached + e.tokens.cacheRead + e.tokens.cacheWrite;
+      case 'tokens':
         return (
           <TableCell alignRight>
-            <span className={styles.rankText}>
-              <span className={styles.cellStrong}>
-                {formatCompact(input)} → {formatCompact(e.tokens.output)}
-              </span>
-              <span className={styles.cellSub}>
-                {t('usage_stats.tokens_cached', { value: formatCompact(e.tokens.cacheRead) })}
-              </span>
-            </span>
+            <EventTokensCell event={e} />
           </TableCell>
         );
-      }
       case 'latency':
         return (
           <TableCell alignRight>
-            <span className={styles.rankText}>
-              <span
-                className={
-                  slowAfterMs > 0 && e.latencyMs > slowAfterMs
-                    ? styles.slowValue
-                    : styles.cellStrong
-                }
-              >
-                {formatMs(e.latencyMs)}
-              </span>
-              <span className={styles.cellSub}>TTFT {formatMs(e.ttftMs)}</span>
-            </span>
+            <EventLatencyCell event={e} slowAfterMs={slowAfterMs} />
           </TableCell>
         );
       case 'cost':
@@ -397,10 +284,19 @@ export function EventsTab({
             )}
           </TableCell>
         );
-      case 'tier':
-        return <TableCell>{e.serviceTier || '—'}</TableCell>;
       case 'client':
-        return <TableCell>{e.clientIp}</TableCell>;
+        return (
+          <TableCell>
+            <span className={styles.rankText}>
+              <span className={styles.mono}>{e.clientIp || '—'}</span>
+              {e.userAgent && (
+                <span className={styles.endpointSub} title={e.userAgent}>
+                  {e.userAgent}
+                </span>
+              )}
+            </span>
+          </TableCell>
+        );
     }
   };
 
@@ -530,18 +426,5 @@ export function EventsTab({
       </div>
       <EventDetailModal event={selected} labels={labels} onClose={() => setSelected(null)} />
     </section>
-  );
-}
-
-/** Key note name and masked key on one line for the compact route cell. */
-function KeyLabelInline({ name, masked }: { name: string | null; masked: string }) {
-  const { t } = useTranslation();
-  const maskedText = masked || t('usage_stats.none');
-  return name ? (
-    <>
-      {name} <span className={styles.mono}>· {maskedText}</span>
-    </>
-  ) : (
-    <span className={styles.mono}>{maskedText}</span>
   );
 }
