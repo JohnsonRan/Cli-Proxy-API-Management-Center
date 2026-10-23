@@ -242,6 +242,18 @@ export function UsagePage() {
     [selectTab]
   );
 
+  const handleDrillDown = useCallback(
+    (from: number, to: number) => {
+      const end = Math.min(to, Math.floor(Date.now() / 1000));
+      setGlobalFilter((prev) => ({ ...prev, range: 'custom', customFrom: from, customTo: end }));
+      setCustomFromInput(formatDatetimeLocal(from));
+      setCustomToInput(formatDatetimeLocal(end));
+      setCustomRangeError(null);
+      selectTab('events');
+    },
+    [selectTab]
+  );
+
   const handleCustomDateChange = useCallback(
     (newFrom: string, newTo: string) => {
       setCustomFromInput(newFrom);
@@ -412,6 +424,18 @@ export function UsagePage() {
                   cost: formatCost(totals.cost),
                 })
               : t('usage_stats.subtitle')}
+            {stats && (
+              <span
+                className={stats.exact ? styles.precisionExact : styles.precisionHourly}
+                title={t(
+                  stats.exact
+                    ? 'usage_stats.precision_exact_hint'
+                    : 'usage_stats.precision_hourly_hint'
+                )}
+              >
+                {t(stats.exact ? 'usage_stats.precision_exact' : 'usage_stats.precision_hourly')}
+              </span>
+            )}
           </p>
         </div>
       </header>
@@ -586,6 +610,7 @@ export function UsagePage() {
               prevStats={prevStats}
               labels={labels}
               onOpenEvents={handleOpenEventsFromOverview}
+              onDrillDown={handleDrillDown}
             />
           )}
           {tab === 'realtime' && <RealtimeTab dimensionFilter={dimensionFilter} labels={labels} />}

@@ -487,3 +487,53 @@ describe('usage event cells', () => {
     ).toBe(true);
   });
 });
+
+describe('usage precision, transport and cells', () => {
+  test('normalizes stats precision, recorded transport and in-flight', async () => {
+    const { normalizeUsageStats, normalizeUsageEvents, normalizeUsageRealtime } =
+      await import('@/services/api/usageStore');
+    const stats = normalizeUsageStats({ exact: true, partial: true });
+    expect([stats.exact, stats.partial]).toEqual([true, true]);
+    expect(normalizeUsageStats({}).exact).toBe(false);
+    expect(normalizeUsageEvents({ events: [{ id: 1, transport: 'ws' }] }).events[0].transport).toBe(
+      'ws'
+    );
+    expect(normalizeUsageRealtime({ in_flight: 3 }).inFlight).toBe(3);
+  });
+
+  test('prefers the recorded transport over the endpoint inference', async () => {
+    const { eventTransport } = await import('@/features/usage/logic');
+    expect(eventTransport('POST /v1/responses', false, 'ws')).toBe('ws');
+    expect(eventTransport('GET /v1/responses', false, 'http')).toBe('http');
+    expect(eventTransport('GET /v1/responses', false, 'bogus')).toBe('ws');
+  });
+
+  test('dense cells put the key figure first and details below', async () => {
+    const { EventStatusCell, EventTokensCell } =
+      await import('@/features/usage/components/EventCells');
+    const event = normalizeUsageEvents({
+      events: [
+        {
+          id: 1,
+          endpoint: 'POST /v1/chat/completions',
+          stream: true,
+          status_code: 200,
+          tokens: {
+            input_uncached: 250,
+            cache_read: 750,
+            cache_write: 0,
+            output: 300,
+            reasoning: 80,
+          },
+        },
+      ],
+    }).events[0];
+    const status = renderToStaticMarkup(createElement(EventStatusCell, { event }));
+    expect(status).toContain('SSE');
+    expect(status).toContain('POST /v1/chat/completions');
+    const tokens = renderToStaticMarkup(createElement(EventTokensCell, { event }));
+    expect(tokens).toContain('1K → 300');
+    expect(tokens).toContain('75%');
+    expect(tokens).toContain('80');
+  });
+});

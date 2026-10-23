@@ -276,6 +276,12 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
         <>
           <section className={styles.cards} aria-label={t('usage_stats.realtime_title')}>
             <StatCard
+              accent="cache"
+              label={t('usage_stats.realtime_in_flight')}
+              value={formatCompact(data.inFlight)}
+              sub={t('usage_stats.realtime_in_flight_sub')}
+            />
+            <StatCard
               accent="requests"
               label={t('usage_stats.realtime_rpm')}
               value={formatCompact(data.current.rpm1m)}

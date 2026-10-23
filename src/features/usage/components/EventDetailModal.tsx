@@ -7,6 +7,7 @@ import { useNotificationStore } from '@/stores';
 import { formatCompact, formatCost, formatMs } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import { ProviderBadge } from './Labels';
+import { RequestLogSection } from './RequestLogSection';
 import { eventTransport } from '../logic';
 import styles from '../UsagePage.module.scss';
 
@@ -71,7 +72,9 @@ export function EventDetailModal({
     ],
     [
       t('usage_stats.detail_transport'),
-      t(`usage_stats.transport_${eventTransport(event.endpoint, event.stream)}_hint`),
+      t(
+        `usage_stats.transport_${eventTransport(event.endpoint, event.stream, event.transport)}_hint`
+      ),
     ],
     [t('usage_stats.col_latency'), `${formatMs(event.latencyMs)} · TTFT ${formatMs(event.ttftMs)}`],
     [
@@ -133,6 +136,7 @@ export function EventDetailModal({
           <pre>{event.error}</pre>
         </div>
       )}
+      <RequestLogSection key={event.id} requestId={event.requestId} />
     </Modal>
   );
 }

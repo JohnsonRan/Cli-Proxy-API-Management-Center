@@ -55,6 +55,10 @@ export interface UsageStats {
   from: number;
   to: number;
   bucket: 'hour' | 'day';
+  /** True when computed from per-request events (exact edges, long-context prices). */
+  exact: boolean;
+  /** True when a result filter needed events but part of the range is past retention. */
+  partial: boolean;
   totals: UsageAggregate;
   series: UsageSeriesPoint[];
   models: UsageModelStat[];
@@ -86,6 +90,8 @@ export interface UsageEvent {
   cost: number;
   priced: boolean;
   clientIp: string;
+  /** Recorded downstream transport ('' for rows stored before it was recorded). */
+  transport: string;
   userAgent: string;
   responseModel: string;
   substituted: boolean;
@@ -134,6 +140,12 @@ export interface UsageDimensionFilter {
   provider?: string[];
   apiKeyId?: string[];
   authIndex?: string[];
+}
+
+/** Stats filters: the dimensions plus the request result (events-backed on the server). */
+export interface UsageStatsFilter extends UsageDimensionFilter {
+  failed?: boolean;
+  substituted?: boolean;
 }
 
 export interface UsagePrice {
@@ -241,6 +253,8 @@ export const normalizeUsageStats = (data: unknown): UsageStats => {
     from: num(d.from),
     to: num(d.to),
     bucket: d.bucket === 'day' ? 'day' : 'hour',
+    exact: d.exact === true,
+    partial: d.partial === true,
     totals: normalizeAggregate(d.totals),
     series: list(d.series).map((p) => ({ ...normalizeAggregate(p), time: num(p.time) })),
     models: list(d.models).map((m) => ({
@@ -293,6 +307,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       cost: num(e.cost),
       priced: e.priced === true,
       clientIp: str(e.client_ip),
+      transport: str(e.transport),
       userAgent: str(e.user_agent),
       responseModel: str(e.response_model),
       substituted: e.substituted === true,
@@ -448,6 +463,8 @@ export interface UsageRealtimePoint {
 export interface UsageRealtime {
   now: number;
   lastId: number;
+  /** Model calls and WebSocket sessions running right now, across all filters. */
+  inFlight: number;
   current: {
     rpm1m: number;
     tpm1m: number;
@@ -465,6 +482,7 @@ export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
   return {
     now: num(d.now),
     lastId: num(d.last_id),
+    inFlight: num(d.in_flight),
     current: {
       rpm1m: num(c.rpm_1m),
       tpm1m: num(c.tpm_1m),
@@ -496,7 +514,7 @@ export const usageStoreApi = {
     from: number,
     to: number,
     tzOffsetMinutes: number,
-    filter: UsageDimensionFilter = {}
+    filter: UsageStatsFilter = {}
   ) =>
     normalizeUsageStats(
       await apiClient.get('/observability/usage/stats', {
@@ -508,6 +526,8 @@ export const usageStoreApi = {
           provider: filter.provider,
           api_key_id: filter.apiKeyId,
           auth_index: filter.authIndex,
+          failed: filter.failed,
+          substituted: filter.substituted,
         }),
       })
     ),

@@ -323,10 +323,15 @@ export type EventDimension = 'model' | 'provider' | 'api_key_id' | 'auth_index';
 export type EventTransport = 'ws' | 'sse' | 'http';
 
 /**
- * Downstream transport of a request. Model-call routes are POST over HTTP; the WebSocket
- * routes (/v1/responses, /v1/realtime, ...) are GET upgrades, so a GET endpoint means WebSocket.
+ * Downstream transport of a request: the value the core recorded, or for older rows an
+ * inference (model-call routes are POST; WebSocket routes are GET upgrades).
  */
-export const eventTransport = (endpoint: string, stream: boolean): EventTransport => {
+export const eventTransport = (
+  endpoint: string,
+  stream: boolean,
+  recorded = ''
+): EventTransport => {
+  if (recorded === 'ws' || recorded === 'sse' || recorded === 'http') return recorded;
   if (endpoint.trim().toUpperCase().startsWith('GET ')) return 'ws';
   return stream ? 'sse' : 'http';
 };
