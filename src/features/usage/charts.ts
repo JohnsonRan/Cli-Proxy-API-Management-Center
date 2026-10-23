@@ -26,6 +26,21 @@ Chart.register(
   Tooltip
 );
 
+/** Accent colour of each headline metric, shared by its card, sparkline and charts. */
+export const METRIC_ACCENTS = {
+  requests: '#3b82f6',
+  success: '#22c55e',
+  tokens: '#8b5cf6',
+  cost: '#f59e0b',
+  cache: '#14b8a6',
+  latency: '#f97316',
+  ttft: '#06b6d4',
+} as const;
+export type MetricAccent = keyof typeof METRIC_ACCENTS;
+
+/** Stable colour for the i-th entry of a ranked list. */
+export const rankColor = (index: number) => SERIES_COLORS[index % SERIES_COLORS.length];
+
 /** Categorical series colours that read on both light and dark themes. */
 export const SERIES_COLORS = [
   '#6366f1',

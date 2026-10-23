@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/Table';
 import { useNotificationStore } from '@/stores';
 import { PRICE_FIELDS, emptyRow, parseDraftRows, toDraft, type DraftRow } from '../logic';
+import { PanelHeading } from '../components/PanelBits';
 import styles from '../UsagePage.module.scss';
 
 export function PricingTab({
@@ -111,10 +112,10 @@ export function PricingTab({
     <>
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
-          <div>
-            <h2 className={styles.panelTitle}>{t('usage_stats.overrides_title')}</h2>
-            <p className={styles.muted}>{t('usage_stats.overrides_hint')}</p>
-          </div>
+          <PanelHeading
+            title={t('usage_stats.overrides_title')}
+            desc={t('usage_stats.overrides_hint')}
+          />
           <div className={styles.toolbarActions}>
             <Button variant="secondary" size="sm" onClick={() => addRow()} disabled={rows === null}>
               {t('usage_stats.override_add')}
@@ -200,7 +201,7 @@ export function PricingTab({
         <div className={styles.panelHeader}>
           <div>
             <h2 className={styles.panelTitle}>{t('usage_stats.pricing_title')}</h2>
-            <p className={styles.muted}>
+            <p className={styles.panelDesc}>
               {!md.enabled
                 ? t('usage_stats.pricing_models_dev_off')
                 : md.updatedAt

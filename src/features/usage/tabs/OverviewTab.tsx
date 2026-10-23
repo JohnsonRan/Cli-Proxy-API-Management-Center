@@ -10,7 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { SERIES_COLORS, baseCartesianOptions, useChartTheme } from '../charts';
+import {
+  METRIC_ACCENTS,
+  SERIES_COLORS,
+  baseCartesianOptions,
+  rankColor,
+  useChartTheme,
+} from '../charts';
+import { PanelHeading, Rate } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import {
   USAGE_METRICS,
@@ -35,13 +42,43 @@ interface OverviewTabProps {
   onOpenEvents: (filter: EventsFilter) => void;
 }
 
-/** Share bar shown behind a row's request count. */
-function Share({ value, total }: { value: number; total: number }) {
+/** Request count with a share bar in the row's colour. */
+function Share({ value, total, color }: { value: number; total: number; color: string }) {
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <span className={styles.share}>
-      <span className={styles.shareBar} style={{ width: `${pct}%` }} />
       <span className={styles.shareText}>{formatCompact(value)}</span>
+      <span className={styles.shareTrack}>
+        <span className={styles.shareBar} style={{ width: `${pct}%`, background: color }} />
+      </span>
+    </span>
+  );
+}
+
+/** Leading cell of a ranked row: rank, colour dot, name and optional caption. */
+function RankName({
+  rank,
+  color,
+  name,
+  sub,
+  mono,
+}: {
+  rank: number;
+  color: string;
+  name: string;
+  sub?: string;
+  mono?: boolean;
+}) {
+  return (
+    <span className={styles.rankName}>
+      <span className={styles.rank}>{rank}</span>
+      <span className={styles.dot} style={{ background: color }} />
+      <span className={styles.rankText}>
+        <span className={mono ? `${styles.cellStrong} ${styles.mono}` : styles.cellStrong}>
+          {name}
+        </span>
+        {sub && <span className={styles.cellSub}>{sub}</span>}
+      </span>
     </span>
   );
 }
@@ -126,8 +163,8 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
           {
             label: t('usage_stats.metric_cost'),
             data: stats.series.map((p) => p.cost),
-            borderColor: SERIES_COLORS[0],
-            backgroundColor: `${SERIES_COLORS[0]}33`,
+            borderColor: METRIC_ACCENTS.cost,
+            backgroundColor: `${METRIC_ACCENTS.cost}33`,
             fill: true,
             tension: 0.3,
             pointRadius: 0,
@@ -173,14 +210,17 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
   }, [t, theme, totals]);
 
   const modelCost = useMemo(() => {
-    const top = stats.models.filter((m) => m.cost > 0).slice(0, 8);
+    const top = stats.models
+      .map((m, index) => ({ ...m, color: rankColor(index) }))
+      .filter((m) => m.cost > 0)
+      .slice(0, 8);
     return {
       data: {
         labels: top.map((m) => m.model),
         datasets: [
           {
             data: top.map((m) => m.cost),
-            backgroundColor: SERIES_COLORS.slice(0, top.length),
+            backgroundColor: top.map((m) => m.color),
             borderColor: theme.surface,
             borderWidth: 2,
           },
@@ -212,7 +252,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
     a.unpricedRequests >= a.requests && a.requests > 0 ? (
       <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
     ) : (
-      formatCost(a.cost)
+      <span className={styles.cellStrong}>{formatCost(a.cost)}</span>
     );
 
   const rowProps = (filter: EventsFilter, label: string) => ({
@@ -233,31 +273,46 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
     <>
       <section className={styles.cards} aria-label={t('usage_stats.summary_label')}>
         <StatCard
+          accent="requests"
           label={t('usage_stats.card_requests')}
           value={formatCompact(totals.requests)}
           change={prev ? changePercent(totals.requests, prev.requests) : undefined}
-          sub={t('usage_stats.card_failed', { count: totals.failed })}
+          spark={stats.series.map((p) => p.requests)}
+          sub={
+            <>
+              <span className={styles.legendDot} style={{ background: theme.success }} />
+              {t('usage_stats.card_succeeded', { count: totals.requests - totals.failed })}
+              <span className={styles.legendDot} style={{ background: theme.failure }} />
+              {t('usage_stats.card_failed', { count: totals.failed })}
+            </>
+          }
         />
         <StatCard
+          accent="success"
           label={t('usage_stats.card_success_rate')}
           value={formatPercent(rate)}
           change={rate !== null && prevRate !== null ? rate - prevRate : undefined}
-          sub={rate !== null && prevRate !== null ? t('usage_stats.change_points') : undefined}
+          changeUnit="pt"
+          spark={stats.series.map((p) => successRate(p) ?? 0)}
         />
         <StatCard
+          accent="tokens"
           label={t('usage_stats.card_tokens')}
           value={formatCompact(totals.tokens.total)}
           change={prev ? changePercent(totals.tokens.total, prev.tokens.total) : undefined}
+          spark={stats.series.map((p) => p.tokens.total)}
           sub={t('usage_stats.card_tokens_sub', {
             input: formatCompact(inputTokens(totals)),
             output: formatCompact(totals.tokens.output),
           })}
         />
         <StatCard
+          accent="cost"
           label={t('usage_stats.card_cost')}
           value={formatCost(totals.cost)}
           change={prev ? changePercent(totals.cost, prev.cost) : undefined}
           goodWhenUp={false}
+          spark={stats.series.map((p) => p.cost)}
           sub={
             totals.unpricedRequests > 0
               ? t('usage_stats.card_unpriced', { count: totals.unpricedRequests })
@@ -265,13 +320,16 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
           }
         />
         <StatCard
+          accent="cache"
           label={t('usage_stats.card_cache_hit')}
           value={formatPercent(cacheHitRate(totals))}
+          spark={stats.series.map((p) => cacheHitRate(p) ?? 0)}
           sub={t('usage_stats.card_cache_hit_sub', {
             cached: formatCompact(totals.tokens.cacheRead),
           })}
         />
         <StatCard
+          accent="latency"
           label={t('usage_stats.card_latency')}
           value={formatMs(totals.avgLatencyMs)}
           change={
@@ -280,13 +338,14 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
               : undefined
           }
           goodWhenUp={false}
+          spark={stats.series.map((p) => p.avgLatencyMs)}
           sub={t('usage_stats.card_ttft', { value: formatMs(totals.avgTtftMs) })}
         />
       </section>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.trend_title')}</h2>
+          <PanelHeading title={t('usage_stats.trend_title')} desc={t('usage_stats.trend_desc')} />
           <div className={styles.segmented} role="group" aria-label={t('usage_stats.metric_label')}>
             {USAGE_METRICS.map((value) => (
               <button
@@ -316,7 +375,10 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
 
       <div className={styles.split}>
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.composition_title')}</h2>
+          <PanelHeading
+            title={t('usage_stats.composition_title')}
+            desc={t('usage_stats.composition_desc')}
+          />
           <div
             className={styles.chartBoxSmall}
             role="img"
@@ -330,7 +392,10 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
           </div>
         </section>
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.cost_by_model_title')}</h2>
+          <PanelHeading
+            title={t('usage_stats.cost_by_model_title')}
+            desc={t('usage_stats.cost_by_model_desc')}
+          />
           <div
             className={styles.chartBoxSmall}
             role="img"
@@ -346,7 +411,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
       </div>
 
       <section className={styles.panel}>
-        <h2 className={styles.panelTitle}>{t('usage_stats.models_title')}</h2>
+        <PanelHeading title={t('usage_stats.models_title')} desc={t('usage_stats.models_desc')} />
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
@@ -354,7 +419,6 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
             <TableHeader>
               <TableRow>
                 <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead>{t('usage_stats.col_provider')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_requests')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_success_rate')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_input')}</TableHead>
@@ -365,17 +429,26 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stats.models.map((m) => (
+              {stats.models.map((m, index) => (
                 <TableRow
                   key={`${m.provider}:${m.model}`}
                   {...rowProps({ model: m.model, provider: m.provider }, m.model)}
                 >
-                  <TableCell className={styles.mono}>{m.model}</TableCell>
-                  <TableCell>{m.provider}</TableCell>
-                  <TableCell alignRight>
-                    <Share value={m.requests} total={totals.requests} />
+                  <TableCell>
+                    <RankName
+                      rank={index + 1}
+                      color={rankColor(index)}
+                      name={m.model}
+                      sub={m.provider}
+                      mono
+                    />
                   </TableCell>
-                  <TableCell alignRight>{formatPercent(successRate(m))}</TableCell>
+                  <TableCell alignRight>
+                    <Share value={m.requests} total={totals.requests} color={rankColor(index)} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Rate value={successRate(m)} />
+                  </TableCell>
                   <TableCell alignRight>{formatCompact(inputTokens(m))}</TableCell>
                   <TableCell alignRight>{formatCompact(m.tokens.cacheRead)}</TableCell>
                   <TableCell alignRight>{formatCompact(m.tokens.output)}</TableCell>
@@ -390,7 +463,7 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
 
       <div className={styles.split}>
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.keys_title')}</h2>
+          <PanelHeading title={t('usage_stats.keys_title')} desc={t('usage_stats.keys_desc')} />
           {stats.apiKeys.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
@@ -404,16 +477,21 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.apiKeys.map((k) => (
+                {stats.apiKeys.map((k, index) => (
                   <TableRow
                     key={k.apiKeyId || 'none'}
                     {...rowProps({ api_key_id: k.apiKeyId }, k.apiKey || t('usage_stats.none'))}
                   >
-                    <TableCell className={styles.mono}>
-                      {k.apiKey || t('usage_stats.none')}
+                    <TableCell>
+                      <RankName
+                        rank={index + 1}
+                        color={rankColor(index)}
+                        name={k.apiKey || t('usage_stats.none')}
+                        mono
+                      />
                     </TableCell>
                     <TableCell alignRight>
-                      <Share value={k.requests} total={totals.requests} />
+                      <Share value={k.requests} total={totals.requests} color={rankColor(index)} />
                     </TableCell>
                     <TableCell alignRight>{formatCompact(k.tokens.total)}</TableCell>
                     <TableCell alignRight>{costCell(k)}</TableCell>
@@ -425,7 +503,10 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
         </section>
 
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('usage_stats.credentials_title')}</h2>
+          <PanelHeading
+            title={t('usage_stats.credentials_title')}
+            desc={t('usage_stats.credentials_desc')}
+          />
           {stats.credentials.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
@@ -439,19 +520,25 @@ export function OverviewTab({ stats, prevStats, credentialLabel, onOpenEvents }:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.credentials.map((c) => (
+                {stats.credentials.map((c, index) => (
                   <TableRow
                     key={c.authIndex || 'none'}
                     {...rowProps({ auth_index: c.authIndex }, credentialLabel(c.authIndex))}
                   >
                     <TableCell>
-                      <span className={styles.cellMain}>{credentialLabel(c.authIndex)}</span>
-                      <span className={styles.cellSub}>{c.provider}</span>
+                      <RankName
+                        rank={index + 1}
+                        color={rankColor(index)}
+                        name={credentialLabel(c.authIndex)}
+                        sub={c.provider}
+                      />
                     </TableCell>
                     <TableCell alignRight>
-                      <Share value={c.requests} total={totals.requests} />
+                      <Share value={c.requests} total={totals.requests} color={rankColor(index)} />
                     </TableCell>
-                    <TableCell alignRight>{formatPercent(successRate(c))}</TableCell>
+                    <TableCell alignRight>
+                      <Rate value={successRate(c)} />
+                    </TableCell>
                     <TableCell alignRight>{costCell(c)}</TableCell>
                   </TableRow>
                 ))}
