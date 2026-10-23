@@ -9,14 +9,28 @@ import {
   normalizeUsageStats,
 } from '@/services/api/usageStore';
 import {
-  barFractions,
+  cacheHitRate,
+  changePercent,
   formatCompact,
   formatCost,
   formatMs,
+  previousWindow,
   rangeWindow,
   successRate,
 } from '@/features/usage/format';
-import { UsageChart } from '@/features/usage/UsageChart';
+import {
+  DEFAULT_EVENT_COLUMNS,
+  histogramLabels,
+  parseDraftRows,
+  readEventColumns,
+  toEventsQuery,
+} from '@/features/usage/logic';
+import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
+import {
+  normalizePriceOverrides,
+  normalizeUsageAnalysis,
+  serializePriceOverrides,
+} from '@/services/api/usageStore';
 
 const aggregate = (requests: number, failed: number, cost: number) => ({
   requests,
@@ -102,36 +116,93 @@ describe('usage formatting', () => {
     expect(formatMs(1500)).toBe('1.50 s');
   });
 
-  test('computes rates, windows and bar heights', () => {
+  test('computes rates, windows and period changes', () => {
     expect(successRate({ requests: 0, failed: 0 })).toBeNull();
     expect(successRate({ requests: 4, failed: 1 })).toBe(75);
     const window = rangeWindow('7d', 1_700_000_000_000);
     expect(window.to - window.from).toBe(7 * 86400);
     expect(window.tzOffset).toBe(-new Date(1_700_000_000_000).getTimezoneOffset());
+    expect(previousWindow({ from: 100, to: 160 })).toEqual({ from: 40, to: 100 });
+    expect(changePercent(150, 100)).toBe(50);
+    expect(changePercent(5, 0)).toBeNull();
+    const totals = normalizeUsageStats({ totals: aggregate(1, 0, 0) }).totals;
+    expect(cacheHitRate(totals)).toBe(40);
+  });
+});
 
-    const series = normalizeUsageStats({
-      series: [
-        { time: 0, ...aggregate(2, 0, 1) },
-        { time: 3600, ...aggregate(4, 2, 0) },
-      ],
-    }).series;
-    expect(barFractions(series, 'requests')).toEqual([0.5, 1]);
-    expect(barFractions(series, 'cost')).toEqual([1, 0]);
-    expect(barFractions([], 'tokens')).toEqual([]);
+describe('usage analysis and pricing helpers', () => {
+  test('normalizes analysis and labels histogram buckets', () => {
+    const analysis = normalizeUsageAnalysis({
+      latency: { count: 3, p50: 900, p95: 4000 },
+      histogram: [1, 2, 0],
+      histogram_bounds_ms: [500, 1000],
+      heatmap: [{ weekday: 1, hour: 7, requests: 5 }],
+      models: 'junk',
+    });
+    expect(analysis.latency).toEqual({ count: 3, p50: 900, p90: 0, p95: 4000, p99: 0, max: 0 });
+    expect(analysis.models).toEqual([]);
+    expect(histogramLabels(analysis.histogramBoundsMs)).toEqual(['≤0.5s', '0.5s–1s', '>1s']);
   });
 
-  test('chart renders one bar per bucket with an accessible label', () => {
-    const series = normalizeUsageStats({
-      series: [
-        { time: 0, ...aggregate(2, 0, 1) },
-        { time: 3600, ...aggregate(4, 2, 0) },
-      ],
-    }).series;
+  test('round-trips overrides and keeps unset cache prices unset', () => {
+    const overrides = normalizePriceOverrides([
+      { model: ' gpt-5 ', input: 1.25, output: 10, 'cache-read': 0 },
+      { model: '', input: 1 },
+      'junk',
+    ]);
+    expect(overrides).toEqual([
+      { model: 'gpt-5', input: 1.25, output: 10, cacheRead: 0, cacheWrite: undefined },
+    ]);
+    expect(serializePriceOverrides(overrides)).toEqual([
+      { model: 'gpt-5', input: 1.25, output: 10, 'cache-read': 0 },
+    ]);
+  });
+
+  test('validates draft price rows', () => {
+    const row = (model: string, input: string, output = '1', cacheRead = '', cacheWrite = '') => ({
+      model,
+      input,
+      output,
+      cacheRead,
+      cacheWrite,
+    });
+    expect(parseDraftRows([row('a', '1', '2', '0.1'), row('', '', '', '', '')])).toEqual({
+      overrides: [{ model: 'a', input: 1, output: 2, cacheRead: 0.1, cacheWrite: undefined }],
+    });
+    expect(parseDraftRows([row('a', '1'), row('A', '2')])).toEqual({ invalidRow: 1 });
+    expect(parseDraftRows([row('a', '-1')])).toEqual({ invalidRow: 0 });
+    expect(parseDraftRows([row('a', '')])).toEqual({ invalidRow: 0 });
+    expect(parseDraftRows([row('', '1')])).toEqual({ invalidRow: 0 });
+  });
+
+  test('reads stored event columns and builds event queries', () => {
+    expect(readEventColumns(null)).toEqual(DEFAULT_EVENT_COLUMNS);
+    expect(readEventColumns('{bad')).toEqual(DEFAULT_EVENT_COLUMNS);
+    expect(readEventColumns('["cost","bogus","time"]')).toEqual(['time', 'cost']);
+    const window = { from: 10, to: 20, tzOffset: 0 };
+    expect(toEventsQuery(window, { model: 'm', result: 'failed' })).toMatchObject({
+      from: 10,
+      to: 20,
+      model: 'm',
+      failed: true,
+    });
+    expect(toEventsQuery(window, { result: 'success' }).failed).toBe(false);
+    expect(toEventsQuery(window, {}).failed).toBeUndefined();
+  });
+
+  test('heatmap renders a 7x24 grid scaled to the busiest cell', () => {
     const markup = renderToStaticMarkup(
-      createElement(UsageChart, { series, bucket: 'hour', metric: 'requests' })
+      createElement(ActivityHeatmap, {
+        cells: [
+          { weekday: 1, hour: 7, requests: 10, tokens: 0, failed: 1, cost: 0 },
+          { weekday: 2, hour: 8, requests: 5, tokens: 0, failed: 0, cost: 0 },
+        ],
+        metric: 'requests',
+      })
     );
-    expect(markup).toContain('role="img"');
-    expect(markup.match(/<title>/g)).toHaveLength(2);
-    expect(markup).toContain('aria-label=');
+    expect(markup.match(/role="cell"/g)).toHaveLength(7 * 24);
+    expect(markup).toContain('opacity:1');
+    expect(markup).toContain('opacity:0.575');
+    expect(markup.match(/data-empty="true"/g)).toHaveLength(7 * 24 - 2);
   });
 });

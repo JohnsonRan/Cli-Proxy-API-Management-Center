@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { getConfigValue } from './configValue';
 import { isRecord } from '@/utils/helpers';
 
 export const USAGE_STORE_DISABLED = 'usage_store_disabled';
@@ -81,6 +82,8 @@ export interface UsageEvent {
   tokens: UsageTokens;
   cost: number;
   priced: boolean;
+  clientIp: string;
+  userAgent: string;
 }
 
 export interface UsageEventsPage {
@@ -109,9 +112,50 @@ export interface UsagePricing {
 export interface UsageEventsQuery {
   from?: number;
   to?: number;
+  model?: string;
+  provider?: string;
+  apiKeyId?: string;
+  authIndex?: string;
   failed?: boolean;
   before?: number;
   limit?: number;
+}
+
+export interface UsagePercentiles {
+  count: number;
+  p50: number;
+  p90: number;
+  p95: number;
+  p99: number;
+  max: number;
+}
+
+export interface UsageHeatCell {
+  weekday: number;
+  hour: number;
+  requests: number;
+  tokens: number;
+  failed: number;
+  cost: number;
+}
+
+export interface UsageAnalysis {
+  sampled: boolean;
+  latency: UsagePercentiles;
+  ttft: UsagePercentiles;
+  histogram: number[];
+  histogramBoundsMs: number[];
+  models: { model: string; latency: UsagePercentiles; ttft: UsagePercentiles }[];
+  heatmap: UsageHeatCell[];
+}
+
+/** One configured price override (USD per million tokens); cache prices default to input when unset. */
+export interface UsagePriceOverride {
+  model: string;
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
 }
 
 const num = (value: unknown): number =>
@@ -201,6 +245,8 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       tokens: normalizeTokens(e.tokens),
       cost: num(e.cost),
       priced: e.priced === true,
+      clientIp: str(e.client_ip),
+      userAgent: str(e.user_agent),
     })),
   };
 };
@@ -233,6 +279,83 @@ export const normalizeUsagePricing = (data: unknown): UsagePricing => {
   };
 };
 
+const normalizePercentiles = (value: unknown): UsagePercentiles => {
+  const p = rec(value);
+  return {
+    count: num(p.count),
+    p50: num(p.p50),
+    p90: num(p.p90),
+    p95: num(p.p95),
+    p99: num(p.p99),
+    max: num(p.max),
+  };
+};
+
+export const normalizeUsageAnalysis = (data: unknown): UsageAnalysis => {
+  const d = rec(data);
+  const nums = (value: unknown) => (Array.isArray(value) ? value.map(num) : []);
+  return {
+    sampled: d.sampled === true,
+    latency: normalizePercentiles(d.latency),
+    ttft: normalizePercentiles(d.ttft),
+    histogram: nums(d.histogram),
+    histogramBoundsMs: nums(d.histogram_bounds_ms),
+    models: list(d.models).map((m) => ({
+      model: str(m.model),
+      latency: normalizePercentiles(m.latency),
+      ttft: normalizePercentiles(m.ttft),
+    })),
+    heatmap: list(d.heatmap).map((c) => ({
+      weekday: num(c.weekday),
+      hour: num(c.hour),
+      requests: num(c.requests),
+      tokens: num(c.tokens),
+      failed: num(c.failed),
+      cost: num(c.cost),
+    })),
+  };
+};
+
+const optionalNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+export const normalizePriceOverrides = (data: unknown): UsagePriceOverride[] =>
+  list(data)
+    .filter((o) => str(o.model).trim())
+    .map((o) => ({
+      model: str(o.model).trim(),
+      input: num(o.input),
+      output: num(o.output),
+      cacheRead: optionalNumber(o['cache-read']),
+      cacheWrite: optionalNumber(o['cache-write']),
+    }));
+
+/** Serializes overrides to the config layout, omitting unset cache prices so they keep defaulting. */
+export const serializePriceOverrides = (overrides: UsagePriceOverride[]) =>
+  overrides
+    .filter((o) => o.model.trim())
+    .map((o) => ({
+      model: o.model.trim(),
+      input: o.input,
+      output: o.output,
+      ...(o.cacheRead === undefined ? {} : { 'cache-read': o.cacheRead }),
+      ...(o.cacheWrite === undefined ? {} : { 'cache-write': o.cacheWrite }),
+    }));
+
+const eventParams = (query: UsageEventsQuery) => ({
+  from: query.from,
+  to: query.to,
+  model: query.model || undefined,
+  provider: query.provider || undefined,
+  api_key_id: query.apiKeyId || undefined,
+  auth_index: query.authIndex || undefined,
+  failed: query.failed,
+  before: query.before || undefined,
+  limit: query.limit,
+});
+
+const OVERRIDES_PATH = '/config/observability/usage/store/pricing/overrides';
+
 /** True when the backend reports the store is turned off (409 usage_store_disabled). */
 export const isUsageStoreDisabled = (error: unknown): boolean =>
   isRecord(error) && error.status === 409 && error.apiCode === USAGE_STORE_DISABLED;
@@ -245,7 +368,26 @@ export const usageStoreApi = {
       })
     ),
   getEvents: async (query: UsageEventsQuery) =>
-    normalizeUsageEvents(await apiClient.get('/observability/usage/events', { params: query })),
+    normalizeUsageEvents(
+      await apiClient.get('/observability/usage/events', { params: eventParams(query) })
+    ),
+  exportEvents: async (query: UsageEventsQuery, format: 'csv' | 'json'): Promise<Blob> => {
+    const response = await apiClient.getRaw('/observability/usage/events/export', {
+      params: { ...eventParams(query), limit: undefined, before: undefined, format },
+      responseType: 'blob',
+    });
+    return response.data as Blob;
+  },
+  getAnalysis: async (from: number, to: number, tzOffsetMinutes: number) =>
+    normalizeUsageAnalysis(
+      await apiClient.get('/observability/usage/analysis', {
+        params: { from, to, tz_offset: tzOffsetMinutes },
+      })
+    ),
+  getOverrides: async () =>
+    normalizePriceOverrides(await getConfigValue<unknown>(OVERRIDES_PATH, [])),
+  saveOverrides: (overrides: UsagePriceOverride[]) =>
+    apiClient.put(OVERRIDES_PATH, serializePriceOverrides(overrides)),
   getPricing: async () =>
     normalizeUsagePricing(await apiClient.get('/observability/usage/pricing')),
   refreshPricing: async () =>
