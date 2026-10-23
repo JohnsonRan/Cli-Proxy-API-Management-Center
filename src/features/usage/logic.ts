@@ -139,7 +139,6 @@ export const EVENT_COLUMNS = [
   'tokens',
   'latency',
   'cost',
-  'tier',
   'client',
 ] as const;
 export type EventColumn = (typeof EVENT_COLUMNS)[number];
@@ -317,4 +316,27 @@ export const mergeRealtimeFeed = <T extends { id: number }>(
   const known = new Set(feed.map((e) => e.id));
   const fresh = ascendingPage.filter((e) => !known.has(e.id)).reverse();
   return { feed: [...fresh, ...feed].slice(0, limit), added: fresh.map((e) => e.id) };
+};
+
+export type EventDimension = 'model' | 'provider' | 'api_key_id' | 'auth_index';
+
+export type EventTransport = 'ws' | 'sse' | 'http';
+
+/**
+ * Downstream transport of a request. Model-call routes are POST over HTTP; the WebSocket
+ * routes (/v1/responses, /v1/realtime, ...) are GET upgrades, so a GET endpoint means WebSocket.
+ */
+export const eventTransport = (endpoint: string, stream: boolean): EventTransport => {
+  if (endpoint.trim().toUpperCase().startsWith('GET ')) return 'ws';
+  return stream ? 'sse' : 'http';
+};
+
+/** Share of input tokens read from cache, or null when the request had no input. */
+export const eventCacheHitRate = (tokens: {
+  inputUncached: number;
+  cacheRead: number;
+  cacheWrite: number;
+}): number | null => {
+  const input = tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite;
+  return input > 0 ? (tokens.cacheRead / input) * 100 : null;
 };

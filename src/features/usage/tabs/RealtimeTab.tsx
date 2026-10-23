@@ -20,7 +20,13 @@ import {
 } from '@/components/ui/Table';
 import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
-import { ProviderBadge } from '../components/Labels';
+import {
+  EventLatencyCell,
+  EventModelCell,
+  EventRouteCell,
+  EventStatusCell,
+  EventTokensCell,
+} from '../components/EventCells';
 import { PanelHeading } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import { formatCompact, formatCost, formatMs } from '../format';
@@ -347,7 +353,6 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
             </TableHeader>
             <TableBody>
               {feed.map((e) => {
-                const keyName = labels.keyName(e.apiKeyId);
                 const rowClass = [
                   styles.clickableRow,
                   e.failed ? styles.failedRow : '',
@@ -373,40 +378,20 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
                       {timeFormatter.format(new Date(e.timestamp))}
                     </TableCell>
                     <TableCell>
-                      <span className={e.failed ? styles.pillFailed : styles.pillOk}>
-                        {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
-                      </span>
+                      <EventStatusCell event={e} />
                     </TableCell>
                     <TableCell>
-                      <span className={styles.rankText}>
-                        <span className={`${styles.cellStrong} ${styles.mono}`}>
-                          {e.substituted && e.responseModel
-                            ? `${e.model} → ${e.responseModel}`
-                            : e.model}
-                        </span>
-                        <span className={styles.cellSub}>
-                          <ProviderBadge provider={e.provider} />
-                        </span>
-                      </span>
+                      <EventModelCell event={e} />
                     </TableCell>
                     <TableCell>
-                      <span className={styles.rankText}>
-                        <span className={styles.cellMain}>
-                          {labels.credential(e.authIndex, e.source)}
-                        </span>
-                        <span className={styles.cellSub}>
-                          {keyName ? `${keyName} · ` : ''}
-                          <span className={styles.mono}>{e.apiKey || t('usage_stats.none')}</span>
-                        </span>
-                      </span>
+                      <EventRouteCell event={e} labels={labels} />
                     </TableCell>
                     <TableCell alignRight>
-                      {formatCompact(
-                        e.tokens.inputUncached + e.tokens.cacheRead + e.tokens.cacheWrite
-                      )}{' '}
-                      → {formatCompact(e.tokens.output)}
+                      <EventTokensCell event={e} />
                     </TableCell>
-                    <TableCell alignRight>{formatMs(e.latencyMs)}</TableCell>
+                    <TableCell alignRight>
+                      <EventLatencyCell event={e} />
+                    </TableCell>
                     <TableCell alignRight>
                       {e.priced ? (
                         <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
