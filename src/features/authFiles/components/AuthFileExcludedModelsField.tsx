@@ -5,6 +5,7 @@ import {
   formatExcludedRulesText,
   parseExcludedRulesText,
   type ExcludedModelsCatalogState,
+  type ModelRulesTone,
 } from '@/components/excludedModels';
 import { authFilesApi } from '@/services/api';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
@@ -15,6 +16,17 @@ interface AuthFileExcludedModelsFieldProps {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
+  /** Defaults to the excluded_models label and copy. */
+  tone?: ModelRulesTone;
+  label?: string;
+  /**
+   * Also offer this provider's static catalog. Allow-lists need it: the credential's own
+   * list only contains models that are already allowed.
+   */
+  catalogProvider?: string;
+  /** Rules match upstream IDs, so prefixed routes (`prefix/model`) are folded into the bare ID. */
+  prefix?: string;
+  hint?: string;
 }
 
 export function AuthFileExcludedModelsField({
@@ -22,6 +34,11 @@ export function AuthFileExcludedModelsField({
   value,
   disabled,
   onChange,
+  tone = 'exclude',
+  label,
+  catalogProvider,
+  prefix,
+  hint,
 }: AuthFileExcludedModelsFieldProps) {
   const { t } = useTranslation();
   // 凭证文件名可能含点/斜杠等字符，不适合直接当 HTML id。
@@ -41,14 +58,18 @@ export function AuthFileExcludedModelsField({
     setLoading(true);
     setLoadFailed(false);
 
-    void authFilesApi
-      .getModelsForAuthFile(fileName)
-      .then((items) => {
+    const routePrefix = prefix?.trim() ? `${prefix.trim()}/` : '';
+    const catalog = catalogProvider
+      ? authFilesApi.getModelDefinitions(catalogProvider).catch(() => [])
+      : Promise.resolve([]);
+    void Promise.all([authFilesApi.getModelsForAuthFile(fileName), catalog])
+      .then(([items, definitions]) => {
         if (cancelled) return;
         const byId = new Map<string, AuthFileModelItem>();
-        items.forEach((item) => {
-          const id = item.id?.trim();
-          if (id) byId.set(id.toLowerCase(), { ...item, id });
+        [...items, ...definitions].forEach((item) => {
+          let id = item.id?.trim();
+          if (id && routePrefix && id.startsWith(routePrefix)) id = id.slice(routePrefix.length);
+          if (id && !byId.has(id.toLowerCase())) byId.set(id.toLowerCase(), { ...item, id });
         });
         // 已配置但目录里没有的精确规则也塞进候选，否则它们会在列表里凭空消失。
         parseExcludedRulesText(latestValueRef.current).forEach((rule) => {
@@ -72,7 +93,7 @@ export function AuthFileExcludedModelsField({
     return () => {
       cancelled = true;
     };
-  }, [fileName]);
+  }, [catalogProvider, fileName, prefix]);
 
   const rules = useMemo(() => parseExcludedRulesText(value), [value]);
   const candidates = useMemo(
@@ -87,7 +108,7 @@ export function AuthFileExcludedModelsField({
 
   return (
     <div className="form-group">
-      <label id={labelId}>{t('auth_files.excluded_models_label')}</label>
+      <label id={labelId}>{label ?? t('auth_files.excluded_models_label')}</label>
       <ExcludedModelsPicker
         value={rules}
         onChange={(next) => onChange(formatExcludedRulesText(next))}
@@ -95,7 +116,9 @@ export function AuthFileExcludedModelsField({
         catalogState={catalogState}
         disabled={disabled}
         labelledBy={labelId}
+        tone={tone}
       />
+      {hint && <div className="hint">{hint}</div>}
     </div>
   );
 }
