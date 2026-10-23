@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bar } from 'react-chartjs-2';
-import { usageStoreApi, type UsageAnalysis, type UsageStats } from '@/services/api/usageStore';
+import {
+  usageStoreApi,
+  type UsageAnalysis,
+  type UsageDimensionFilter,
+  type UsageStats,
+} from '@/services/api/usageStore';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   Table,
@@ -23,9 +28,11 @@ import styles from '../UsagePage.module.scss';
 export function AnalysisTab({
   usageWindow,
   stats,
+  dimensionFilter = {},
 }: {
   usageWindow: UsageWindow;
   stats: UsageStats;
+  dimensionFilter?: UsageDimensionFilter;
 }) {
   const { t } = useTranslation();
   const theme = useChartTheme();
@@ -41,7 +48,8 @@ export function AnalysisTab({
       const next = await usageStoreApi.getAnalysis(
         usageWindow.from,
         usageWindow.to,
-        usageWindow.tzOffset
+        usageWindow.tzOffset,
+        dimensionFilter
       );
       if (requestId === requestRef.current) setAnalysis(next);
     } catch (err: unknown) {
@@ -49,7 +57,7 @@ export function AnalysisTab({
         setError(err instanceof Error ? err.message : t('notification.refresh_failed'));
       }
     }
-  }, [t, usageWindow]);
+  }, [dimensionFilter, t, usageWindow]);
 
   // `stats` changes on every refresh, so analysis follows the header refresh too.
   useEffect(() => {
@@ -57,7 +65,7 @@ export function AnalysisTab({
     return () => {
       requestRef.current += 1;
     };
-  }, [load, stats]);
+  }, [load, stats, dimensionFilter]);
 
   const histogram = useMemo(() => {
     if (!analysis) return null;

@@ -94,6 +94,46 @@ export interface UsageEvent {
 export interface UsageEventsPage {
   events: UsageEvent[];
   nextBefore: number;
+  lastId: number;
+}
+
+export interface UsageModelOption {
+  model: string;
+  provider: string;
+  requests: number;
+}
+
+export interface UsageProviderOption {
+  provider: string;
+  requests: number;
+}
+
+export interface UsageApiKeyOption {
+  apiKeyId: string;
+  apiKey: string;
+  requests: number;
+}
+
+export interface UsageCredentialOption {
+  authIndex: string;
+  provider: string;
+  authType: string;
+  source: string;
+  requests: number;
+}
+
+export interface UsageOptions {
+  models: UsageModelOption[];
+  providers: UsageProviderOption[];
+  apiKeys: UsageApiKeyOption[];
+  credentials: UsageCredentialOption[];
+}
+
+export interface UsageDimensionFilter {
+  model?: string[];
+  provider?: string[];
+  apiKeyId?: string[];
+  authIndex?: string[];
 }
 
 export interface UsagePrice {
@@ -114,16 +154,13 @@ export interface UsagePricing {
   models: UsageModelPrice[];
 }
 
-export interface UsageEventsQuery {
+export interface UsageEventsQuery extends UsageDimensionFilter {
   from?: number;
   to?: number;
-  model?: string;
-  provider?: string;
-  apiKeyId?: string;
-  authIndex?: string;
   failed?: boolean;
   substituted?: boolean;
   before?: number;
+  after?: number;
   limit?: number;
 }
 
@@ -231,6 +268,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
   const d = rec(data);
   return {
     nextBefore: num(d.next_before),
+    lastId: num(d.last_id),
     events: list(d.events).map((e) => ({
       id: num(e.id),
       timestamp: num(e.timestamp),
@@ -258,6 +296,33 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       userAgent: str(e.user_agent),
       responseModel: str(e.response_model),
       substituted: e.substituted === true,
+    })),
+  };
+};
+
+export const normalizeUsageOptions = (data: unknown): UsageOptions => {
+  const d = rec(data);
+  return {
+    models: list(d.models).map((m) => ({
+      model: str(m.model),
+      provider: str(m.provider),
+      requests: num(m.requests),
+    })),
+    providers: list(d.providers).map((p) => ({
+      provider: str(p.provider),
+      requests: num(p.requests),
+    })),
+    apiKeys: list(d.api_keys).map((k) => ({
+      apiKeyId: str(k.api_key_id),
+      apiKey: str(k.api_key),
+      requests: num(k.requests),
+    })),
+    credentials: list(d.credentials).map((c) => ({
+      authIndex: str(c.auth_index),
+      provider: str(c.provider),
+      authType: str(c.auth_type),
+      source: str(c.source),
+      requests: num(c.requests),
     })),
   };
 };
@@ -353,18 +418,22 @@ export const serializePriceOverrides = (overrides: UsagePriceOverride[]) =>
       ...(o.cacheWrite === undefined ? {} : { 'cache-write': o.cacheWrite }),
     }));
 
-const eventParams = (query: UsageEventsQuery) => ({
-  from: query.from,
-  to: query.to,
-  model: query.model || undefined,
-  provider: query.provider || undefined,
-  api_key_id: query.apiKeyId || undefined,
-  auth_index: query.authIndex || undefined,
-  failed: query.failed,
-  substituted: query.substituted,
-  before: query.before || undefined,
-  limit: query.limit,
-});
+export const buildUsageParams = (params: Record<string, unknown>): URLSearchParams => {
+  const search = new URLSearchParams();
+  for (const [key, val] of Object.entries(params)) {
+    if (val === undefined || val === null || val === '') continue;
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        if (item !== undefined && item !== null && item !== '') {
+          search.append(key, String(item));
+        }
+      }
+    } else {
+      search.append(key, String(val));
+    }
+  }
+  return search;
+};
 
 const OVERRIDES_PATH = '/config/observability/usage/store/pricing/overrides';
 
@@ -377,36 +446,79 @@ export const usageStoreApi = {
     from: number,
     to: number,
     tzOffsetMinutes: number,
-    filter: Pick<UsageEventsQuery, 'model' | 'provider' | 'apiKeyId' | 'authIndex'> = {}
+    filter: UsageDimensionFilter = {}
   ) =>
     normalizeUsageStats(
       await apiClient.get('/observability/usage/stats', {
-        params: {
+        params: buildUsageParams({
           from,
           to,
           tz_offset: tzOffsetMinutes,
-          model: filter.model || undefined,
-          provider: filter.provider || undefined,
-          api_key_id: filter.apiKeyId || undefined,
-          auth_index: filter.authIndex || undefined,
-        },
+          model: filter.model,
+          provider: filter.provider,
+          api_key_id: filter.apiKeyId,
+          auth_index: filter.authIndex,
+        }),
+      })
+    ),
+  getOptions: async (from: number, to: number) =>
+    normalizeUsageOptions(
+      await apiClient.get('/observability/usage/options', {
+        params: buildUsageParams({ from, to }),
       })
     ),
   getEvents: async (query: UsageEventsQuery) =>
     normalizeUsageEvents(
-      await apiClient.get('/observability/usage/events', { params: eventParams(query) })
+      await apiClient.get('/observability/usage/events', {
+        params: buildUsageParams({
+          from: query.from,
+          to: query.to,
+          model: query.model,
+          provider: query.provider,
+          api_key_id: query.apiKeyId,
+          auth_index: query.authIndex,
+          failed: query.failed,
+          substituted: query.substituted,
+          before: query.before,
+          after: query.after,
+          limit: query.limit,
+        }),
+      })
     ),
   exportEvents: async (query: UsageEventsQuery, format: 'csv' | 'json'): Promise<Blob> => {
     const response = await apiClient.getRaw('/observability/usage/events/export', {
-      params: { ...eventParams(query), limit: undefined, before: undefined, format },
+      params: buildUsageParams({
+        from: query.from,
+        to: query.to,
+        model: query.model,
+        provider: query.provider,
+        api_key_id: query.apiKeyId,
+        auth_index: query.authIndex,
+        failed: query.failed,
+        substituted: query.substituted,
+        format,
+      }),
       responseType: 'blob',
     });
     return response.data as Blob;
   },
-  getAnalysis: async (from: number, to: number, tzOffsetMinutes: number) =>
+  getAnalysis: async (
+    from: number,
+    to: number,
+    tzOffsetMinutes: number,
+    filter: UsageDimensionFilter = {}
+  ) =>
     normalizeUsageAnalysis(
       await apiClient.get('/observability/usage/analysis', {
-        params: { from, to, tz_offset: tzOffsetMinutes },
+        params: buildUsageParams({
+          from,
+          to,
+          tz_offset: tzOffsetMinutes,
+          model: filter.model,
+          provider: filter.provider,
+          api_key_id: filter.apiKeyId,
+          auth_index: filter.authIndex,
+        }),
       })
     ),
   getOverrides: async () =>
