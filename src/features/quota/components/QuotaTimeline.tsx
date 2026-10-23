@@ -54,6 +54,11 @@ export interface QuotaTimelineProps {
   quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined;
   displayNameFor: (name: string) => string;
   resolvedTheme: ResolvedTheme;
+  /**
+   * Lanes that are not auth files (the accounts upstream proxies share), built for the
+   * same longest-period bound as the credential lanes. Must be referentially stable.
+   */
+  extraLanes?: (maxPeriodHours?: number) => TimelineLane[];
   /** Injectable for tests/screenshots; defaults to the real clock. */
   now?: number;
   /** Injectable initial zoom for tests/screenshots; defaults to the weekly view. */
@@ -67,6 +72,7 @@ export function QuotaTimeline({
   quotaFor,
   displayNameFor,
   resolvedTheme,
+  extraLanes,
   now: nowProp,
   initialMode = 'weekly',
   initialOffset = 0,
@@ -107,25 +113,22 @@ export function QuotaTimeline({
   // real quota window. Once there is timeline data, however, changing zoom must
   // never remove the whole panel just because that mode has no matching lanes.
   const hasAnyLane = useMemo(
-    () => laneInputs.some((input) => laneHasWindow(buildTimelineLane(input))),
-    [laneInputs]
+    () =>
+      laneInputs.some((input) => laneHasWindow(buildTimelineLane(input))) ||
+      (extraLanes?.() ?? []).some(laneHasWindow),
+    [laneInputs, extraLanes]
   );
 
-  const lanes = useMemo(
-    () =>
-      laneInputs
-        .map((input) =>
-          buildTimelineLane({
-            ...input,
-            // Weekly mode prefers the longest readable window. Session mode
-            // asks specifically for a real 5-hour window; longer periods must
-            // not be reinterpreted as 5-hour resets.
-            maxPeriodHours: mode === 'session' ? 5 : span.days * 24,
-          })
-        )
-        .filter((lane) => laneHasWindow(lane) && (mode !== 'session' || lane.periodHours === 5)),
-    [laneInputs, mode, span.days]
-  );
+  const lanes = useMemo(() => {
+    // Weekly mode prefers the longest readable window. Session mode asks
+    // specifically for a real 5-hour window; longer periods must not be
+    // reinterpreted as 5-hour resets.
+    const maxPeriodHours = mode === 'session' ? 5 : span.days * 24;
+    return [
+      ...laneInputs.map((input) => buildTimelineLane({ ...input, maxPeriodHours })),
+      ...(extraLanes?.(maxPeriodHours) ?? []),
+    ].filter((lane) => laneHasWindow(lane) && (mode !== 'session' || lane.periodHours === 5));
+  }, [laneInputs, extraLanes, mode, span.days]);
 
   /** Weekly: one cell per day. Session: one per 6 hours. */
   const cells = useMemo(() => {
@@ -357,8 +360,7 @@ function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneP
         <div className={styles.laneLimits}>
           {lane.limits.map((limit) => (
             <span key={limit.label} className={styles.laneLimit}>
-              {lane.provider === 'meta' ? t(limit.label) : limit.label}{' '}
-              <b>{limit.remaining}%</b>
+              {lane.provider === 'meta' ? t(limit.label) : limit.label} <b>{limit.remaining}%</b>
             </span>
           ))}
         </div>
