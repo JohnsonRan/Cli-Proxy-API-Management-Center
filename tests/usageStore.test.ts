@@ -22,6 +22,7 @@ import {
 } from '@/features/usage/format';
 import {
   DEFAULT_EVENT_COLUMNS,
+  clientKeyEntries,
   clientKeyId,
   providerDisplay,
   histogramLabels,
@@ -205,6 +206,16 @@ describe('usage analysis and pricing helpers', () => {
     // Must match the core's hex(sha256(key)[:6]) grouping id; sha256("abc") starts with ba7816bf8f01.
     const digest = bytesToHex(sha256(new TextEncoder().encode('abc')));
     expect(clientKeyId(digest)).toBe('ba7816bf8f01');
+    expect(
+      clientKeyEntries([
+        ' sk-plain ',
+        { 'api-key': 'sk-named', name: ' Alice ', models: ['gpt-5'] },
+        { 'api-key': 'sk-unnamed' },
+        { name: 'no key' },
+        42,
+      ])
+    ).toEqual([{ key: 'sk-plain' }, { key: 'sk-named', name: 'Alice' }, { key: 'sk-unnamed' }]);
+    expect(clientKeyEntries(null)).toEqual([]);
   });
 
   test('heatmap renders a 7x24 grid scaled to the busiest cell', () => {

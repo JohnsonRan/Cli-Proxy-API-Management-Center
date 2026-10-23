@@ -153,3 +153,21 @@ export const providerDisplay = (
 
 /** The usage store groups client keys by the first 12 hex chars of their SHA-256. */
 export const clientKeyId = (sha256Hex: string) => sha256Hex.slice(0, 12);
+
+/**
+ * Reads `access.api-keys`, whose entries are plain strings or `{ api-key, name, ... }` objects
+ * when the config gives a key a display name.
+ */
+export const clientKeyEntries = (raw: unknown): { key: string; name?: string }[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    if (typeof entry === 'string') return entry.trim() ? [{ key: entry.trim() }] : [];
+    if (entry && typeof entry === 'object') {
+      const record = entry as Record<string, unknown>;
+      const key = String(record['api-key'] ?? record.key ?? '').trim();
+      const name = typeof record.name === 'string' ? record.name.trim() : '';
+      return key ? [{ key, ...(name ? { name } : {}) }] : [];
+    }
+    return [];
+  });
+};

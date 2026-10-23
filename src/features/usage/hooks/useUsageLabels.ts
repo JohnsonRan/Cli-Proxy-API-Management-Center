@@ -2,21 +2,22 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import { apiKeysApi, authFilesApi } from '@/services/api';
+import { authFilesApi } from '@/services/api';
+import { getConfigValue } from '@/services/api/configValue';
 import { apiKeyNameFingerprint, readApiKeyNames } from '@/features/config/apiKeyNames';
 import { useAuthStore } from '@/stores';
-import { clientKeyId } from '../logic';
+import { clientKeyEntries, clientKeyId } from '../logic';
 
 export interface UsageLabels {
   /** Auth-file email or name for an auth index, else the masked source, else the raw index. */
   credential: (authIndex: string, source?: string) => string;
-  /** The note name saved for a client key on the config page, matched by usage key id. */
+  /** The client key's name from the config (`access.api-keys[].name`) or its local note. */
   keyName: (apiKeyId: string) => string | null;
 }
 
 /**
  * Resolves the names shown elsewhere in the panel: auth-file identities and client key
- * notes. Both are best effort; a failed lookup falls back to masked identifiers.
+ * names. Both are best effort; a failed lookup falls back to masked identifiers.
  */
 export function useUsageLabels(connected: boolean): UsageLabels {
   const { t } = useTranslation();
@@ -40,16 +41,16 @@ export function useUsageLabels(connected: boolean): UsageLabels {
         setCredentialNames(names);
       })
       .catch(() => undefined);
-    apiKeysApi
-      .list()
-      .then((keys) => {
+    getConfigValue<unknown>('/config/access/api-keys', [])
+      .then((raw) => {
         if (!active) return;
         const notes = readApiKeyNames(apiBase);
         const names = new Map<string, string>();
-        keys.forEach((key) => {
-          const note = notes[apiKeyNameFingerprint(apiBase, key)];
-          if (note) {
-            names.set(clientKeyId(bytesToHex(sha256(new TextEncoder().encode(key)))), note);
+        clientKeyEntries(raw).forEach(({ key, name }) => {
+          // The config name wins; the browser-local note is the fallback for plain string keys.
+          const label = name || notes[apiKeyNameFingerprint(apiBase, key)];
+          if (label) {
+            names.set(clientKeyId(bytesToHex(sha256(new TextEncoder().encode(key)))), label);
           }
         });
         setKeyNames(names);
