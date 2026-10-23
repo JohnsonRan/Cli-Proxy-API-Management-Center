@@ -1050,8 +1050,6 @@
     "none": "None",
     "unpriced": "No price",
     "failed": "Failed",
-    "yes": "Yes",
-    "no": "No",
     "col_model": "Model",
     "col_provider": "Provider",
     "col_requests": "Requests",

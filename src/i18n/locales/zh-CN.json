@@ -1048,8 +1048,6 @@
     "none": "无",
     "unpriced": "无价格",
     "failed": "失败",
-    "yes": "是",
-    "no": "否",
     "col_model": "模型",
     "col_provider": "提供商",
     "col_requests": "请求数",
