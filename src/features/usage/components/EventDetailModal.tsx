@@ -1,18 +1,21 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UsageEvent } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useNotificationStore } from '@/stores';
 import { formatCompact, formatCost, formatMs } from '../format';
+import type { UsageLabels } from '../hooks/useUsageLabels';
+import { ProviderBadge } from './Labels';
 import styles from '../UsagePage.module.scss';
 
 export function EventDetailModal({
   event,
-  credentialLabel,
+  labels,
   onClose,
 }: {
   event: UsageEvent | null;
-  credentialLabel: (authIndex: string) => string;
+  labels: UsageLabels;
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -27,7 +30,8 @@ export function EventDetailModal({
   };
 
   const tk = event.tokens;
-  const rows: [string, string][] = [
+  const keyName = labels.keyName(event.apiKeyId);
+  const rows: [string, ReactNode][] = [
     [t('usage_stats.col_time'), new Date(event.timestamp).toLocaleString(i18n.language)],
     [t('usage_stats.detail_request_id'), event.requestId || '—'],
     [
@@ -39,12 +43,12 @@ export function EventDetailModal({
       t('usage_stats.col_model'),
       event.alias && event.alias !== event.model ? `${event.alias} → ${event.model}` : event.model,
     ],
-    [t('usage_stats.col_provider'), event.provider],
+    [t('usage_stats.col_provider'), <ProviderBadge provider={event.provider} />],
+    [t('usage_stats.col_credential'), labels.credential(event.authIndex, event.source)],
     [
-      t('usage_stats.col_credential'),
-      `${credentialLabel(event.authIndex)}${event.source ? ` (${event.source})` : ''}`,
+      t('usage_stats.col_key'),
+      keyName ? `${keyName} · ${event.apiKey}` : event.apiKey || t('usage_stats.none'),
     ],
-    [t('usage_stats.col_key'), event.apiKey || t('usage_stats.none')],
     [
       t('usage_stats.detail_tier'),
       [event.serviceTier, event.reasoningEffort].filter(Boolean).join(' · ') || '—',

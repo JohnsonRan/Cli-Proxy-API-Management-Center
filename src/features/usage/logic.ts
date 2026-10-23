@@ -23,16 +23,11 @@ export interface EventsFilter {
 
 export const EVENT_COLUMNS = [
   'time',
-  'model',
-  'provider',
-  'credential',
-  'key',
   'status',
+  'model',
+  'route',
+  'tokens',
   'latency',
-  'ttft',
-  'input',
-  'cached',
-  'output',
   'cost',
   'tier',
   'endpoint',
@@ -41,13 +36,11 @@ export const EVENT_COLUMNS = [
 export type EventColumn = (typeof EVENT_COLUMNS)[number];
 export const DEFAULT_EVENT_COLUMNS: EventColumn[] = [
   'time',
-  'model',
-  'credential',
-  'key',
   'status',
+  'model',
+  'route',
+  'tokens',
   'latency',
-  'input',
-  'output',
   'cost',
 ];
 
@@ -142,3 +135,21 @@ export const emptyRow = (): DraftRow => ({
   cacheRead: '',
   cacheWrite: '',
 });
+
+const COMPAT_PREFIX = 'openai-compatible-';
+
+/** How a usage provider key is shown: OpenAI-compatible upstreams by their configured name. */
+export const providerDisplay = (
+  provider: string
+): { type: string; name: string | null; compat: boolean } => {
+  const key = provider.trim();
+  if (key.toLowerCase().startsWith(COMPAT_PREFIX)) {
+    return { type: 'openai', name: key.slice(COMPAT_PREFIX.length), compat: true };
+  }
+  // gemini-cli and similar share the Gemini brand.
+  const type = key.toLowerCase().startsWith('gemini') ? 'gemini' : key;
+  return { type, name: null, compat: false };
+};
+
+/** The usage store groups client keys by the first 12 hex chars of their SHA-256. */
+export const clientKeyId = (sha256Hex: string) => sha256Hex.slice(0, 12);

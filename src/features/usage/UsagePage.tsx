@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { authFilesApi } from '@/services/api';
 import {
   isUsageStoreDisabled,
   usageStoreApi,
@@ -36,6 +35,7 @@ import { AnalysisTab } from './tabs/AnalysisTab';
 import { EventsTab } from './tabs/EventsTab';
 import type { EventsFilter } from './logic';
 import { PricingTab } from './tabs/PricingTab';
+import { useUsageLabels } from './hooks/useUsageLabels';
 import styles from './UsagePage.module.scss';
 
 const ENABLE_RETRY_MS = 1500;
@@ -70,7 +70,6 @@ export function UsagePage() {
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [prevStats, setPrevStats] = useState<UsageStats | null>(null);
   const [pricing, setPricing] = useState<UsagePricing | null>(null);
-  const [credentialNames, setCredentialNames] = useState<Map<string, string>>(new Map());
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -121,32 +120,7 @@ export function UsagePage() {
     };
   }, [load]);
 
-  // Credential labels are best effort: unmatched indexes fall back to the raw auth index.
-  useEffect(() => {
-    if (!connected) return;
-    let active = true;
-    authFilesApi
-      .list()
-      .then((data) => {
-        if (!active) return;
-        const names = new Map<string, string>();
-        (data?.files || []).forEach((file) => {
-          if (file.authIndex !== undefined && file.authIndex !== null) {
-            names.set(String(file.authIndex), file.email || file.name);
-          }
-        });
-        setCredentialNames(names);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [connected]);
-
-  const credentialLabel = useCallback(
-    (authIndex: string) => credentialNames.get(authIndex) || authIndex || t('usage_stats.none'),
-    [credentialNames, t]
-  );
+  const labels = useUsageLabels(connected);
 
   const handleEnable = useCallback(async () => {
     setEnabling(true);
@@ -266,7 +240,7 @@ export function UsagePage() {
             <OverviewTab
               stats={stats}
               prevStats={prevStats}
-              credentialLabel={credentialLabel}
+              labels={labels}
               onOpenEvents={(filter) => selectTab('events', filter)}
             />
           )}
@@ -277,7 +251,7 @@ export function UsagePage() {
               stats={stats}
               filter={eventsFilter}
               onFilterChange={(filter) => selectTab('events', filter)}
-              credentialLabel={credentialLabel}
+              labels={labels}
             />
           )}
           {tab === 'pricing' && pricing && (
