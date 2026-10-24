@@ -32,6 +32,7 @@ import {
   USAGE_METRICS,
   cacheHitRate,
   changePercent,
+  costPerMillionTokens,
   costPerRequest,
   exactCost,
   exactCount,
@@ -438,8 +439,7 @@ export function OverviewTab({
       </span>
     );
 
-  const avgCostCell = (a: UsageAggregate) => {
-    const value = costPerRequest(a);
+  const unitCostCell = (value: number | null) => {
     return value === null ? (
       <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
     ) : (
@@ -466,6 +466,7 @@ export function OverviewTab({
     { key: 'speed', label: t('usage_stats.col_speed'), value: (m) => positive(m.outputTps) },
     { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
     { key: 'avgCost', label: t('usage_stats.col_avg_cost'), value: costPerRequest },
+    { key: 'unitCost', label: t('usage_stats.col_cost_per_m'), value: costPerMillionTokens },
   ];
   const keyName = (k: UsageApiKeyStat) =>
     labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none');
@@ -555,6 +556,7 @@ export function OverviewTab({
     [`${t('usage_stats.col_speed')} (t/s)`, (a) => round(a.outputTps, 1)],
     [`${t('usage_stats.col_cost')} (USD)`, (a) => round(priced(a), 6)],
     [`${t('usage_stats.col_avg_cost')} (USD)`, (a) => round(costPerRequest(a), 6)],
+    [`${t('usage_stats.col_cost_per_m')} (USD)`, (a) => round(costPerMillionTokens(a), 6)],
   ];
   const downloadCsv = <T,>(name: string, fields: CsvField<T>[], rows: { row: T }[]) => {
     const csv = toCsv([
@@ -877,7 +879,8 @@ export function OverviewTab({
                   <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
                   <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
                   <TableCell alignRight>{costCell(m)}</TableCell>
-                  <TableCell alignRight>{avgCostCell(m)}</TableCell>
+                  <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
+                  <TableCell alignRight>{unitCostCell(costPerMillionTokens(m))}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

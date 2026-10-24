@@ -194,6 +194,14 @@ export const costPerRequest = (a: UsageAggregate): number | null => {
   return priced > 0 ? a.cost / priced : null;
 };
 
+/** Blended cost per million tokens: the model's effective unit price, independent of request size. */
+export const costPerMillionTokens = (a: UsageAggregate): number | null => {
+  const priced = a.requests - a.unpricedRequests;
+  // shortcut: assumes unpriced requests average the same tokens as priced ones; track priced tokens server-side if mixes skew it.
+  const tokens = a.requests > 0 ? (a.tokens.total * priced) / a.requests : 0;
+  return priced > 0 && tokens > 0 ? (a.cost / tokens) * 1e6 : null;
+};
+
 /** Input tokens including cache reads and writes. */
 export const inputTokens = (a: UsageAggregate): number =>
   a.tokens.inputUncached + a.tokens.cacheRead + a.tokens.cacheWrite;
