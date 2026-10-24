@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 import iconAntigravity from '@/assets/icons/antigravity.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconCodex from '@/assets/icons/codex.svg';
+import iconCommandCode from '@/assets/icons/commandcode.svg';
+import iconCommandCodeDark from '@/assets/icons/commandcode-dark.svg';
 import iconMeta from '@/assets/icons/meta.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
@@ -31,6 +33,7 @@ export type QuotaProviderType =
   | 'antigravity'
   | 'claude'
   | 'codex'
+  | 'commandcode'
   | 'devin'
   | 'kimi'
   | 'meta'
@@ -44,6 +47,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
   'claude',
   'codex',
+  'commandcode',
   'devin',
   'kimi',
   'plugin',
@@ -58,6 +62,7 @@ export const OAUTH_PROVIDER_PRESETS = [
   'xai',
   'claude',
   'codex',
+  'commandcode',
   'devin',
   'kimi',
 ];
@@ -89,6 +94,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   aistudio: iconGemini,
   claude: iconClaude,
   codex: iconCodex,
+  commandcode: { light: iconCommandCode, dark: iconCommandCodeDark },
   meta: iconMeta,
   devin: { light: iconDevin, dark: iconDevinDark },
   gemini: iconGemini,
