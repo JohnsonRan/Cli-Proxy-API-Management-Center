@@ -33,33 +33,39 @@ Chart.register(
   Tooltip
 );
 
-/** Low-saturation earthy accent of each headline metric, shared by its dot, sparkline and charts. */
+/**
+ * Accent of each headline metric, shared by its dot, sparkline and charts. Every colour is a
+ * Claude Console (platform.claude.com) palette step; related metrics share a hue family:
+ * tokens and generation speed are violet, latency and time to first token are magenta.
+ * Status keeps green (success), red (failed) and yellow (pending, still running) exclusive.
+ */
 export const METRIC_ACCENTS = {
-  requests: '#5e7d9a',
-  success: '#6c8a56',
-  tokens: '#8a6b8c',
-  cost: '#c96846',
-  cache: '#598a7e',
-  latency: '#ab8039',
-  ttft: '#967d5a',
-  speed: '#b36b64',
-  failed: '#c65746',
+  requests: '#2a78d6', // blue-450
+  success: '#0ca30c', // green-400, Console status good
+  tokens: '#7161e0', // violet-450
+  cost: '#eb6834', // orange-350
+  cache: '#1baf7a', // aqua-350
+  latency: '#d55181', // magenta-400
+  ttft: '#e87ba4', // magenta-300
+  speed: '#a096eb', // violet-300
+  failed: '#d03b3b', // red-450, Console status critical
+  pending: '#eda100', // yellow categorical
 } as const;
 export type MetricAccent = keyof typeof METRIC_ACCENTS;
 
 /** Stable colour for the i-th entry of a ranked list. */
 export const rankColor = (index: number) => SERIES_COLORS[index % SERIES_COLORS.length];
 
-/** Earthy categorical series colours that read on both light and dark themes. */
+/** Claude Console categorical chart colours, in Console order (violet at the tokens step). */
 export const SERIES_COLORS = [
-  '#c96846',
-  '#5e7d9a',
-  '#6c8a56',
-  '#ab8039',
-  '#8a6b8c',
-  '#598a7e',
-  '#b36b64',
-  '#967d5a',
+  '#2a78d6',
+  '#eb6834',
+  '#1baf7a',
+  '#eda100',
+  '#e87ba4',
+  '#008300',
+  '#7161e0',
+  '#e34948',
 ];
 
 export interface ChartTheme {
@@ -77,7 +83,7 @@ const FALLBACK: Record<'light' | 'dark', ChartTheme> = {
     muted: '#9a948c',
     grid: '#e3e1db',
     success: METRIC_ACCENTS.success,
-    failure: '#c65746',
+    failure: METRIC_ACCENTS.failed,
     surface: '#ffffff',
   },
   dark: {
@@ -85,7 +91,7 @@ const FALLBACK: Record<'light' | 'dark', ChartTheme> = {
     muted: '#8a847c',
     grid: '#3a3530',
     success: METRIC_ACCENTS.success,
-    failure: '#c65746',
+    failure: METRIC_ACCENTS.failed,
     surface: '#1f1c19',
   },
 };

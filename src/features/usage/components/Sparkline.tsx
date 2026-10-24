@@ -31,14 +31,8 @@ export function Sparkline({ values, color }: { values: number[]; color: string }
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <path d={`${line} L${width},${height} L0,${height} Z`} fill={color} fillOpacity="0.14" />
-      <path
-        d={line}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.6"
-        vectorEffect="non-scaling-stroke"
-      />
+      <path d={`${line} L${width},${height} L0,${height} Z`} fill={color} fillOpacity="0.16" />
+      <path d={line} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
