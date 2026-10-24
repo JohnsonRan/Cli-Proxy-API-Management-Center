@@ -1,8 +1,15 @@
 /** Client access keys are a direct config list, not upstream provider groups. */
 import { apiClient } from './client';
-import { getConfigValue, guardConfigConnection } from './configValue';
+import { getConfigValue, guardConfigConnection, isMissingConfigValue } from './configValue';
 
 const PATH = '/config/access/api-keys';
+const GLOBAL_MODELS_PATH = '/config/access/models';
+const GLOBAL_EXCLUDED_MODELS_PATH = '/config/access/excluded-models';
+
+export interface GlobalClientModelRules {
+  models: string[];
+  excludedModels: string[];
+}
 
 export interface ClientApiKeyItem {
   apiKey: string;
@@ -62,6 +69,59 @@ export const serializeClientApiKeyItem = (item: ClientApiKeyItem): unknown => {
   return obj;
 };
 
+export const normalizeClientModelPatterns = (raw: unknown): string[] => {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const rule = item.trim();
+    const key = rule.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(rule);
+  }
+  return out;
+};
+
+export const serializeClientModelPatterns = (
+  patterns: readonly string[] | undefined
+): string[] | undefined => {
+  const normalized = normalizeClientModelPatterns(patterns);
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+export const parseGlobalClientModelRules = (
+  rawModels: unknown,
+  rawExcludedModels: unknown
+): GlobalClientModelRules => ({
+  models: normalizeClientModelPatterns(rawModels),
+  excludedModels: normalizeClientModelPatterns(rawExcludedModels),
+});
+
+const writeModelPatternList = async (
+  path: string,
+  next: string[] | undefined,
+  previous: string[] | undefined,
+  hasPrevious: boolean,
+  assertConnection: () => void
+): Promise<void> => {
+  if (hasPrevious && JSON.stringify(next ?? []) === JSON.stringify(previous ?? [])) {
+    return;
+  }
+  assertConnection();
+  if (!next) {
+    try {
+      await apiClient.delete(path);
+    } catch (error) {
+      if (!isMissingConfigValue(error)) throw error;
+    }
+  } else {
+    await apiClient.put(path, next);
+  }
+  assertConnection();
+};
+
 const assertIndex = (length: number, index: number): void => {
   if (!Number.isInteger(index) || index < 0 || index >= length) {
     throw new RangeError('API key index out of range');
@@ -109,5 +169,50 @@ export const apiKeysApi = {
     assertIndex(items.length, index);
     items.splice(index, 1);
     return apiKeysApi.replaceItems(items);
+  },
+
+  async getGlobalModelRules(): Promise<GlobalClientModelRules> {
+    const [models, excludedModels] = await Promise.all([
+      getConfigValue<unknown>(GLOBAL_MODELS_PATH, []),
+      getConfigValue<unknown>(GLOBAL_EXCLUDED_MODELS_PATH, []),
+    ]);
+    return parseGlobalClientModelRules(models, excludedModels);
+  },
+
+  async replaceGlobalModelRules(
+    rules: GlobalClientModelRules,
+    previous?: GlobalClientModelRules,
+    assertConnection: () => void = () => {},
+    onModelsSaved?: (models: string[]) => void
+  ): Promise<GlobalClientModelRules> {
+    const nextModels = serializeClientModelPatterns(rules.models);
+    const nextExcluded = serializeClientModelPatterns(rules.excludedModels);
+    const hasPrevious = previous !== undefined;
+    const prevModels = previous ? serializeClientModelPatterns(previous.models) : undefined;
+    const prevExcluded = previous
+      ? serializeClientModelPatterns(previous.excludedModels)
+      : undefined;
+
+    await writeModelPatternList(
+      GLOBAL_MODELS_PATH,
+      nextModels,
+      prevModels,
+      hasPrevious,
+      assertConnection
+    );
+    onModelsSaved?.(nextModels ?? []);
+
+    await writeModelPatternList(
+      GLOBAL_EXCLUDED_MODELS_PATH,
+      nextExcluded,
+      prevExcluded,
+      hasPrevious,
+      assertConnection
+    );
+
+    return {
+      models: nextModels ?? [],
+      excludedModels: nextExcluded ?? [],
+    };
   },
 };
