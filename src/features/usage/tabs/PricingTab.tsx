@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   usageStoreApi,
@@ -142,6 +142,11 @@ export function PricingTab({
   const price = (value: number | undefined) => (value === undefined ? '—' : `$${value}`);
   const busy = saving || overrides === null;
 
+  const onEditKey = (ev: KeyboardEvent<HTMLInputElement>) => {
+    if (ev.key === 'Enter') saveEdit();
+    if (ev.key === 'Escape') setEditing(null);
+  };
+
   const editCells = (e: Editing) => (
     <>
       {PRICE_FIELDS.map((field) => (
@@ -155,10 +160,7 @@ export function PricingTab({
             }
             aria-label={t(priceLabelKey(field))}
             onChange={(ev) => updateDraft({ [field]: ev.target.value })}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Enter') saveEdit();
-              if (ev.key === 'Escape') setEditing(null);
-            }}
+            onKeyDown={onEditKey}
           />
         </TableCell>
       ))}
@@ -245,6 +247,7 @@ export function PricingTab({
                     aria-label={t('usage_stats.col_model')}
                     autoFocus
                     onChange={(ev) => updateDraft({ model: ev.target.value })}
+                    onKeyDown={onEditKey}
                   />
                 </TableCell>
                 <TableCell>{t('usage_stats.source_override')}</TableCell>
