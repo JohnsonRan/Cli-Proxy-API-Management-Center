@@ -19,6 +19,7 @@ import {
   histogramLabels,
   mergeSelectedOptions,
   nextSort,
+  parseUsagePrefs,
   sortRows,
   toCsv,
   parseDraftRows,
@@ -741,6 +742,42 @@ describe('usage table sorting and CSV', () => {
     );
     expect(markup).toContain('aria-sort="descending"');
     expect(markup).toContain('<button type="button"');
+  });
+});
+
+describe('usage preferences', () => {
+  test('keeps only valid remembered choices', () => {
+    expect(
+      parseUsagePrefs(
+        JSON.stringify({
+          tab: 'analysis',
+          range: '7d',
+          metric: 'cost',
+          autoRefresh: 60,
+          comparePrevious: true,
+        })
+      )
+    ).toEqual({
+      tab: 'analysis',
+      range: '7d',
+      metric: 'cost',
+      autoRefresh: 60,
+      comparePrevious: true,
+    });
+    expect(
+      parseUsagePrefs(
+        JSON.stringify({
+          tab: 'nope',
+          range: 'custom',
+          metric: 1,
+          autoRefresh: 7,
+          comparePrevious: 'y',
+        })
+      )
+    ).toEqual({});
+    expect(parseUsagePrefs('{broken')).toEqual({});
+    expect(parseUsagePrefs(null)).toEqual({});
+    expect(parseUsagePrefs('42')).toEqual({});
   });
 });
 
