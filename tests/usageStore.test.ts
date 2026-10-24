@@ -653,3 +653,16 @@ describe('usage precision, transport and cells', () => {
     expect(latency(0)).not.toContain('t/s');
   });
 });
+
+describe('usage motion', () => {
+  test('CountUp starts from zero and formats hundredths', async () => {
+    const { CountUp } = await import('@/features/usage/components/Motion');
+    // Static render is the first frame: the roll-up to the value happens after mount.
+    expect(renderToStaticMarkup(createElement(CountUp, { value: 5.64, format: formatCost }))).toBe(
+      '$0'
+    );
+    expect(
+      renderToStaticMarkup(createElement(CountUp, { value: Number.NaN, format: formatCompact }))
+    ).toBe('0');
+  });
+});

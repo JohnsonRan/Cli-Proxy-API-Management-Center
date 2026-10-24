@@ -191,7 +191,8 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
           },
         ],
       },
-      options: baseCartesianOptions(theme, true),
+      // Polled every few seconds: animating each poll would make the bars wobble.
+      options: { ...baseCartesianOptions(theme, true), animation: false as const },
     }),
     [data?.series, labelsForChart, t, theme]
   );
@@ -214,6 +215,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
       },
       options: {
         ...baseCartesianOptions(theme, false),
+        animation: false as const,
         plugins: {
           legend: { display: false },
           tooltip: { mode: 'index' as const, intersect: false },
