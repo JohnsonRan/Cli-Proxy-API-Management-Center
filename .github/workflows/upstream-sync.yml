@@ -40,7 +40,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
           git fetch upstream main --tags
-          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store
+          git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store patch/modal-close-race
           echo "PREVIOUS_MAIN=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
           git reset --hard upstream/main
 
@@ -215,6 +215,9 @@ jobs:
           # Needs the core patch/usage-store endpoints.
           git merge --squash origin/patch/usage-store
           git commit -m "merge patch/usage-store branch"
+
+          git merge --squash origin/patch/modal-close-race
+          git commit -m "merge patch/modal-close-race branch"
 
       - name: Validate build and tests
         run: |

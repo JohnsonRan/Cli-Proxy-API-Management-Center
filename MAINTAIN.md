@@ -200,6 +200,12 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
     - **Cross-repo**: Needs the core patch `patch/usage-store`. Against a core without it the page reports a request error.
     - **Related Upstream Work**: Upstream removed its statistics page with the core statistics: Issues [#254](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/254), [#259](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/259), [#270](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/270) (all CLOSED) and PRs [#332](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/332), [#367](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/367) (CLOSED). Searched `usage statistics`, `统计` and `cost` on 2026-10-23. Upstream will not absorb it; keep the page when an upstream change conflicts.
 
+24. **`patch/modal-close-race`**
+    - **Goal**: Keep a `Modal` or `Sheet` close from being cancelled by a parent render.
+    - **Scope**: Both components derived `startClose` from `onClose`. Callers pass inline `onClose` handlers, so any parent render during the 350 ms close animation produced a new `startClose`, re-ran the open effect, cleared the close timer and left the overlay open. `onClose` is now read through a ref, so `startClose` is stable. Found through the core usage smoke test: the request detail dialog of `patch/usage-store` stayed open when the events tab re-rendered during its close. Structural guard in `tests/overlayCloseRace.test.ts`.
+    - **Note**: Upstream bug, independent of other patches; its position does not matter. Suitable for an upstream PR.
+    - **Related Upstream Work**: None found (searched `modal close`, `modal not closing`, `弹窗 关闭`, `onClose modal` on 2026-10-24).
+
 ## Temporary Compatibility Patches
 
 None. `tmp/patch/commandcode-quota-api` was folded into `patch/quota-api` on 2026-10-18: the picker's provider list belongs to that patch. `tmp/patch/api-keys-route` was retired once `patch/extract-client-api-keys` took ownership of the `/quick-start` and `/api-keys` route lines and `patch/remove-promotional-sections` stopped editing `MainRoutes.tsx`, which removed the adjacent-line conflict the compatibility patch existed to resolve.
@@ -222,7 +228,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/usage-exclude-embeddings patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store patch/modal-close-race
 
 git checkout -B main upstream/main
 
@@ -315,6 +321,9 @@ git commit -m "merge patch/auth-file-allowed-models branch"
 
 git merge --squash origin/patch/usage-store
 git commit -m "merge patch/usage-store branch"
+
+git merge --squash origin/patch/modal-close-race
+git commit -m "merge patch/modal-close-race branch"
 
 bun install --frozen-lockfile
 bun run type-check
