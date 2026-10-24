@@ -1426,6 +1426,8 @@
           "error_logs_max_files": "錯誤記錄保留檔案數",
           "usage_statistics_enabled": "啟用記憶體用量統計",
           "usage_statistics_enabled_desc": "啟用記憶體中的請求用量聚合",
+          "usage_exclude_embeddings": "用量統計排除向量請求",
+          "usage_exclude_embeddings_desc": "/v1/embeddings 請求不計入用量統計（用量佇列與內建用量庫），仍會出現在請求日誌與應用日誌中。重排請求照常統計。Home 模式下不生效。",
           "redis_usage_retention": "Redis 用量佇列保留秒數",
           "redis_usage_retention_hint": "RESP 介面 LPOP/RPOP 用量佇列的記憶體保留時間，最大 3600 秒",
           "antigravity_sensitive_words": "敏感詞混淆",

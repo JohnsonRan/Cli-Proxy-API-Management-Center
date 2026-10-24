@@ -1400,6 +1400,8 @@
           "error_logs_max_files": "오류 로그 보관 파일 수",
           "usage_statistics_enabled": "인메모리 사용량 통계 활성화",
           "usage_statistics_enabled_desc": "메모리에서 요청 사용량 통계를 집계합니다.",
+          "usage_exclude_embeddings": "사용량 통계에서 임베딩 제외",
+          "usage_exclude_embeddings_desc": "/v1/embeddings 요청을 사용량 통계(사용량 큐 및 내장 사용량 저장소)에서 제외합니다. 요청 로그와 애플리케이션 로그에는 계속 기록됩니다. Rerank 요청은 계속 집계됩니다. Home 모드에서는 적용되지 않습니다.",
           "redis_usage_retention": "Redis 사용량 큐 보존 시간 (초)",
           "redis_usage_retention_hint": "RESP LPOP/RPOP 사용량 출력을 위한 인메모리 보존 시간으로 최대 3600초입니다.",
           "antigravity_sensitive_words": "민감한 단어 난독화",
