@@ -473,6 +473,178 @@
   }
 }
 
+/* ---------- 提供商作用域（client.key-scopes） ---------- */
+
+.providerScopeTag {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, $success-color 15%, transparent);
+  color: $success-color;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.modalScopeNote {
+  margin: 0 0 $spacing-md;
+}
+
+.scopeCard {
+  margin-top: $spacing-md;
+}
+
+.scopeTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+
+.scopeActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.scopeBody {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.scopeEmpty,
+.scopeHint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.scopeHint {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.scopeList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.scopeRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(220px, 2fr) auto;
+  align-items: start;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+
+  &[data-invalid] {
+    border-color: $error-color;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr auto;
+
+    .scopeField:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.scopeField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  label {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+}
+
+.scopeChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-secondary);
+
+  &:focus-within {
+    border-color: var(--primary-color);
+  }
+}
+
+.scopeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px 6px;
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+  font-family: $font-mono;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.scopeChipRemove {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease-out-strong);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.scopeChipInput {
+  flex: 1;
+  min-width: 100px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.scopeRemove {
+  align-self: end;
+  margin-bottom: 7px;
+}
+
+.scopeError {
+  grid-column: 1 / -1;
+  color: $error-color;
+  font-size: 12px;
+}
+
 .spinning {
   animation: spin 1s linear infinite;
 }
