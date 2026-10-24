@@ -8,13 +8,9 @@ import type {
   UsageModelStat,
   UsageStats,
 } from '@/services/api/usageStore';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
+import { Button } from '@/components/ui/Button';
+import { downloadBlob } from '@/utils/download';
 import {
   METRIC_ACCENTS,
   SERIES_COLORS,
@@ -43,7 +39,7 @@ import {
   tokensPerRequest,
   type UsageMetric,
 } from '../format';
-import { sortRows, type EventsFilter, type SortState } from '../logic';
+import { sortRows, toCsv, type EventsFilter, type SortState } from '../logic';
 import { SortHead } from '../components/SortHead';
 import { useSort } from '../hooks/useSort';
 import { KeyLabel, ProviderBadge } from '../components/Labels';
@@ -102,6 +98,8 @@ function RankName({
     </span>
   );
 }
+
+type CsvField<T> = [label: string, value: (row: T) => string | number];
 
 interface Column<T> {
   key: string;
@@ -384,6 +382,43 @@ export function OverviewTab({
   const sortedKeys = ranked(stats.apiKeys, keyColumns, keySort.sort);
   const sortedCredentials = ranked(stats.credentials, credentialColumns, credentialSort.sort);
 
+  // Raw numbers for spreadsheets; an unpriced cost stays empty rather than 0.
+  const round = (value: number | null, digits: number) =>
+    value === null ? '' : Number(value.toFixed(digits));
+  const aggregateFields: CsvField<UsageAggregate>[] = [
+    [t('usage_stats.col_requests'), (a) => a.requests],
+    [t('usage_stats.series_failed'), (a) => a.failed],
+    [`${t('usage_stats.col_success_rate')} (%)`, (a) => round(successRate(a), 2)],
+    [t('usage_stats.col_input'), inputTokens],
+    [t('usage_stats.series_cache_read'), (a) => a.tokens.cacheRead],
+    [t('usage_stats.series_cache_write'), (a) => a.tokens.cacheWrite],
+    [t('usage_stats.col_output'), (a) => a.tokens.output],
+    [t('usage_stats.series_reasoning'), (a) => a.tokens.reasoning],
+    [t('usage_stats.col_tokens'), (a) => a.tokens.total],
+    [t('usage_stats.col_avg_tokens'), (a) => round(tokensPerRequest(a), 1)],
+    [`${t('usage_stats.col_latency')} (ms)`, (a) => Math.round(a.avgLatencyMs)],
+    [`${t('usage_stats.card_ttft_title')} (ms)`, (a) => Math.round(a.avgTtftMs)],
+    [`${t('usage_stats.col_speed')} (t/s)`, (a) => round(a.outputTps, 1)],
+    [`${t('usage_stats.col_cost')} (USD)`, (a) => round(priced(a), 6)],
+    [`${t('usage_stats.col_avg_cost')} (USD)`, (a) => round(costPerRequest(a), 6)],
+  ];
+  const downloadCsv = <T,>(name: string, fields: CsvField<T>[], rows: { row: T }[]) => {
+    const csv = toCsv([
+      fields.map(([label]) => label),
+      ...rows.map(({ row }) => fields.map(([, value]) => value(row))),
+    ]);
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    downloadBlob({
+      filename: `usage-${name}-${stamp}.csv`,
+      blob: new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+    });
+  };
+  const exportButton = (onClick: () => void, empty: boolean) => (
+    <Button variant="secondary" size="sm" onClick={onClick} disabled={empty}>
+      {t('usage_stats.export_csv')}
+    </Button>
+  );
+
   const rowProps = (filter: EventsFilter, label: string) => ({
     className: styles.clickableRow,
     tabIndex: 0,
@@ -584,7 +619,22 @@ export function OverviewTab({
       </div>
 
       <section className={styles.panel} data-reveal="">
-        <PanelHeading title={t('usage_stats.models_title')} desc={t('usage_stats.models_desc')} />
+        <div className={styles.panelHeader}>
+          <PanelHeading title={t('usage_stats.models_title')} desc={t('usage_stats.models_desc')} />
+          {exportButton(
+            () =>
+              downloadCsv(
+                'models',
+                [
+                  [t('usage_stats.col_model'), (m: UsageModelStat) => m.model],
+                  [t('usage_stats.col_provider'), (m: UsageModelStat) => m.provider],
+                  ...aggregateFields,
+                ],
+                sortedModels
+              ),
+            stats.models.length === 0
+          )}
+        </div>
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
@@ -655,7 +705,22 @@ export function OverviewTab({
 
       <div className={styles.split}>
         <section className={styles.panel} data-reveal="">
-          <PanelHeading title={t('usage_stats.keys_title')} desc={t('usage_stats.keys_desc')} />
+          <div className={styles.panelHeader}>
+            <PanelHeading title={t('usage_stats.keys_title')} desc={t('usage_stats.keys_desc')} />
+            {exportButton(
+              () =>
+                downloadCsv(
+                  'keys',
+                  [
+                    [t('usage_stats.col_key'), keyName],
+                    [t('usage_stats.col_key_masked'), (k: UsageApiKeyStat) => k.apiKey],
+                    ...aggregateFields,
+                  ],
+                  sortedKeys
+                ),
+              stats.apiKeys.length === 0
+            )}
+          </div>
           {stats.apiKeys.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
@@ -694,10 +759,25 @@ export function OverviewTab({
         </section>
 
         <section className={styles.panel} data-reveal="">
-          <PanelHeading
-            title={t('usage_stats.credentials_title')}
-            desc={t('usage_stats.credentials_desc')}
-          />
+          <div className={styles.panelHeader}>
+            <PanelHeading
+              title={t('usage_stats.credentials_title')}
+              desc={t('usage_stats.credentials_desc')}
+            />
+            {exportButton(
+              () =>
+                downloadCsv(
+                  'credentials',
+                  [
+                    [t('usage_stats.col_credential'), credentialName],
+                    [t('usage_stats.col_provider'), (c: UsageCredentialStat) => c.provider],
+                    ...aggregateFields,
+                  ],
+                  sortedCredentials
+                ),
+              stats.credentials.length === 0
+            )}
+          </div>
           {stats.credentials.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
