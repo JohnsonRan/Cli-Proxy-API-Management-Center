@@ -270,7 +270,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
             options={windowOptions}
             onChange={(value) => setMinutes(Number(value))}
             ariaLabel={t('usage_stats.realtime_window_label')}
-            size="sm"
+            fullWidth={false}
           />
           <Button variant="secondary" size="sm" onClick={() => setPaused((p) => !p)}>
             {paused ? t('usage_stats.realtime_resume') : t('usage_stats.realtime_pause')}
