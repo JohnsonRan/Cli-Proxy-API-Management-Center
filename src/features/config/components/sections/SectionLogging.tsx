@@ -90,6 +90,14 @@ export function SectionLogging({
           disabled={disabled}
           onChange={(usageStatisticsEnabled) => onChange({ usageStatisticsEnabled })}
         />
+        <ToggleSetting
+          fieldId="usageExcludeEmbeddings"
+          label={t('config_management.visual.sections.system.usage_exclude_embeddings')}
+          description={t('config_management.visual.sections.system.usage_exclude_embeddings_desc')}
+          checked={values.usageExcludeEmbeddings}
+          disabled={disabled}
+          onChange={(usageExcludeEmbeddings) => onChange({ usageExcludeEmbeddings })}
+        />
       </SettingList>
     </SectionCard>
   );
