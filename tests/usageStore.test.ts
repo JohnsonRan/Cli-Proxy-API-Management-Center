@@ -822,11 +822,13 @@ describe('usage overview', () => {
 });
 
 describe('usage auto-refresh', () => {
-  test('periodic ticks skip the pricing request while other loads still fetch it', () => {
+  test('prices load once per page; only explicit reloads refetch them', () => {
     const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
     expect(page).toContain('if (!document.hidden) void load(false);');
     expect(page).toContain('refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null)');
-    expect(page).toContain('if (nextPricing) setPricing(nextPricing);');
+    // Filter changes fetch prices only until they have loaded once.
+    expect(page).toContain('void load(!pricingLoadedRef.current);');
+    expect(page).toContain('useHeaderRefresh(load);');
   });
 });
 
