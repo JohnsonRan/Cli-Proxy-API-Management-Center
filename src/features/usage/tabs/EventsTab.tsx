@@ -35,7 +35,15 @@ import {
   EventTokensCell,
 } from '../components/EventCells';
 import { PanelHeading, Rate } from '../components/PanelBits';
-import { formatCompact, formatCost, formatMs, formatTps, successRate } from '../format';
+import {
+  exactCost,
+  exactCount,
+  formatCompact,
+  formatCost,
+  formatMs,
+  formatTps,
+  successRate,
+} from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   EVENT_COLUMNS,
@@ -79,6 +87,7 @@ function FilterSummary({
     icon: MetricIconName;
     label: string;
     value: ReactNode;
+    title?: string;
     color: string;
     sub?: string;
   }[] = [
@@ -86,6 +95,7 @@ function FilterSummary({
       icon: 'requests',
       label: t('usage_stats.card_requests'),
       value: <CountUp value={totals.requests} format={formatCompact} />,
+      title: exactCount(totals.requests),
       color: METRIC_ACCENTS.requests,
     },
     {
@@ -104,12 +114,14 @@ function FilterSummary({
       icon: 'tokens',
       label: t('usage_stats.card_tokens'),
       value: <CountUp value={totals.tokens.total} format={formatCompact} />,
+      title: exactCount(totals.tokens.total),
       color: METRIC_ACCENTS.tokens,
     },
     {
       icon: 'cost',
       label: t('usage_stats.card_cost'),
       value: <CountUp value={totals.cost} format={formatCost} />,
+      title: exactCost(totals.cost),
       color: METRIC_ACCENTS.cost,
     },
     {
@@ -148,7 +160,9 @@ function FilterSummary({
               <MetricIcon name={item.icon} />
             </span>
           </div>
-          <span className={styles.summaryValue}>{item.value}</span>
+          <span className={styles.summaryValue} title={item.title}>
+            {item.value}
+          </span>
           {item.sub && <span className={styles.summarySub}>{item.sub}</span>}
         </div>
       ))}
