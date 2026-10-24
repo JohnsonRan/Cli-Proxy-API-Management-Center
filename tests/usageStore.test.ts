@@ -234,6 +234,37 @@ describe('usage analysis and pricing helpers', () => {
     expect(parseDraftRows([row('', '1')])).toEqual({ invalidRow: 0 });
   });
 
+  test('lists overrides inline with effective prices and replaces them by model', async () => {
+    const { pricingRows, replaceOverride } = await import('@/features/usage/logic');
+    const price = { input: 1, output: 2, cacheRead: 0.1, cacheWrite: 1 };
+    const overrides = [
+      { model: 'GPT-X', input: 3, output: 4 },
+      { model: 'unused', input: 5, output: 6, cacheRead: 0.5 },
+    ];
+    const rows = pricingRows(
+      [
+        { model: 'gpt-x', source: 'override', price: { ...price, input: 3 } },
+        { model: 'other', source: 'models.dev', price },
+      ],
+      overrides
+    );
+    expect(rows.map((r) => [r.model, r.override?.model ?? null])).toEqual([
+      ['gpt-x', 'GPT-X'],
+      ['other', null],
+      ['unused', 'unused'],
+    ]);
+    // An override for a model without usage yet shows its own price, cache write defaulting to input.
+    expect(rows[2].price).toEqual({ input: 5, output: 6, cacheRead: 0.5, cacheWrite: 5 });
+
+    const next = { model: 'gpt-x', input: 7, output: 8 };
+    expect(replaceOverride(overrides, 'gpt-x', next)).toEqual([overrides[1], next]);
+    expect(replaceOverride(overrides, '', { model: 'Unused', input: 1, output: 1 })).toEqual([
+      overrides[0],
+      { model: 'Unused', input: 1, output: 1 },
+    ]);
+    expect(replaceOverride(overrides, 'unused', null)).toEqual([overrides[0]]);
+  });
+
   test('reads stored event columns and builds event queries', () => {
     expect(readEventColumns(null)).toEqual(DEFAULT_EVENT_COLUMNS);
     expect(readEventColumns('{bad')).toEqual(DEFAULT_EVENT_COLUMNS);

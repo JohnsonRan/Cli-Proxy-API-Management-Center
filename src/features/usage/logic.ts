@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
-import type { UsageEventsQuery, UsagePriceOverride } from '@/services/api/usageStore';
+import type {
+  UsageEventsQuery,
+  UsageModelPrice,
+  UsagePriceOverride,
+} from '@/services/api/usageStore';
 import { isUsageRange, type UsageRange } from './format';
 import type { UsageWindow } from './UsagePage';
 
@@ -236,6 +240,58 @@ export const parseDraftRows = (
     });
   }
   return { overrides };
+};
+
+const overrideKey = (model: string) => model.trim().toLowerCase();
+
+/** An effective-price row together with the configured override that applies to it, if any. */
+export interface PricingRow extends UsageModelPrice {
+  override: UsagePriceOverride | null;
+}
+
+/**
+ * Effective prices of the stored models plus overrides for models with no usage yet (the
+ * backend lists only stored models), so every override stays visible and editable.
+ */
+export const pricingRows = (
+  models: UsageModelPrice[],
+  overrides: UsagePriceOverride[]
+): PricingRow[] => {
+  const byKey = new Map(overrides.map((o) => [overrideKey(o.model), o]));
+  const rows: PricingRow[] = models.map((m) => ({
+    ...m,
+    override: byKey.get(overrideKey(m.model)) ?? null,
+  }));
+  const listed = new Set(models.map((m) => overrideKey(m.model)));
+  for (const o of overrides) {
+    if (listed.has(overrideKey(o.model))) continue;
+    rows.push({
+      model: o.model,
+      source: 'override',
+      price: {
+        input: o.input,
+        output: o.output,
+        cacheRead: o.cacheRead ?? o.input,
+        cacheWrite: o.cacheWrite ?? o.input,
+      },
+      override: o,
+    });
+  }
+  return rows;
+};
+
+/**
+ * Returns the override list with `model`'s override replaced by `next` (case-insensitive),
+ * or removed when `next` is null. An override for `next.model` is replaced as well.
+ */
+export const replaceOverride = (
+  overrides: UsagePriceOverride[],
+  model: string,
+  next: UsagePriceOverride | null
+): UsagePriceOverride[] => {
+  const drop = new Set([model, next?.model ?? ''].filter((m) => m.trim()).map(overrideKey));
+  const rest = overrides.filter((o) => !drop.has(overrideKey(o.model)));
+  return next ? [...rest, next] : rest;
 };
 
 export const emptyRow = (): DraftRow => ({
