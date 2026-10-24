@@ -439,9 +439,9 @@ export function OverviewTab({
       </span>
     );
 
-  const unitCostCell = (value: number | null) => {
+  const unitCostCell = (value: number | null, empty: string = t('usage_stats.unpriced')) => {
     return value === null ? (
-      <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
+      <span className={styles.muted}>{empty}</span>
     ) : (
       <span title={exactCost(value)}>{formatCost(value)}</span>
     );
@@ -880,7 +880,12 @@ export function OverviewTab({
                   <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
                   <TableCell alignRight>{costCell(m)}</TableCell>
                   <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
-                  <TableCell alignRight>{unitCostCell(costPerMillionTokens(m))}</TableCell>
+                  <TableCell alignRight>
+                    {unitCostCell(
+                      costPerMillionTokens(m),
+                      priced(m) === null ? t('usage_stats.unpriced') : '—'
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
