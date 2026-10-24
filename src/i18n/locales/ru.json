@@ -1257,7 +1257,16 @@
     "store_settings_saved": "Настройки хранилища сохранены",
     "store_disable_title": "Отключить хранилище статистики?",
     "store_disable_confirm": "Новые запросы перестанут записываться до повторного включения. Существующие данные SQLite и настройки сохранятся.",
-    "store_disable_action": "Отключить"
+    "store_disable_action": "Отключить",
+    "col_quota": "Остаток квоты",
+    "quota_load": "Загрузить квоту",
+    "quota_unloaded": "Открыть",
+    "quota_loading": "Загрузка…",
+    "quota_error": "Ошибка",
+    "quota_details": "Детали",
+    "quota_resets": "сброс {{time}}",
+    "quota_open_for": "Показать квоту {{name}}",
+    "quota_modal_title": "Квота учётных данных"
   },
   "logs": {
     "preview_too_large": "Журнал запроса превышает лимит предпросмотра в 2 МиБ. Скачайте его для просмотра.",

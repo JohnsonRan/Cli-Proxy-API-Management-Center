@@ -1280,7 +1280,16 @@
     "store_settings_saved": "儲存設定已儲存",
     "store_disable_title": "關閉用量儲存？",
     "store_disable_confirm": "關閉後將停止記錄新請求，直到再次開啟。現有的 SQLite 資料與設定會保留。",
-    "store_disable_action": "關閉"
+    "store_disable_action": "關閉",
+    "col_quota": "剩餘額度",
+    "quota_load": "載入額度",
+    "quota_unloaded": "檢視",
+    "quota_loading": "載入中…",
+    "quota_error": "載入失敗",
+    "quota_details": "詳情",
+    "quota_resets": "{{time}}重置",
+    "quota_open_for": "檢視 {{name}} 的額度",
+    "quota_modal_title": "憑證額度"
   },
   "logs": {
     "preview_too_large": "封包超過 2 MiB 預覽限制，請下載查看",

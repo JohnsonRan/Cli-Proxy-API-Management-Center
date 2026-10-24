@@ -1254,7 +1254,16 @@
     "store_settings_saved": "저장소 설정이 저장되었습니다",
     "store_disable_title": "사용량 저장소를 끄시겠습니까?",
     "store_disable_confirm": "다시 켤 때까지 새 요청이 기록되지 않습니다. 기존 SQLite 데이터와 설정은 유지됩니다.",
-    "store_disable_action": "끄기"
+    "store_disable_action": "끄기",
+    "col_quota": "남은 한도",
+    "quota_load": "한도 불러오기",
+    "quota_unloaded": "보기",
+    "quota_loading": "불러오는 중…",
+    "quota_error": "오류",
+    "quota_details": "상세",
+    "quota_resets": "{{time}} 초기화",
+    "quota_open_for": "{{name}} 한도 보기",
+    "quota_modal_title": "자격 증명 한도"
   },
   "logs": {
     "preview_too_large": "이 요청 로그는 2 MiB 미리보기 제한을 초과합니다. 다운로드하여 확인하세요.",
