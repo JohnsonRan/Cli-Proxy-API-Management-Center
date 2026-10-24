@@ -54,21 +54,25 @@ export function Modal({
     );
   }, []);
 
-  const startClose = useCallback(
-    (notifyParent: boolean) => {
-      if (closeTimerRef.current !== null) return;
-      setIsClosing(true);
-      closeTimerRef.current = window.setTimeout(() => {
-        setIsVisible(false);
-        setIsClosing(false);
-        closeTimerRef.current = null;
-        if (notifyParent) {
-          onClose();
-        }
-      }, CLOSE_ANIMATION_DURATION);
-    },
-    [onClose]
-  );
+  // A ref keeps startClose stable: an inline onClose changes on every parent render, and
+  // a new startClose would re-run the open effect and cancel a close already in progress.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const startClose = useCallback((notifyParent: boolean) => {
+    if (closeTimerRef.current !== null) return;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsVisible(false);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+      if (notifyParent) {
+        onCloseRef.current();
+      }
+    }, CLOSE_ANIMATION_DURATION);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
