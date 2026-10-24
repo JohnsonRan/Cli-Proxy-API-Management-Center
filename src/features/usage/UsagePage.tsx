@@ -132,12 +132,15 @@ export function UsagePage() {
     setSearchParams(params, { replace: true });
   }, [globalFilter, tab, resultFilter, setSearchParams]);
 
-  // Prices change only through the pricing tab or a models.dev refresh, so the periodic
-  // auto-refresh skips them; every other load (mount, filters, header refresh) refetches.
+  // Prices change only through the pricing tab or the backend's daily models.dev refresh.
+  // Explicit loads (header refresh, pricing tab reload, enabling the store) refetch them;
+  // filter changes fetch them only until they have loaded once, and auto-refresh never does.
+  const pricingLoadedRef = useRef(false);
   const load = useCallback(
     async (refreshPricing = true) => {
       const requestId = ++requestRef.current;
       if (!connected) {
+        pricingLoadedRef.current = false;
         setLoading(false);
         return;
       }
@@ -168,7 +171,10 @@ export function UsagePage() {
         setUsageWindow(next);
         setStats(nextStats);
         setPrevStats(nextPrev);
-        if (nextPricing) setPricing(nextPricing);
+        if (nextPricing) {
+          setPricing(nextPricing);
+          pricingLoadedRef.current = true;
+        }
         setOptions(nextOptions);
       } catch (err: unknown) {
         if (requestId !== requestRef.current) return;
@@ -208,7 +214,7 @@ export function UsagePage() {
   );
 
   useEffect(() => {
-    void load();
+    void load(!pricingLoadedRef.current);
     return () => {
       requestRef.current += 1;
     };
