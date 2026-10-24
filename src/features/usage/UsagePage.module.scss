@@ -1338,3 +1338,31 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Pricing ---------- */
+
+.iconActions {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.iconButton {
+  padding: 4px 6px;
+  line-height: 0;
+}
+
+.iconLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overrideTag {
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
