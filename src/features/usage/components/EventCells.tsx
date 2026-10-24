@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UsageEvent } from '@/services/api/usageStore';
-import { formatCompact, formatMs, formatPercent } from '../format';
+import { formatCompact, formatMs, formatPercent, formatTps } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import { eventCacheHitRate, eventTransport, type EventDimension } from '../logic';
 import { ProviderBadge } from './Labels';
@@ -210,7 +210,10 @@ export function EventLatencyCell({
       >
         {formatMs(e.latencyMs)}
       </span>
-      <span className={styles.cellSub}>TTFT {formatMs(e.ttftMs)}</span>
+      <span className={styles.cellSub}>
+        TTFT {formatMs(e.ttftMs)}
+        {e.outputTps > 0 && ` · ${formatTps(e.outputTps)}`}
+      </span>
     </span>
   );
 }

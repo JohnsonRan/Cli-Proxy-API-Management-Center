@@ -4,7 +4,7 @@ import type { UsageEvent } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useNotificationStore } from '@/stores';
-import { formatCompact, formatCost, formatMs } from '../format';
+import { formatCompact, formatCost, formatMs, formatTps } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import { ProviderBadge } from './Labels';
 import { RequestLogSection } from './RequestLogSection';
@@ -77,6 +77,7 @@ export function EventDetailModal({
       ),
     ],
     [t('usage_stats.col_latency'), `${formatMs(event.latencyMs)} · TTFT ${formatMs(event.ttftMs)}`],
+    [t('usage_stats.col_speed'), formatTps(event.outputTps)],
     [
       t('usage_stats.col_tokens'),
       t('usage_stats.detail_tokens', {

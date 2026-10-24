@@ -33,6 +33,7 @@ import {
   formatCost,
   formatDatetimeLocal,
   formatMs,
+  formatTps,
   parseDatetimeLocal,
   previousWindow,
   rangeWindow,
@@ -57,6 +58,7 @@ const aggregate = (requests: number, failed: number, cost: number, substituted =
   unpriced_requests: 0,
   avg_latency_ms: 120,
   avg_ttft_ms: 40,
+  output_tps: 85.5,
   tokens: { input_uncached: 600, cache_read: 400, output: 200, reasoning: 50, total: 1200 },
 });
 
@@ -79,6 +81,8 @@ describe('usage store API normalization', () => {
     expect(stats.totals.tokens.cacheWrite).toBe(0);
     expect(stats.series).toHaveLength(1);
     expect(stats.models[0].priceSource).toBe('models.dev');
+    expect(stats.totals.outputTps).toBe(85.5);
+    expect(stats.series[0].outputTps).toBe(85.5);
     expect(stats.apiKeys[0].apiKey).toBe('sk-a...0001');
     expect(stats.credentials).toEqual([]);
     expect(normalizeUsageStats(null).bucket).toBe('hour');
@@ -97,12 +101,14 @@ describe('usage store API normalization', () => {
           priced: false,
           response_model: 'm-sub',
           substituted: true,
+          output_tps: 'junk',
         },
       ],
     });
     expect(page.nextBefore).toBe(7);
     expect(page.events[0]).toMatchObject({
       id: 7,
+      outputTps: 0,
       failed: true,
       statusCode: 429,
       priced: false,
@@ -148,6 +154,10 @@ describe('usage formatting', () => {
     expect(formatMs(0)).toBe('—');
     expect(formatMs(420)).toBe('420 ms');
     expect(formatMs(1500)).toBe('1.50 s');
+    expect(formatTps(0)).toBe('—');
+    expect(formatTps(Number.NaN)).toBe('—');
+    expect(formatTps(42.46)).toBe('42.5 t/s');
+    expect(formatTps(1234.4)).toBe('1,234 t/s');
   });
 
   test('computes rates, windows and period changes', () => {
@@ -193,13 +203,18 @@ describe('usage analysis and pricing helpers', () => {
   test('normalizes analysis and labels histogram buckets', () => {
     const analysis = normalizeUsageAnalysis({
       latency: { count: 3, p50: 900, p95: 4000 },
+      tps: { count: 2, p50: 120 },
       histogram: [1, 2, 0],
       histogram_bounds_ms: [500, 1000],
       heatmap: [{ weekday: 1, hour: 7, requests: 5 }],
       models: 'junk',
     });
     expect(analysis.latency).toEqual({ count: 3, p50: 900, p90: 0, p95: 4000, p99: 0, max: 0 });
+    expect(analysis.tps.p50).toBe(120);
     expect(analysis.models).toEqual([]);
+    const withModels = normalizeUsageAnalysis({ models: [{ model: 'm', tps: { p50: 64 } }] });
+    expect(withModels.models[0].tps.p50).toBe(64);
+    expect(normalizeUsageAnalysis({}).tps.count).toBe(0);
     expect(histogramLabels(analysis.histogramBoundsMs)).toEqual(['≤0.5s', '0.5s–1s', '>1s']);
   });
 
@@ -602,7 +617,7 @@ describe('usage precision, transport and cells', () => {
   });
 
   test('dense cells put the key figure first and details below', async () => {
-    const { EventStatusCell, EventTokensCell } =
+    const { EventLatencyCell, EventStatusCell, EventTokensCell } =
       await import('@/features/usage/components/EventCells');
     const event = normalizeUsageEvents({
       events: [
@@ -628,5 +643,13 @@ describe('usage precision, transport and cells', () => {
     expect(tokens).toContain('1K → 300');
     expect(tokens).toContain('75%');
     expect(tokens).toContain('80');
+    const latency = (outputTps: number) =>
+      renderToStaticMarkup(
+        createElement(EventLatencyCell, {
+          event: { ...event, latencyMs: 2000, ttftMs: 500, outputTps },
+        })
+      );
+    expect(latency(85.25)).toContain('85.3 t/s');
+    expect(latency(0)).not.toContain('t/s');
   });
 });

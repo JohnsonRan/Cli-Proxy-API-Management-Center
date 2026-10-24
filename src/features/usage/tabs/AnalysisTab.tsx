@@ -20,7 +20,7 @@ import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { PanelHeading } from '../components/PanelBits';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 import { StatCard } from '../components/StatCard';
-import { USAGE_METRICS, formatCompact, formatMs, type UsageMetric } from '../format';
+import { USAGE_METRICS, formatCompact, formatMs, formatTps, type UsageMetric } from '../format';
 import { histogramLabels } from '../logic';
 import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
@@ -102,7 +102,7 @@ export function AnalysisTab({
     return <Skeleton height={320} rounded={14} />;
   }
 
-  const { latency, ttft } = analysis;
+  const { latency, ttft, tps } = analysis;
   return (
     <>
       <section className={styles.cards} aria-label={t('usage_stats.latency_title')}>
@@ -128,6 +128,12 @@ export function AnalysisTab({
           label={t('usage_stats.ttft_p95')}
           value={formatMs(ttft.p95)}
           sub={t('usage_stats.samples', { count: formatCompact(latency.count) })}
+        />
+        <StatCard
+          accent="speed"
+          label={t('usage_stats.speed_p50')}
+          value={formatTps(tps.p50)}
+          sub={t('usage_stats.samples', { count: formatCompact(tps.count) })}
         />
       </section>
       {analysis.sampled && <p className={styles.muted}>{t('usage_stats.sampled_hint')}</p>}
@@ -192,6 +198,7 @@ export function AnalysisTab({
                 <TableHead alignRight>P99</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_ttft_p50')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_ttft_p95')}</TableHead>
+                <TableHead alignRight>{t('usage_stats.col_speed_p50')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -204,6 +211,7 @@ export function AnalysisTab({
                   <TableCell alignRight>{formatMs(m.latency.p99)}</TableCell>
                   <TableCell alignRight>{formatMs(m.ttft.p50)}</TableCell>
                   <TableCell alignRight>{formatMs(m.ttft.p95)}</TableCell>
+                  <TableCell alignRight>{formatTps(m.tps.p50)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
