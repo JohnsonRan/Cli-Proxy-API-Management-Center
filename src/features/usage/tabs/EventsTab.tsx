@@ -1,16 +1,8 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import {
@@ -143,20 +135,23 @@ function FilterSummary({
       icon: 'substituted',
       label: t('usage_stats.card_substituted'),
       value: <CountUp value={totals.substituted} format={formatCompact} />,
-      color: '#d97706',
+      color: METRIC_ACCENTS.latency,
     });
   }
   return (
     <div className={styles.summaryStrip} aria-label={t('usage_stats.events_summary')}>
       {items.map((item) => (
-        <div
-          key={item.icon}
-          className={styles.summaryItem}
-          style={{ '--accent': item.color } as CSSProperties}
-        >
+        <Card key={item.icon} className={styles.summaryItem}>
           <div className={styles.summaryTop}>
-            <span className={styles.summaryLabel}>{item.label}</span>
-            <span className={styles.summaryIcon}>
+            <span className={styles.statLabelGroup}>
+              <span
+                className={styles.metricDot}
+                style={{ backgroundColor: item.color }}
+                aria-hidden="true"
+              />
+              <span className={styles.summaryLabel}>{item.label}</span>
+            </span>
+            <span className={styles.summaryGlyph} aria-hidden="true">
               <MetricIcon name={item.icon} />
             </span>
           </div>
@@ -164,7 +159,7 @@ function FilterSummary({
             {item.value}
           </span>
           {item.sub && <span className={styles.summarySub}>{item.sub}</span>}
-        </div>
+        </Card>
       ))}
       {showResultHint && (
         <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>
