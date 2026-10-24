@@ -8,7 +8,7 @@ import { formatCompact, formatCost, formatMs, formatTps } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import { ProviderBadge } from './Labels';
 import { RequestLogSection } from './RequestLogSection';
-import { eventTransport } from '../logic';
+import { eventTransport, formatDetailIsp, formatDetailLocation } from '../logic';
 import styles from '../UsagePage.module.scss';
 
 export function EventDetailModal({
@@ -33,6 +33,9 @@ export function EventDetailModal({
 
   const tk = event.tokens;
   const keyName = labels.keyName(event.apiKeyId);
+  const geo = event.clientGeo;
+  const locationText = geo ? formatDetailLocation(geo, i18n.language, t) : '';
+  const ispText = geo ? formatDetailIsp(geo) : '';
   const rows: [string, ReactNode][] = [
     [t('usage_stats.col_time'), new Date(event.timestamp).toLocaleString(i18n.language)],
     [t('usage_stats.detail_request_id'), event.requestId || '—'],
@@ -94,6 +97,10 @@ export function EventDetailModal({
       t('usage_stats.detail_client'),
       [event.clientIp, event.userAgent].filter(Boolean).join(' · ') || '—',
     ],
+    ...(locationText
+      ? ([[t('usage_stats.detail_location'), locationText]] as [string, ReactNode][])
+      : []),
+    ...(ispText ? ([[t('usage_stats.detail_isp'), ispText]] as [string, ReactNode][]) : []),
   ];
 
   return (
