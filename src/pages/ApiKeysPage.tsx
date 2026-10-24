@@ -42,10 +42,16 @@ import {
   type ExcludedModelCandidate,
   type ExcludedModelsCatalogState,
 } from '@/components/excludedModels';
-import { apiKeysApi, ClientApiKeyItem } from '@/services/api/apiKeys';
+import {
+  apiKeysApi,
+  type ClientApiKeyItem,
+  type GlobalClientModelRules,
+} from '@/services/api/apiKeys';
+import { guardConfigConnection } from '@/services/api/configValue';
 import { modelsApi } from '@/services/api/models';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+import { GlobalClientModelRulesCard } from './GlobalClientModelRulesCard';
 
 function useProxyModelCatalog(enabled: boolean) {
   const [candidates, setCandidates] = useState<ExcludedModelCandidate[]>([]);
@@ -73,7 +79,11 @@ function useProxyModelCatalog(enabled: boolean) {
   return { candidates, catalogState, retry: load };
 }
 import { generateSecureApiKey } from '@/utils/apiKey';
-import { hasApiKeyModelRestrictions, summarizeApiKeyModelScope } from '@/utils/apiKeyScope';
+import {
+  DEFAULT_VISIBLE_MODEL_LIMIT,
+  hasApiKeyModelRestrictions,
+  summarizeApiKeyModelScope,
+} from '@/utils/apiKeyScope';
 import { copyToClipboard } from '@/utils/clipboard';
 import { maskApiKey } from '@/utils/format';
 import { getErrorMessage } from '@/utils/helpers';
@@ -93,9 +103,16 @@ export function ApiKeysPage() {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const clearCache = useConfigStore((state) => state.clearCache);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
   const apiKeys = useMemo(() => apiKeyItems.map((item) => item.apiKey), [apiKeyItems]);
+  const [globalModelRules, setGlobalModelRules] = useState<GlobalClientModelRules>(() => ({
+    models: [],
+    excludedModels: [],
+  }));
+  const [globalRulesEditing, setGlobalRulesEditing] = useState(false);
+  const connectionGuardRef = useRef<() => void>(() => {});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -113,7 +130,7 @@ export function ApiKeysPage() {
   const [allowedModels, setAllowedModels] = useState<string[]>([]);
   const [excludedModels, setExcludedModels] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
-  const modelCatalog = useProxyModelCatalog(modalOpen);
+  const modelCatalog = useProxyModelCatalog(modalOpen || globalRulesEditing);
 
   // Delete Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -126,11 +143,19 @@ export function ApiKeysPage() {
   const apiKeyErrorId = `${apiKeyInputId}-error`;
 
   const loadKeys = useCallback(async () => {
+    const assertConnection = guardConfigConnection();
     setLoading(true);
     try {
-      const items = await apiKeysApi.listItems();
+      const [items, globalRules] = await Promise.all([
+        apiKeysApi.listItems(),
+        apiKeysApi.getGlobalModelRules(),
+      ]);
+      assertConnection();
+      connectionGuardRef.current = assertConnection;
       setApiKeyItems(items);
+      setGlobalModelRules(globalRules);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       showNotification(getErrorMessage(err), 'error');
     } finally {
       setLoading(false);
@@ -140,6 +165,32 @@ export function ApiKeysPage() {
   useEffect(() => {
     void loadKeys();
   }, [loadKeys]);
+
+  const handleSaveGlobalModelRules = useCallback(
+    async (next: GlobalClientModelRules): Promise<boolean> => {
+      const assertConnection = connectionGuardRef.current;
+      try {
+        const saved = await apiKeysApi.replaceGlobalModelRules(
+          next,
+          globalModelRules,
+          assertConnection,
+          (committedModels) => {
+            setGlobalModelRules((current) => ({ ...current, models: committedModels }));
+          }
+        );
+        setGlobalModelRules(saved);
+        clearCache('api-keys');
+        void fetchConfig(true).catch(() => undefined);
+        showNotification(t('common.saved_success', '保存成功'), 'success');
+        return true;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return false;
+        showNotification(getErrorMessage(err), 'error');
+        return false;
+      }
+    },
+    [clearCache, fetchConfig, globalModelRules, showNotification, t]
+  );
 
   // Drop the pending copy-feedback timer so it cannot fire after unmount.
   useEffect(() => {
@@ -153,15 +204,12 @@ export function ApiKeysPage() {
 
   // Compute metrics
   const totalKeys = apiKeys.length;
-  const namedCount = useMemo(
-    () => apiKeyItems.filter((item) => !!item.name).length,
-    [apiKeyItems]
-  );
+  const namedCount = useMemo(() => apiKeyItems.filter((item) => !!item.name).length, [apiKeyItems]);
 
   // Keys that narrow their model scope, by allow-list or by exclusions.
   const restrictedCount = useMemo(
-    () => apiKeyItems.filter(hasApiKeyModelRestrictions).length,
-    [apiKeyItems]
+    () => apiKeyItems.filter((item) => hasApiKeyModelRestrictions(item, globalModelRules)).length,
+    [apiKeyItems, globalModelRules]
   );
 
   const metricsLoading = loading && apiKeyItems.length === 0;
@@ -284,7 +332,17 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [allowedModels, apiKeyItems, editingIndex, excludedModels, fetchConfig, keyInput, nameInput, showNotification, t]);
+  }, [
+    allowedModels,
+    apiKeyItems,
+    editingIndex,
+    excludedModels,
+    fetchConfig,
+    keyInput,
+    nameInput,
+    showNotification,
+    t,
+  ]);
 
   const openDeleteModal = (index: number) => {
     setTargetDeleteIndex(index);
@@ -323,7 +381,7 @@ export function ApiKeysPage() {
     targetDeleteIndex !== null && targetDeleteIndex >= 0 ? apiKeys[targetDeleteIndex] : '';
   const deleteTargetName =
     targetDeleteIndex !== null && targetDeleteIndex >= 0
-      ? apiKeyItems[targetDeleteIndex]?.name ?? ''
+      ? (apiKeyItems[targetDeleteIndex]?.name ?? '')
       : '';
 
   return (
@@ -349,12 +407,7 @@ export function ApiKeysPage() {
             <IconRefreshCw size={14} className={loading ? styles.spinning : ''} />
             <span>{t('api_keys_page.refresh')}</span>
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={loading || saving}
-            onClick={openAddModal}
-          >
+          <Button variant="primary" size="sm" disabled={loading || saving} onClick={openAddModal}>
             <IconPlus size={16} />
             <span>{t('api_keys_page.create_key')}</span>
           </Button>
@@ -403,6 +456,19 @@ export function ApiKeysPage() {
         </div>
       </section>
 
+      {/* 全局默认模型规则 */}
+      <GlobalClientModelRulesCard
+        rules={globalModelRules}
+        loading={loading}
+        disabled={saving}
+        candidates={modelCatalog.candidates}
+        catalogState={modelCatalog.catalogState}
+        onRetryCatalog={() => void modelCatalog.retry()}
+        editing={globalRulesEditing}
+        onEditingChange={setGlobalRulesEditing}
+        onSave={handleSaveGlobalModelRules}
+      />
+
       {/* 工具栏 */}
       <div className={styles.toolbar}>
         <div className={styles.searchWrapper}>
@@ -428,9 +494,7 @@ export function ApiKeysPage() {
           )}
         </div>
         <div className={styles.countBadge}>
-          {searchQuery
-            ? `${filteredRows.length} / ${totalKeys}`
-            : `${totalKeys}`}
+          {searchQuery ? `${filteredRows.length} / ${totalKeys}` : `${totalKeys}`}
         </div>
       </div>
 
@@ -488,7 +552,11 @@ export function ApiKeysPage() {
               {filteredRows.map(({ item, key, index, name }) => {
                 const isRevealed = revealedKeys.has(key);
                 const isCopied = copiedKey === key;
-                const scope = summarizeApiKeyModelScope(item);
+                const scope = summarizeApiKeyModelScope(
+                  item,
+                  DEFAULT_VISIBLE_MODEL_LIMIT,
+                  globalModelRules
+                );
 
                 return (
                   <TableRow key={`${key}-${index}`}>
@@ -509,7 +577,9 @@ export function ApiKeysPage() {
                           type="button"
                           className={styles.iconBtn}
                           onClick={() => toggleReveal(key)}
-                          title={t(isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key')}
+                          title={t(
+                            isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
+                          )}
                           aria-label={t(
                             isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
                           )}
@@ -534,7 +604,15 @@ export function ApiKeysPage() {
 
                     <TableCell>
                       <div className={styles.modelTagList}>
-                        {scope.allowed.length === 0 ? (
+                        {scope.inheritsGlobal && (
+                          <span
+                            className={styles.modelInheritedTag}
+                            title={t('api_keys_page.global_models.inherited_hint')}
+                          >
+                            {t('api_keys_page.global_models.inherited_badge')}
+                          </span>
+                        )}
+                        {!scope.restricted ? (
                           <span className={styles.allModelsBadge}>
                             {t('api_keys_page.all_models')}
                           </span>
@@ -615,9 +693,7 @@ export function ApiKeysPage() {
               {t('common.cancel', '取消')}
             </Button>
             <Button onClick={() => void handleSave()} disabled={saving} loading={saving}>
-              {editingIndex !== null
-                ? t('common.save', '保存')
-                : t('common.add', '添加')}
+              {editingIndex !== null ? t('common.save', '保存') : t('common.add', '添加')}
             </Button>
           </>
         }
