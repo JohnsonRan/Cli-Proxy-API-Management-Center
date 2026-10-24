@@ -12,6 +12,7 @@ import {
 } from '@/services/api/usageStore';
 import {
   DEFAULT_EVENT_COLUMNS,
+  alignPrevious,
   clientKeyEntries,
   clientKeyId,
   emptyGlobalFilter,
@@ -770,6 +771,23 @@ describe('usage cache savings', () => {
     );
     expect(saved).toBeCloseTo(8.1);
     expect(cacheSavings([], [])).toBe(0);
+  });
+});
+
+describe('usage previous-period alignment', () => {
+  test('aligns previous buckets from the trailing edge', () => {
+    // Equal length
+    expect(alignPrevious(['c0', 'c1', 'c2'], ['p0', 'p1', 'p2'])).toEqual(['p0', 'p1', 'p2']);
+
+    // One extra leading previous bucket (e.g. floored window start)
+    expect(alignPrevious(['c0', 'c1', 'c2'], ['extra', 'p0', 'p1', 'p2'])).toEqual([
+      'p0',
+      'p1',
+      'p2',
+    ]);
+
+    // Shorter previous
+    expect(alignPrevious(['c0', 'c1', 'c2'], ['p1', 'p2'])).toEqual([undefined, 'p1', 'p2']);
   });
 });
 

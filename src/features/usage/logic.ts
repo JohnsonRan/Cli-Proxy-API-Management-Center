@@ -549,3 +549,19 @@ export const cacheSavings = (
     return sum + (m.tokens.cacheRead * Math.max(0, price.input - price.cacheRead)) / 1e6;
   }, 0);
 };
+
+/**
+ * Pairs previous-window buckets with current ones from the trailing edge, because windows
+ * of equal length can differ by one leading bucket when the backend floors window starts
+ * to the hour/day boundary. Shorter previous series produce undefined for leading buckets.
+ */
+export const alignPrevious = <T>(
+  current: readonly unknown[],
+  previous: readonly T[]
+): (T | undefined)[] => {
+  const offset = previous.length - current.length;
+  return current.map((_, i) => {
+    const prevIndex = i + offset;
+    return prevIndex >= 0 && prevIndex < previous.length ? previous[prevIndex] : undefined;
+  });
+};
