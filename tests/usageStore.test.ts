@@ -220,9 +220,16 @@ describe('usage formatting', () => {
     expect(tokensPerRequest(four)).toBe(300);
     expect(costPerRequest(four)).toBeCloseTo(0.3);
     expect(costPerRequest({ ...four, unpricedRequests: 4 })).toBeNull();
-    // 0.9 USD over the 900 tokens of the 3 priced requests.
-    expect(costPerMillionTokens(four)).toBeCloseTo(1000);
+    // Partially priced: the unpriced requests' tokens are unknown, so no rate.
+    expect(costPerMillionTokens(four)).toBeNull();
     expect(costPerMillionTokens({ ...four, unpricedRequests: 4 })).toBeNull();
+    const fullyPriced = { ...four, unpricedRequests: 0 };
+    // 0.9 USD over 1200 tokens.
+    expect(costPerMillionTokens(fullyPriced)).toBeCloseTo(750);
+    expect(
+      costPerMillionTokens({ ...fullyPriced, tokens: { ...fullyPriced.tokens, total: 0 } })
+    ).toBeNull();
+    expect(costPerMillionTokens({ ...fullyPriced, requests: 0 })).toBeNull();
     expect(tokensPerRequest({ ...four, requests: 0 })).toBe(0);
 
     // Range window extensions: today, yesterday, custom
