@@ -5,6 +5,7 @@ import {
   usageStoreApi,
   type UsageDimensionFilter,
   type UsageEvent,
+  type UsageInFlightRequest,
   type UsageRealtime,
 } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
@@ -27,11 +28,12 @@ import {
   EventStatusCell,
   EventTokensCell,
 } from '../components/EventCells';
+import { ProviderBadge } from '../components/Labels';
 import { PanelHeading } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import { formatCompact, formatCost, formatMs } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import { REALTIME_FEED_LIMIT, mergeRealtimeFeed } from '../logic';
+import { REALTIME_FEED_LIMIT, eventTransport, mergeRealtimeFeed } from '../logic';
 import styles from '../UsagePage.module.scss';
 
 const POLL_MS = 5000;
@@ -231,6 +233,16 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
     second: '2-digit',
   });
   const live = !paused && !hidden;
+  const inFlightRows = data?.inFlightRequests ?? [];
+  // Ticks once a second while calls are running so their elapsed time keeps counting between polls.
+  const [clock, setClock] = useState(() => Date.now());
+  const ticking = live && inFlightRows.length > 0;
+  useEffect(() => {
+    if (!ticking) return;
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [ticking]);
+  const sincePoll = updatedAt && live ? Math.max(clock - updatedAt, 0) : 0;
 
   return (
     <>
@@ -345,7 +357,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
           title={t('usage_stats.realtime_feed_title')}
           desc={t('usage_stats.realtime_feed_desc', { count: REALTIME_FEED_LIMIT })}
         />
-        {feed.length === 0 ? (
+        {feed.length === 0 && inFlightRows.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.realtime_feed_empty')}</p>
         ) : (
           <Table className={styles.table}>
@@ -361,6 +373,15 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {inFlightRows.map((r) => (
+                <InFlightRow
+                  key={`inflight-${r.id}`}
+                  request={r}
+                  elapsedMs={r.elapsedMs + sincePoll}
+                  labels={labels}
+                  time={timeFormatter.format(new Date(r.startedAt))}
+                />
+              ))}
               {feed.map((e) => {
                 const rowClass = [
                   styles.clickableRow,
@@ -417,5 +438,76 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
       </section>
       <EventDetailModal event={selected} labels={labels} onClose={() => setSelected(null)} />
     </>
+  );
+}
+
+/** A call still being served: no tokens or cost yet, latency counts up until it finishes. */
+function InFlightRow({
+  request: r,
+  elapsedMs,
+  labels,
+  time,
+}: {
+  request: UsageInFlightRequest;
+  elapsedMs: number;
+  labels: UsageLabels;
+  time: string;
+}) {
+  const { t } = useTranslation();
+  const transport = eventTransport(r.endpoint, false, r.transport);
+  return (
+    <TableRow className={styles.inFlightRow}>
+      <TableCell className={styles.mono}>{time}</TableCell>
+      <TableCell>
+        <span className={styles.rankText}>
+          <span className={styles.cellLine}>
+            <span className={styles.pillPending} title={t('usage_stats.realtime_in_flight_hint')}>
+              {t('usage_stats.realtime_in_flight')}
+            </span>
+            <span
+              className={`${styles.transportTag} ${styles[`transport_${transport}`]}`}
+              title={t(`usage_stats.transport_${transport}_hint`)}
+            >
+              {t(`usage_stats.transport_${transport}`)}
+            </span>
+          </span>
+          {r.endpoint && (
+            <span className={styles.endpointSub} title={r.endpoint}>
+              {r.endpoint}
+            </span>
+          )}
+        </span>
+      </TableCell>
+      <TableCell>
+        {r.model ? (
+          <span className={styles.rankText}>
+            <span className={`${styles.cellStrong} ${styles.mono}`}>{r.model}</span>
+            {r.provider && (
+              <span className={styles.cellSub}>
+                <ProviderBadge provider={r.provider} />
+              </span>
+            )}
+          </span>
+        ) : (
+          <span className={styles.muted}>{t('usage_stats.realtime_in_flight_waiting')}</span>
+        )}
+      </TableCell>
+      <TableCell>
+        {r.model ? (
+          <EventRouteCell event={r} labels={labels} />
+        ) : (
+          <span className={styles.muted}>—</span>
+        )}
+      </TableCell>
+      <TableCell alignRight>
+        <span className={styles.muted}>—</span>
+      </TableCell>
+      <TableCell alignRight>
+        <span className={styles.cellStrong}>{formatMs(elapsedMs)}</span>
+      </TableCell>
+      <TableCell alignRight>
+        <span className={styles.muted}>—</span>
+      </TableCell>
+    </TableRow>
   );
 }

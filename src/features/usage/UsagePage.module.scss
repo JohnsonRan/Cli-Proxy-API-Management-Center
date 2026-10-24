@@ -739,7 +739,8 @@
 }
 
 .pillOk,
-.pillFailed {
+.pillFailed,
+.pillPending {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -766,6 +767,26 @@
 .pillFailed {
   color: var(--viz-failure);
   background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
+}
+
+// Outlined so a running call reads differently from a finished OK pill; green marks live traffic.
+.pillPending {
+  color: var(--viz-success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-success) 45%, transparent);
+
+  &::before {
+    animation: usage-pending 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes usage-pending {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.inFlightRow td {
+  background: color-mix(in srgb, var(--viz-success) 4%, transparent);
 }
 
 .failedRow td {
@@ -1207,6 +1228,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .liveDot,
+  .pillPending::before,
   .freshRow td {
     animation: none;
   }

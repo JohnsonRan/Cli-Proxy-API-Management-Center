@@ -127,7 +127,7 @@ export function EventRouteCell({
   labels,
   onAdd,
 }: {
-  event: UsageEvent;
+  event: Pick<UsageEvent, 'authIndex' | 'apiKeyId' | 'apiKey'> & { source?: string };
   labels: UsageLabels;
   onAdd?: AddFilter;
 }) {

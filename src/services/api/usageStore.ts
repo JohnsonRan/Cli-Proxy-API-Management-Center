@@ -460,11 +460,27 @@ export interface UsageRealtimePoint {
   avgLatencyMs: number;
 }
 
+/** A call still being served; upstream fields are empty until an attempt starts. */
+export interface UsageInFlightRequest {
+  id: number;
+  startedAt: number;
+  elapsedMs: number;
+  endpoint: string;
+  transport: string;
+  provider: string;
+  model: string;
+  authIndex: string;
+  apiKeyId: string;
+  apiKey: string;
+}
+
 export interface UsageRealtime {
   now: number;
   lastId: number;
   /** Model calls and WebSocket sessions running right now, across all filters. */
   inFlight: number;
+  /** Up to 100 of them matching the filters, newest first. */
+  inFlightRequests: UsageInFlightRequest[];
   current: {
     rpm1m: number;
     tpm1m: number;
@@ -483,6 +499,18 @@ export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
     now: num(d.now),
     lastId: num(d.last_id),
     inFlight: num(d.in_flight),
+    inFlightRequests: list(d.in_flight_requests).map((r) => ({
+      id: num(r.id),
+      startedAt: num(r.started_at),
+      elapsedMs: num(r.elapsed_ms),
+      endpoint: str(r.endpoint),
+      transport: str(r.transport),
+      provider: str(r.provider),
+      model: str(r.model),
+      authIndex: str(r.auth_index),
+      apiKeyId: str(r.api_key_id),
+      apiKey: str(r.api_key),
+    })),
     current: {
       rpm1m: num(c.rpm_1m),
       tpm1m: num(c.tpm_1m),
