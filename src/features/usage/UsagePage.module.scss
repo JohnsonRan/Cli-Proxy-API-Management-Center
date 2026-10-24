@@ -260,6 +260,44 @@
 
 /* ---------- Tables ---------- */
 
+.sortButton,
+.sortButtonActive {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.sortIcon {
+  font-size: 9px;
+  opacity: 0.35;
+  transition: opacity var(--dur-hover) var(--ease-out-strong);
+}
+
+.sortButton:hover .sortIcon,
+.sortButtonActive .sortIcon {
+  opacity: 1;
+}
+
+.sortButtonActive {
+  color: var(--text-primary);
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .clickableRow {
   cursor: pointer;
 

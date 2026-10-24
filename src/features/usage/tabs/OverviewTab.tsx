@@ -1,12 +1,17 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
-import type { UsageAggregate, UsageStats } from '@/services/api/usageStore';
+import type {
+  UsageAggregate,
+  UsageApiKeyStat,
+  UsageCredentialStat,
+  UsageModelStat,
+  UsageStats,
+} from '@/services/api/usageStore';
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
@@ -38,7 +43,9 @@ import {
   tokensPerRequest,
   type UsageMetric,
 } from '../format';
-import type { EventsFilter } from '../logic';
+import { sortRows, type EventsFilter, type SortState } from '../logic';
+import { SortHead } from '../components/SortHead';
+import { useSort } from '../hooks/useSort';
 import { KeyLabel, ProviderBadge } from '../components/Labels';
 import { CountUp } from '../components/Motion';
 import type { UsageLabels } from '../hooks/useUsageLabels';
@@ -95,6 +102,38 @@ function RankName({
     </span>
   );
 }
+
+interface Column<T> {
+  key: string;
+  label: string;
+  /** Text columns sort A→Z first; numeric ones largest first. */
+  text?: boolean;
+  /** Sort value; null sorts last. */
+  value: (row: T) => number | string | null;
+}
+
+/** Rows in the current sort, each keeping the colour of its default (by requests) rank. */
+const ranked = <T,>(rows: T[], columns: Column<T>[], sort: SortState | null) => {
+  const column = sort ? columns.find((c) => c.key === sort.key) : undefined;
+  return sortRows(
+    rows.map((row, index) => ({ row, color: rankColor(index) })),
+    column ? (item) => column.value(item.row) : undefined,
+    sort?.dir ?? 'desc'
+  );
+};
+
+const sortHeads = <T,>(columns: Column<T>[], { sort, toggle }: ReturnType<typeof useSort>) =>
+  columns.map((column, index) => (
+    <SortHead
+      key={column.key}
+      label={column.label}
+      sortKey={column.key}
+      text={column.text}
+      alignRight={index > 0}
+      sort={sort}
+      onSort={toggle}
+    />
+  ));
 
 export function OverviewTab({
   stats,
@@ -300,6 +339,50 @@ export function OverviewTab({
       <span title={exactCost(value)}>{formatCost(value)}</span>
     );
   };
+
+  const modelSort = useSort();
+  const keySort = useSort();
+  const credentialSort = useSort();
+  const priced = (a: UsageAggregate) =>
+    a.unpricedRequests >= a.requests && a.requests > 0 ? null : a.cost;
+  const positive = (value: number) => (value > 0 ? value : null);
+
+  const modelColumns: Column<UsageModelStat>[] = [
+    { key: 'model', label: t('usage_stats.col_model'), text: true, value: (m) => m.model },
+    { key: 'requests', label: t('usage_stats.col_requests'), value: (m) => m.requests },
+    { key: 'success', label: t('usage_stats.col_success_rate'), value: successRate },
+    { key: 'input', label: t('usage_stats.col_input'), value: inputTokens },
+    { key: 'cached', label: t('usage_stats.col_cached'), value: (m) => m.tokens.cacheRead },
+    { key: 'output', label: t('usage_stats.col_output'), value: (m) => m.tokens.output },
+    { key: 'avgTokens', label: t('usage_stats.col_avg_tokens'), value: tokensPerRequest },
+    { key: 'latency', label: t('usage_stats.col_latency'), value: (m) => positive(m.avgLatencyMs) },
+    { key: 'speed', label: t('usage_stats.col_speed'), value: (m) => positive(m.outputTps) },
+    { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
+    { key: 'avgCost', label: t('usage_stats.col_avg_cost'), value: costPerRequest },
+  ];
+  const keyName = (k: UsageApiKeyStat) =>
+    labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none');
+  const keyColumns: Column<UsageApiKeyStat>[] = [
+    { key: 'key', label: t('usage_stats.col_key'), text: true, value: keyName },
+    { key: 'requests', label: t('usage_stats.col_requests'), value: (k) => k.requests },
+    { key: 'tokens', label: t('usage_stats.col_tokens'), value: (k) => k.tokens.total },
+    { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
+  ];
+  const credentialName = (c: UsageCredentialStat) => labels.credential(c.authIndex, c.source);
+  const credentialColumns: Column<UsageCredentialStat>[] = [
+    {
+      key: 'credential',
+      label: t('usage_stats.col_credential'),
+      text: true,
+      value: credentialName,
+    },
+    { key: 'requests', label: t('usage_stats.col_requests'), value: (c) => c.requests },
+    { key: 'success', label: t('usage_stats.col_success_rate'), value: successRate },
+    { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
+  ];
+  const sortedModels = ranked(stats.models, modelColumns, modelSort.sort);
+  const sortedKeys = ranked(stats.apiKeys, keyColumns, keySort.sort);
+  const sortedCredentials = ranked(stats.credentials, credentialColumns, credentialSort.sort);
 
   const rowProps = (filter: EventsFilter, label: string) => ({
     className: styles.clickableRow,
@@ -507,22 +590,10 @@ export function OverviewTab({
         ) : (
           <Table className={styles.table}>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_requests')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_success_rate')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_input')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_cached')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_output')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_avg_tokens')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_latency')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_speed')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_cost')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_avg_cost')}</TableHead>
-              </TableRow>
+              <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
             </TableHeader>
             <TableBody>
-              {stats.models.map((m, index) => (
+              {sortedModels.map(({ row: m, color }, index) => (
                 <TableRow
                   key={`${m.provider}:${m.model}`}
                   {...rowProps({ model: m.model, provider: m.provider }, m.model)}
@@ -530,7 +601,7 @@ export function OverviewTab({
                   <TableCell>
                     <RankName
                       rank={index + 1}
-                      color={rankColor(index)}
+                      color={color}
                       name={
                         <>
                           <span>{m.model}</span>
@@ -554,7 +625,7 @@ export function OverviewTab({
                     />
                   </TableCell>
                   <TableCell alignRight>
-                    <Share value={m.requests} total={totals.requests} color={rankColor(index)} />
+                    <Share value={m.requests} total={totals.requests} color={color} />
                   </TableCell>
                   <TableCell alignRight>
                     <Rate value={successRate(m)} />
@@ -590,15 +661,10 @@ export function OverviewTab({
           ) : (
             <Table className={styles.table}>
               <TableHeader>
-                <TableRow>
-                  <TableHead>{t('usage_stats.col_key')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_requests')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_tokens')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_cost')}</TableHead>
-                </TableRow>
+                <TableRow>{sortHeads(keyColumns, keySort)}</TableRow>
               </TableHeader>
               <TableBody>
-                {stats.apiKeys.map((k, index) => (
+                {sortedKeys.map(({ row: k, color }, index) => (
                   <TableRow
                     key={k.apiKeyId || 'none'}
                     {...rowProps(
@@ -609,12 +675,12 @@ export function OverviewTab({
                     <TableCell>
                       <RankName
                         rank={index + 1}
-                        color={rankColor(index)}
+                        color={color}
                         name={<KeyLabel name={labels.keyName(k.apiKeyId)} masked={k.apiKey} />}
                       />
                     </TableCell>
                     <TableCell alignRight>
-                      <Share value={k.requests} total={totals.requests} color={rankColor(index)} />
+                      <Share value={k.requests} total={totals.requests} color={color} />
                     </TableCell>
                     <TableCell alignRight>
                       <Compact value={k.tokens.total} />
@@ -637,15 +703,10 @@ export function OverviewTab({
           ) : (
             <Table className={styles.table}>
               <TableHeader>
-                <TableRow>
-                  <TableHead>{t('usage_stats.col_credential')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_requests')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_success_rate')}</TableHead>
-                  <TableHead alignRight>{t('usage_stats.col_cost')}</TableHead>
-                </TableRow>
+                <TableRow>{sortHeads(credentialColumns, credentialSort)}</TableRow>
               </TableHeader>
               <TableBody>
-                {stats.credentials.map((c, index) => (
+                {sortedCredentials.map(({ row: c, color }, index) => (
                   <TableRow
                     key={c.authIndex || 'none'}
                     {...rowProps(
@@ -656,13 +717,13 @@ export function OverviewTab({
                     <TableCell>
                       <RankName
                         rank={index + 1}
-                        color={rankColor(index)}
+                        color={color}
                         name={labels.credential(c.authIndex, c.source)}
                         sub={<ProviderBadge provider={c.provider} />}
                       />
                     </TableCell>
                     <TableCell alignRight>
-                      <Share value={c.requests} total={totals.requests} color={rankColor(index)} />
+                      <Share value={c.requests} total={totals.requests} color={color} />
                     </TableCell>
                     <TableCell alignRight>
                       <Rate value={successRate(c)} />
