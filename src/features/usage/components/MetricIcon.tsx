@@ -19,6 +19,13 @@ const PATHS: Record<MetricIconName, string[]> = {
   speed: ['m12 14 4-4', 'M3.34 19a10 10 0 1 1 17.32 0'],
   failed: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'm15 9-6 6', 'm9 9 6 6'],
   substituted: ['m8 3-4 4 4 4', 'M4 7h16', 'm16 21 4-4-4-4', 'M20 17H4'],
+  // Lucide "hourglass".
+  pending: [
+    'M5 22h14',
+    'M5 2h14',
+    'M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22',
+    'M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2',
+  ],
 };
 
 export function MetricIcon({ name }: { name: MetricIconName }) {

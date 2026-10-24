@@ -1,15 +1,22 @@
 @use '../../styles/mixins' as *;
 
-$usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
-
 .page {
-  // Success reads in the page's earthy palette (METRIC_ACCENTS.success) instead of the global emerald.
-  --viz-success: #6c8a56;
+  // Status colours follow the page palette (METRIC_ACCENTS.success / failed, Claude Console status).
+  --viz-success: #0ca30c;
+  --viz-failure: #d03b3b;
+  // In-flight and newly arrived rows: outcome not known yet, so neither success nor failure.
+  // Fill is Console's yellow; text/outline use its warning text step so the label stays legible.
+  --usage-pending: #eda100;
+  --usage-pending-text: #734500;
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 100%;
   min-width: 0;
+}
+
+:global([data-theme='dark']) .page {
+  --usage-pending-text: #db9300;
 }
 
 /* ---------- Header ---------- */
@@ -485,7 +492,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 .heatCell {
   aspect-ratio: 1;
   border-radius: 3px;
-  background: #c96846; // METRIC_ACCENTS.cost terracotta, the page's one warm accent
+  background: #2a78d6; // Console sequential charts are a blue ramp; intensity comes from opacity
 
   &[data-empty='true'] {
     background: var(--border-color);
@@ -554,7 +561,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
   flex: none;
   align-items: center;
   justify-content: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 
   svg {
     width: 15px;
@@ -571,10 +578,9 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 }
 
 .statValue {
-  font-family: $usage-serif;
   font-size: 28px;
   line-height: 1.12;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-primary);
@@ -648,7 +654,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 }
 
 .changeFlat {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ---------- Section headings ---------- */
@@ -838,7 +844,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
   flex: none;
   align-items: center;
   justify-content: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 
   svg {
     width: 14px;
@@ -848,10 +854,9 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 }
 
 .summaryValue {
-  font-family: $usage-serif;
   font-size: 23px;
   line-height: 1.15;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-primary);
@@ -907,12 +912,13 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
   background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
 }
 
-// Outlined so a running call reads differently from a finished OK pill; green marks live traffic.
+// Outlined in the pending yellow so a running call never reads as a finished OK pill.
 .pillPending {
-  color: var(--viz-success);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-success) 45%, transparent);
+  color: var(--usage-pending-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--usage-pending) 70%, transparent);
 
   &::before {
+    background: var(--usage-pending);
     animation: usage-pending 1.2s ease-in-out infinite;
   }
 }
@@ -924,7 +930,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 }
 
 .inFlightRow td {
-  background: color-mix(in srgb, var(--viz-success) 4%, transparent);
+  background: color-mix(in srgb, var(--usage-pending) 8%, transparent);
 }
 
 .failedRow td {
@@ -1357,7 +1363,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 
 @keyframes usage-fresh {
   from {
-    background: color-mix(in srgb, var(--viz-success) 22%, transparent);
+    background: color-mix(in srgb, var(--usage-pending) 16%, transparent);
   }
   to {
     background: transparent;
