@@ -18,6 +18,9 @@ import {
   filterMultiSelectOptions,
   histogramLabels,
   mergeSelectedOptions,
+  nextSort,
+  sortRows,
+  toCsv,
   parseDraftRows,
   parseGlobalFilterFromSearchParams,
   providerDisplay,
@@ -45,6 +48,7 @@ import {
   validateCustomRange,
 } from '@/features/usage/format';
 import { baseCartesianOptions } from '@/features/usage/charts';
+import { SortHead } from '@/features/usage/components/SortHead';
 import { EventDetailModal } from '@/features/usage/components/EventDetailModal';
 import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
 import {
@@ -687,6 +691,56 @@ describe('usage precision, transport and cells', () => {
       );
     expect(latency(85.25)).toContain('85.3 t/s');
     expect(latency(0)).not.toContain('t/s');
+  });
+});
+
+describe('usage table sorting and CSV', () => {
+  test('cycles a column through its natural direction, the reverse and the default', () => {
+    expect(nextSort(null, 'cost')).toEqual({ key: 'cost', dir: 'desc' });
+    expect(nextSort({ key: 'cost', dir: 'desc' }, 'cost')).toEqual({ key: 'cost', dir: 'asc' });
+    expect(nextSort({ key: 'cost', dir: 'asc' }, 'cost')).toBeNull();
+    expect(nextSort({ key: 'cost', dir: 'asc' }, 'model', true)).toEqual({
+      key: 'model',
+      dir: 'asc',
+    });
+    expect(nextSort({ key: 'model', dir: 'desc' }, 'model', true)).toBeNull();
+  });
+
+  test('sorts stably with missing values last in both directions', () => {
+    const rows = [
+      { id: 'a', v: 2 },
+      { id: 'b', v: null },
+      { id: 'c', v: 5 },
+      { id: 'd', v: 2 },
+    ];
+    const ids = (dir: 'asc' | 'desc') => sortRows(rows, (r) => r.v, dir).map((r) => r.id);
+    expect(ids('desc')).toEqual(['c', 'a', 'd', 'b']);
+    expect(ids('asc')).toEqual(['a', 'd', 'c', 'b']);
+    expect(sortRows(rows, undefined, 'asc')).toEqual(rows);
+    expect(sortRows([{ n: 'b' }, { n: 'a' }], (r) => r.n, 'asc')[0].n).toBe('a');
+  });
+
+  test('writes quoted, formula-safe CSV with a BOM', () => {
+    expect(
+      toCsv([
+        ['Model', 'n'],
+        ['a,"b"', -3],
+        ['=cmd', 1.5],
+      ])
+    ).toBe('\uFEFFModel,n\r\n"a,""b""",-3\r\n\'=cmd,1.5\r\n');
+  });
+
+  test('sort headers expose their state to assistive tech', () => {
+    const markup = renderToStaticMarkup(
+      createElement(SortHead, {
+        label: 'Cost',
+        sortKey: 'cost',
+        sort: { key: 'cost', dir: 'desc' },
+        onSort: () => {},
+      })
+    );
+    expect(markup).toContain('aria-sort="descending"');
+    expect(markup).toContain('<button type="button"');
   });
 });
 

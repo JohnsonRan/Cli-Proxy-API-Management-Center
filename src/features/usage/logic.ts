@@ -416,3 +416,58 @@ export const eventCacheHitRate = (tokens: {
   const input = tokens.inputUncached + tokens.cacheRead + tokens.cacheWrite;
   return input > 0 ? (tokens.cacheRead / input) * 100 : null;
 };
+
+export type SortDir = 'asc' | 'desc';
+export interface SortState {
+  key: string;
+  dir: SortDir;
+}
+
+/**
+ * Next sort after clicking a column: a new column starts in its natural direction (A→Z for
+ * text, largest first for numbers), a second click reverses it, a third restores the default.
+ */
+export const nextSort = (
+  current: SortState | null,
+  key: string,
+  text = false
+): SortState | null => {
+  const first: SortDir = text ? 'asc' : 'desc';
+  if (current?.key !== key) return { key, dir: first };
+  return current.dir === first ? { key, dir: first === 'asc' ? 'desc' : 'asc' } : null;
+};
+
+/** Stable sort by `value`; rows without a value (null) always go last. */
+export const sortRows = <T>(
+  rows: readonly T[],
+  value: ((row: T) => number | string | null) | undefined,
+  dir: SortDir
+): T[] => {
+  if (!value) return [...rows];
+  const factor = dir === 'asc' ? 1 : -1;
+  return rows
+    .map((row, index) => ({ row, index, key: value(row) }))
+    .sort((a, b) => {
+      if (a.key === null || b.key === null) {
+        if (a.key === b.key) return a.index - b.index;
+        return a.key === null ? 1 : -1;
+      }
+      const diff =
+        typeof a.key === 'string' || typeof b.key === 'string'
+          ? String(a.key).localeCompare(String(b.key))
+          : a.key - b.key;
+      return diff !== 0 ? diff * factor : a.index - b.index;
+    })
+    .map((item) => item.row);
+};
+
+const csvCell = (value: string | number): string => {
+  let text = String(value);
+  // Keep spreadsheet apps from evaluating names such as "=cmd" as formulas.
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+/** CSV text with a BOM so spreadsheet apps read non-ASCII headers as UTF-8. */
+export const toCsv = (rows: (string | number)[][]): string =>
+  `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
