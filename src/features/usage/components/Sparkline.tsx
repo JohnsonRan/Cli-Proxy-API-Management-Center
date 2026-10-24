@@ -1,3 +1,5 @@
+import styles from '../UsagePage.module.scss';
+
 /** Minimal area sparkline; scales to its container and ignores empty series. */
 export function Sparkline({ values, color }: { values: number[]; color: string }) {
   const width = 100;
@@ -23,7 +25,12 @@ export function Sparkline({ values, color }: { values: number[]; color: string }
     .map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`)
     .join(' ');
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+    <svg
+      className={styles.sparkReveal}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
       <path d={`${line} L${width},${height} L0,${height} Z`} fill={color} fillOpacity="0.14" />
       <path
         d={line}
