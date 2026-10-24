@@ -4,7 +4,14 @@ import type {
   UsageModelPrice,
   UsagePriceOverride,
 } from '@/services/api/usageStore';
-import { isUsageRange, type UsageRange } from './format';
+import {
+  USAGE_METRICS,
+  isUsageRange,
+  isUsageTab,
+  type UsageMetric,
+  type UsageRange,
+  type UsageTab,
+} from './format';
 import type { UsageWindow } from './UsagePage';
 
 /** Global dimension and range filters applied across all usage views. */
@@ -471,3 +478,57 @@ const csvCell = (value: string | number): string => {
 /** CSV text with a BOM so spreadsheet apps read non-ASCII headers as UTF-8. */
 export const toCsv = (rows: (string | number)[][]): string =>
   `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
+
+/** Auto-refresh intervals offered on the overview and analysis tabs, in seconds (0 = off). */
+export const AUTO_REFRESH_SECONDS = [0, 30, 60, 300] as const;
+
+/** View choices remembered across visits; a link with its own search params still wins. */
+export interface UsagePrefs {
+  tab?: UsageTab;
+  /** Never 'custom': a fixed past window would be stale on the next visit. */
+  range?: Exclude<UsageRange, 'custom'>;
+  metric?: UsageMetric;
+  autoRefresh?: number;
+  comparePrevious?: boolean;
+}
+
+const PREFS_STORAGE_KEY = 'cpamc-usage-prefs:v1';
+
+/** Keeps only valid fields so corrupt or outdated storage cannot break the page. */
+export const parseUsagePrefs = (raw: string | null): UsagePrefs => {
+  let value: unknown;
+  try {
+    value = raw ? JSON.parse(raw) : null;
+  } catch {
+    return {};
+  }
+  if (!value || typeof value !== 'object') return {};
+  const v = value as Record<string, unknown>;
+  const prefs: UsagePrefs = {};
+  if (typeof v.tab === 'string' && isUsageTab(v.tab)) prefs.tab = v.tab;
+  if (typeof v.range === 'string' && isUsageRange(v.range) && v.range !== 'custom') {
+    prefs.range = v.range;
+  }
+  if ((USAGE_METRICS as readonly unknown[]).includes(v.metric)) {
+    prefs.metric = v.metric as UsageMetric;
+  }
+  if ((AUTO_REFRESH_SECONDS as readonly unknown[]).includes(v.autoRefresh)) {
+    prefs.autoRefresh = v.autoRefresh as number;
+  }
+  if (typeof v.comparePrevious === 'boolean') prefs.comparePrevious = v.comparePrevious;
+  return prefs;
+};
+
+export const readUsagePrefs = (): UsagePrefs =>
+  parseUsagePrefs(
+    typeof localStorage === 'undefined' ? null : localStorage.getItem(PREFS_STORAGE_KEY)
+  );
+
+export const saveUsagePrefs = (patch: UsagePrefs) => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify({ ...readUsagePrefs(), ...patch }));
+  } catch {
+    // Storage may be full or blocked; preferences are only a convenience.
+  }
+};

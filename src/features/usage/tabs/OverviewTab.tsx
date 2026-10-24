@@ -39,7 +39,14 @@ import {
   tokensPerRequest,
   type UsageMetric,
 } from '../format';
-import { sortRows, toCsv, type EventsFilter, type SortState } from '../logic';
+import {
+  readUsagePrefs,
+  saveUsagePrefs,
+  sortRows,
+  toCsv,
+  type EventsFilter,
+  type SortState,
+} from '../logic';
 import { SortHead } from '../components/SortHead';
 import { useSort } from '../hooks/useSort';
 import { KeyLabel, ProviderBadge } from '../components/Labels';
@@ -142,7 +149,13 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const { t, i18n } = useTranslation();
   const theme = useChartTheme();
-  const [metric, setMetric] = useState<UsageMetric>('requests');
+  const [metric, setMetricState] = useState<UsageMetric>(
+    () => readUsagePrefs().metric ?? 'requests'
+  );
+  const setMetric = (next: UsageMetric) => {
+    setMetricState(next);
+    saveUsagePrefs({ metric: next });
+  };
   const totals = stats.totals;
   const prev = prevStats?.totals;
   const rate = successRate(totals);

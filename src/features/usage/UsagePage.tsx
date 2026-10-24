@@ -46,6 +46,8 @@ import {
   hasActiveGlobalFilters,
   parseGlobalFilterFromSearchParams,
   providerDisplay,
+  readUsagePrefs,
+  saveUsagePrefs,
   serializeGlobalFilterToSearchParams,
   type EventsFilter,
   type MultiSelectOption,
@@ -71,13 +73,16 @@ export function UsagePage() {
 
   // Seed filter and tab state once from searchParams on mount.
   const [searchParams, setSearchParams] = useSearchParams();
+  // A plain visit (no search params) restores the last tab and range; links keep theirs.
+  const [prefs] = useState(() => (searchParams.toString() === '' ? readUsagePrefs() : {}));
   const [tab, setTab] = useState<UsageTab>(() => {
     const value = searchParams.get('tab');
-    return isUsageTab(value) ? value : 'overview';
+    return isUsageTab(value) ? value : (prefs.tab ?? 'overview');
   });
-  const [globalFilter, setGlobalFilter] = useState<UsageGlobalFilter>(() =>
-    parseGlobalFilterFromSearchParams(searchParams)
-  );
+  const [globalFilter, setGlobalFilter] = useState<UsageGlobalFilter>(() => {
+    const parsed = parseGlobalFilterFromSearchParams(searchParams);
+    return prefs.range ? { ...parsed, range: prefs.range } : parsed;
+  });
   const [resultFilter, setResultFilter] = useState<string | undefined>(
     () => searchParams.get('result') || undefined
   );
@@ -105,6 +110,10 @@ export function UsagePage() {
 
   const requestRef = useRef(0);
   const labels = useUsageLabels(connected);
+
+  useEffect(() => {
+    saveUsagePrefs(globalFilter.range === 'custom' ? { tab } : { tab, range: globalFilter.range });
+  }, [globalFilter.range, tab]);
 
   // Keep search params in sync with tab, globalFilter and resultFilter.
   useEffect(() => {
