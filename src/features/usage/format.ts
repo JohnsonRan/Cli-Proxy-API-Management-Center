@@ -143,13 +143,21 @@ export const formatCompact = (value: number): string => {
     [1e6, 'M'],
     [1e3, 'K'],
   ];
-  for (const [size, unit] of units) {
+  for (let i = 0; i < units.length; i++) {
+    const [size, unit] = units[i];
     if (abs >= size) {
       const scaled = value / size;
-      return `${scaled >= 100 ? Math.round(scaled) : Number(scaled.toFixed(1))}${unit}`;
+      const rounded = Math.abs(scaled) >= 100 ? Math.round(scaled) : Number(scaled.toFixed(1));
+      if (Math.abs(rounded) >= 1000 && i > 0) {
+        const nextUnit = units[i - 1][1];
+        return `${Number((rounded / 1000).toFixed(1))}${nextUnit}`;
+      }
+      return `${rounded}${unit}`;
     }
   }
-  return String(Math.round(value));
+  const rounded = Math.round(value);
+  if (Math.abs(rounded) >= 1000) return value < 0 ? '-1K' : '1K';
+  return String(rounded);
 };
 
 /** Hover text for a compact count: the full grouped number, or undefined when nothing is hidden. */
