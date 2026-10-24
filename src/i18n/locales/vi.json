@@ -1188,7 +1188,21 @@
     "request_log_download": "Tải nhật ký",
     "request_log_missing": "Không có nhật ký cho yêu cầu này. Nhật ký được giữ khi bật ghi nhật ký yêu cầu, và nhật ký lỗi cho yêu cầu thất bại.",
     "request_log_failed": "Không tải được nhật ký",
-    "request_log_too_large": "Nhật ký lớn hơn 2 MB, hãy tải xuống."
+    "request_log_too_large": "Nhật ký lớn hơn 2 MB, hãy tải xuống.",
+    "store_settings_title": "Cài đặt lưu trữ",
+    "store_settings_desc": "Cấu hình kho mức sử dụng SQLite tích hợp (observability.usage.store).",
+    "store_enable_hint": "Ghi mỗi yêu cầu vào SQLite. Tắt mục này sẽ ngừng ghi các yêu cầu mới.",
+    "store_disable_models_dev": "Tắt giá từ models.dev",
+    "store_disable_models_dev_hint": "Ngừng tải giá từ models.dev và chỉ ước tính chi phí theo giá ghi đè.",
+    "store_retention_label": "Lưu giữ chi tiết (ngày)",
+    "store_retention_hint": "Để trống hoặc 0 dùng mặc định 30 ngày; số âm (vd: -1) giữ vĩnh viễn. Tổng hợp theo giờ không bao giờ bị xóa.",
+    "store_retention_invalid": "Nhập số ngày nguyên (vd: 30 hoặc -1)",
+    "store_path_label": "Đường dẫn cơ sở dữ liệu",
+    "store_path_hint": "Đường dẫn tệp SQLite. Để trống để dùng usage.db trong thư mục nhật ký.",
+    "store_settings_saved": "Đã lưu cài đặt lưu trữ",
+    "store_disable_title": "Tắt kho mức sử dụng?",
+    "store_disable_confirm": "Các yêu cầu mới sẽ ngừng được ghi lại cho đến khi bật lại. Dữ liệu SQLite và cài đặt hiện có vẫn được giữ nguyên.",
+    "store_disable_action": "Tắt"
   },
   "logs": {
     "title": "Trình xem Log",

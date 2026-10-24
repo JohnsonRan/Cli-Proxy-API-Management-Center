@@ -1258,7 +1258,21 @@
     "request_log_download": "下載日誌",
     "request_log_missing": "沒有這筆請求的日誌。開啟請求日誌後會保留，失敗請求會保留錯誤日誌。",
     "request_log_failed": "載入請求日誌失敗",
-    "request_log_too_large": "日誌超過 2 MB，請下載查看。"
+    "request_log_too_large": "日誌超過 2 MB，請下載查看。",
+    "store_settings_title": "儲存設定",
+    "store_settings_desc": "設定內建 SQLite 用量儲存（observability.usage.store）。",
+    "store_enable_hint": "將每次請求寫入 SQLite；關閉後將停止記錄新請求。",
+    "store_disable_models_dev": "停用 models.dev 價格",
+    "store_disable_models_dev_hint": "停止從 models.dev 擷取價格，僅依覆寫價格估算費用。",
+    "store_retention_label": "請求明細保留天數",
+    "store_retention_hint": "留空或填 0 使用預設 30 天，負數（如 -1）永久保留；每小時彙總資料永不清理。",
+    "store_retention_invalid": "請輸入整數天數（如 30 或 -1）",
+    "store_path_label": "資料庫路徑",
+    "store_path_hint": "SQLite 檔案路徑；留空則使用日誌目錄下的 usage.db。",
+    "store_settings_saved": "儲存設定已儲存",
+    "store_disable_title": "關閉用量儲存？",
+    "store_disable_confirm": "關閉後將停止記錄新請求，直到再次開啟。現有的 SQLite 資料與設定會保留。",
+    "store_disable_action": "關閉"
   },
   "logs": {
     "preview_too_large": "封包超過 2 MiB 預覽限制，請下載查看",
