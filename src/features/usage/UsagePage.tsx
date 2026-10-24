@@ -132,53 +132,58 @@ export function UsagePage() {
     setSearchParams(params, { replace: true });
   }, [globalFilter, tab, resultFilter, setSearchParams]);
 
-  const load = useCallback(async () => {
-    const requestId = ++requestRef.current;
-    if (!connected) {
-      setLoading(false);
-      return;
-    }
-    const next = rangeWindow(
-      globalFilter.range,
-      Date.now(),
-      globalFilter.customFrom,
-      globalFilter.customTo
-    );
-    const prev = previousWindow(next);
-    const dimFilter: UsageDimensionFilter = {
-      model: globalFilter.models.length ? globalFilter.models : undefined,
-      provider: globalFilter.providers.length ? globalFilter.providers : undefined,
-      apiKeyId: globalFilter.apiKeyIds.length ? globalFilter.apiKeyIds : undefined,
-      authIndex: globalFilter.authIndexes.length ? globalFilter.authIndexes : undefined,
-    };
-    setLoading(true);
-    setError('');
-    try {
-      const [nextStats, nextPrev, nextPricing, nextOptions] = await Promise.all([
-        usageStoreApi.getStats(next.from, next.to, next.tzOffset, dimFilter),
-        usageStoreApi.getStats(prev.from, prev.to, next.tzOffset, dimFilter),
-        usageStoreApi.getPricing(),
-        usageStoreApi.getOptions(next.from, next.to),
-      ]);
-      if (requestId !== requestRef.current) return;
-      setDisabled(false);
-      setUsageWindow(next);
-      setStats(nextStats);
-      setPrevStats(nextPrev);
-      setPricing(nextPricing);
-      setOptions(nextOptions);
-    } catch (err: unknown) {
-      if (requestId !== requestRef.current) return;
-      if (isUsageStoreDisabled(err)) {
-        setDisabled(true);
-        setStats(null);
-      } else {
-        setError(errorMessage(err, t('notification.refresh_failed')));
+  // Prices change only through the pricing tab or a models.dev refresh, so the periodic
+  // auto-refresh skips them; every other load (mount, filters, header refresh) refetches.
+  const load = useCallback(
+    async (refreshPricing = true) => {
+      const requestId = ++requestRef.current;
+      if (!connected) {
+        setLoading(false);
+        return;
       }
-    } finally {
-      if (requestId === requestRef.current) setLoading(false);
-    }
-  }, [connected, globalFilter, t]);
+      const next = rangeWindow(
+        globalFilter.range,
+        Date.now(),
+        globalFilter.customFrom,
+        globalFilter.customTo
+      );
+      const prev = previousWindow(next);
+      const dimFilter: UsageDimensionFilter = {
+        model: globalFilter.models.length ? globalFilter.models : undefined,
+        provider: globalFilter.providers.length ? globalFilter.providers : undefined,
+        apiKeyId: globalFilter.apiKeyIds.length ? globalFilter.apiKeyIds : undefined,
+        authIndex: globalFilter.authIndexes.length ? globalFilter.authIndexes : undefined,
+      };
+      setLoading(true);
+      setError('');
+      try {
+        const [nextStats, nextPrev, nextPricing, nextOptions] = await Promise.all([
+          usageStoreApi.getStats(next.from, next.to, next.tzOffset, dimFilter),
+          usageStoreApi.getStats(prev.from, prev.to, next.tzOffset, dimFilter),
+          refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null),
+          usageStoreApi.getOptions(next.from, next.to),
+        ]);
+        if (requestId !== requestRef.current) return;
+        setDisabled(false);
+        setUsageWindow(next);
+        setStats(nextStats);
+        setPrevStats(nextPrev);
+        if (nextPricing) setPricing(nextPricing);
+        setOptions(nextOptions);
+      } catch (err: unknown) {
+        if (requestId !== requestRef.current) return;
+        if (isUsageStoreDisabled(err)) {
+          setDisabled(true);
+          setStats(null);
+        } else {
+          setError(errorMessage(err, t('notification.refresh_failed')));
+        }
+      } finally {
+        if (requestId === requestRef.current) setLoading(false);
+      }
+    },
+    [connected, globalFilter, t]
+  );
 
   useHeaderRefresh(load);
 
@@ -189,7 +194,7 @@ export function UsagePage() {
   const autoRefreshActive = autoRefresh > 0 && autoRefreshTab && connected && !disabled;
   useInterval(
     () => {
-      if (!document.hidden) void load();
+      if (!document.hidden) void load(false);
     },
     autoRefreshActive ? autoRefresh * 1000 : null
   );

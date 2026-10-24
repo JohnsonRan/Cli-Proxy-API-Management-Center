@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { createElement } from 'react';
@@ -817,6 +818,15 @@ describe('usage overview', () => {
     expect(markup).toContain('title="1,500"');
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-pressed="false"');
+  });
+});
+
+describe('usage auto-refresh', () => {
+  test('periodic ticks skip the pricing request while other loads still fetch it', () => {
+    const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
+    expect(page).toContain('if (!document.hidden) void load(false);');
+    expect(page).toContain('refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null)');
+    expect(page).toContain('if (nextPricing) setPricing(nextPricing);');
   });
 });
 
