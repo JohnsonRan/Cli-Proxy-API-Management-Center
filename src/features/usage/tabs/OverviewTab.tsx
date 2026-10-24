@@ -41,6 +41,7 @@ import {
   type UsageMetric,
 } from '../format';
 import {
+  alignPrevious,
   cacheSavings,
   readUsagePrefs,
   saveUsagePrefs,
@@ -195,10 +196,9 @@ export function OverviewTab({
             {
               type: 'line' as const,
               label: t('usage_stats.series_previous'),
-              data: stats.series.map((_, i) => {
-                const point = prevStats.series[i];
-                return point ? pickTotal(point) : null;
-              }),
+              data: alignPrevious(stats.series, prevStats.series).map((point) =>
+                point ? pickTotal(point) : null
+              ),
               borderColor: theme.muted,
               backgroundColor: 'transparent',
               borderDash: [5, 4],
