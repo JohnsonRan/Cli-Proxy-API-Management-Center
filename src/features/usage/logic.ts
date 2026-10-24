@@ -263,8 +263,10 @@ export const pricingRows = (
     override: byKey.get(overrideKey(m.model)) ?? null,
   }));
   const listed = new Set(models.map((m) => overrideKey(m.model)));
-  for (const o of overrides) {
-    if (listed.has(overrideKey(o.model))) continue;
+  for (const key of byKey.keys()) {
+    if (listed.has(key)) continue;
+    // byKey keeps the last of several case variants, the one the backend applies.
+    const o = byKey.get(key) as UsagePriceOverride;
     rows.push({
       model: o.model,
       source: 'override',
@@ -355,6 +357,19 @@ export const clientKeyEntries = (raw: unknown): { key: string; name?: string }[]
     }
     return [];
   });
+};
+
+/**
+ * In-flight calls still to show: an HTTP call whose finished event already reached the feed
+ * (the realtime and events polls run in parallel) is dropped. WebSocket sessions record one
+ * event per turn under the same request id while still open, so they always stay.
+ */
+export const visibleInFlight = <T extends { requestId: string; transport: string }>(
+  inFlight: T[],
+  feed: { requestId: string }[]
+): T[] => {
+  const finished = new Set(feed.map((e) => e.requestId).filter(Boolean));
+  return inFlight.filter((r) => r.transport === 'ws' || !r.requestId || !finished.has(r.requestId));
 };
 
 /** Realtime feed cap: older rows fall off the bottom. */
