@@ -1244,7 +1244,16 @@
     "store_settings_saved": "存储设置已保存",
     "store_disable_title": "关闭用量存储？",
     "store_disable_confirm": "关闭后将停止记录新请求，直到再次开启。已有的 SQLite 数据与设置会保留。",
-    "store_disable_action": "关闭"
+    "store_disable_action": "关闭",
+    "col_quota": "剩余额度",
+    "quota_load": "加载额度",
+    "quota_unloaded": "查看",
+    "quota_loading": "加载中…",
+    "quota_error": "加载失败",
+    "quota_details": "详情",
+    "quota_resets": "{{time}}重置",
+    "quota_open_for": "查看 {{name}} 的额度",
+    "quota_modal_title": "凭证额度"
   },
   "logs": {
     "preview_too_large": "报文超过 2 MiB 预览限制，请下载查看",

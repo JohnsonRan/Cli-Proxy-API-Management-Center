@@ -1202,7 +1202,16 @@
     "store_settings_saved": "Đã lưu cài đặt lưu trữ",
     "store_disable_title": "Tắt kho mức sử dụng?",
     "store_disable_confirm": "Các yêu cầu mới sẽ ngừng được ghi lại cho đến khi bật lại. Dữ liệu SQLite và cài đặt hiện có vẫn được giữ nguyên.",
-    "store_disable_action": "Tắt"
+    "store_disable_action": "Tắt",
+    "col_quota": "Hạn mức còn lại",
+    "quota_load": "Tải hạn mức",
+    "quota_unloaded": "Xem",
+    "quota_loading": "Đang tải…",
+    "quota_error": "Lỗi",
+    "quota_details": "Chi tiết",
+    "quota_resets": "đặt lại {{time}}",
+    "quota_open_for": "Xem hạn mức của {{name}}",
+    "quota_modal_title": "Hạn mức thông tin xác thực"
   },
   "logs": {
     "title": "Trình xem Log",

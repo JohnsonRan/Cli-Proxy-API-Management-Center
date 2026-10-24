@@ -1246,7 +1246,16 @@
     "store_settings_saved": "Storage settings saved",
     "store_disable_title": "Disable usage store?",
     "store_disable_confirm": "New requests will stop being recorded until the usage store is enabled again. Existing SQLite data and settings are kept.",
-    "store_disable_action": "Disable"
+    "store_disable_action": "Disable",
+    "col_quota": "Remaining quota",
+    "quota_load": "Load quota",
+    "quota_unloaded": "View",
+    "quota_loading": "Loading…",
+    "quota_error": "Error",
+    "quota_details": "Details",
+    "quota_resets": "resets {{time}}",
+    "quota_open_for": "View quota for {{name}}",
+    "quota_modal_title": "Credential quota"
   },
   "logs": {
     "preview_too_large": "This request log exceeds the 2 MiB preview limit. Download it to view.",
