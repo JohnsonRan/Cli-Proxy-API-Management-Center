@@ -1,5 +1,7 @@
 @use '../../styles/mixins' as *;
 
+$usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+
 .page {
   display: flex;
   flex-direction: column;
@@ -485,41 +487,26 @@
 
 /* ---------- Headline cards ---------- */
 
-.statCard {
-  --accent: var(--primary-color);
-  position: relative;
-  transition:
-    transform var(--dur-hover) var(--ease-out-strong),
-    box-shadow var(--dur-hover) var(--ease-out-strong),
-    border-color var(--dur-hover) var(--ease-out-strong);
+.statCardReveal {
+  display: flex;
+  min-width: 0;
+}
 
-  &:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--border-color));
-    box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--accent) 45%, transparent);
-  }
+.statCard {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 16px 16px 12px;
+  padding: 15px 16px 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%),
-    var(--bg-primary);
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong);
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      var(--accent),
-      color-mix(in srgb, var(--accent) 20%, transparent)
-    );
+  &:hover {
+    border-color: var(--border-hover, var(--border-primary));
+    background-color: var(--bg-quinary, var(--bg-primary));
   }
 }
 
@@ -530,22 +517,42 @@
   gap: 8px;
 }
 
-.statLabel {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.statIcon {
+.statLabelGroup {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.metricDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statLabel {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.statGlyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  color: #fff;
-  background: var(--accent);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text-tertiary);
+
+  svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 1.75;
+  }
 }
 
 .statValueRow {
@@ -556,11 +563,12 @@
 }
 
 .statValue {
+  font-family: $usage-serif;
   font-size: 28px;
-  line-height: 1.1;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.12;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-primary);
 }
 
@@ -618,26 +626,21 @@
 .changeGood,
 .changeBad,
 .changeFlat {
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .changeGood {
-  color: var(--viz-success);
-  background: color-mix(in srgb, var(--viz-success) 14%, transparent);
+  color: color-mix(in srgb, var(--viz-success) 48%, var(--text-primary));
 }
 
 .changeBad {
-  color: var(--viz-failure);
-  background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
+  color: color-mix(in srgb, var(--viz-failure) 72%, var(--text-primary));
 }
 
 .changeFlat {
   color: var(--text-tertiary);
-  background: var(--bg-secondary);
 }
 
 /* ---------- Section headings ---------- */
@@ -774,7 +777,7 @@
 
 /* ---------- Request events ---------- */
 
-/* A compact take on .statCard: same tint, top edge and icon chip, without sparklines. */
+/* Compact summary cards on the shared Card surface, without sparklines. */
 // Fixed columns keep the 7-8 cards in balanced rows instead of one orphan on a second row.
 .summaryStrip {
   display: grid;
@@ -789,40 +792,19 @@
 }
 
 .summaryItem {
-  --accent: var(--primary-color);
-  position: relative;
-  transition:
-    transform var(--dur-hover) var(--ease-out-strong),
-    box-shadow var(--dur-hover) var(--ease-out-strong),
-    border-color var(--dur-hover) var(--ease-out-strong);
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--border-color));
-    box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--accent) 45%, transparent);
-  }
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 14px 14px 12px;
+  padding: 13px 14px 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
-    var(--bg-primary);
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong);
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      var(--accent),
-      color-mix(in srgb, var(--accent) 20%, transparent)
-    );
+  &:hover {
+    border-color: var(--border-hover, var(--border-primary));
+    background-color: var(--bg-quinary, var(--bg-primary));
   }
 }
 
@@ -837,37 +819,38 @@
   min-width: 0;
   overflow: hidden;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.summaryIcon {
+.summaryGlyph {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  color: #fff;
-  background: var(--accent);
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text-tertiary);
 
   svg {
     width: 14px;
     height: 14px;
+    stroke-width: 1.75;
   }
 }
 
 .summaryValue {
-  font-size: 24px;
+  font-family: $usage-serif;
+  font-size: 23px;
   line-height: 1.15;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-primary);
+
+  > * {
+    font-weight: inherit;
+  }
 }
 
 .summarySub {
@@ -1381,11 +1364,8 @@
     animation: none;
   }
 
-  .statCard:hover,
-  .summaryItem:hover {
-    transform: none;
-  }
-
+  .statCard,
+  .summaryItem,
   .quotaFill,
   .quotaCellButton {
     transition: none;

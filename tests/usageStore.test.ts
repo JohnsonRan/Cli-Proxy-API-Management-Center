@@ -814,7 +814,8 @@ describe('usage overview', () => {
         onDrillDown: () => {},
       })
     );
-    expect(markup.match(/style="--accent:/g)?.length).toBe(8);
+    expect(markup.match(/<div class="card\b/g)?.length).toBe(8);
+    expect(markup).not.toContain('--accent');
     expect(markup).toContain('title="1,500"');
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-pressed="false"');
@@ -1064,5 +1065,36 @@ describe('usage store settings', () => {
     for (const [, keys] of maps.slice(1)) {
       expect(keys).toEqual(baseline);
     }
+  });
+
+  test('renders StatCard on the shared Card surface without inline accent or gradient styles', async () => {
+    const { METRIC_ACCENTS, SERIES_COLORS } = await import('@/features/usage/charts');
+    const { StatCard } = await import('@/features/usage/components/StatCard');
+
+    expect(SERIES_COLORS).toHaveLength(8);
+    for (const color of [...Object.values(METRIC_ACCENTS), ...SERIES_COLORS]) {
+      expect(color).toMatch(/^#[0-9a-f]{6}$/);
+    }
+
+    const markup = renderToStaticMarkup(
+      createElement(StatCard, {
+        accent: 'cost',
+        label: 'Estimated cost',
+        value: '$12.40',
+        change: -8.2,
+        goodWhenUp: false,
+        spark: [2, 5, 4],
+      })
+    );
+
+    expect(markup).toMatch(
+      /<div(?:\s+class="[^"]*")?\s+data-reveal="">\s*<div class="card\b[^"]*">/
+    );
+    expect(markup).not.toMatch(/<div class="card\b[^"]*"[^>]*\bstyle=/);
+    expect(markup).not.toContain('--accent');
+    expect(markup).not.toContain('gradient');
+    expect(markup).toContain(`background-color:${METRIC_ACCENTS.cost}`);
+    expect(markup).toContain(`stroke="${METRIC_ACCENTS.cost}"`);
+    expect(markup).toContain('aria-label=');
   });
 });
