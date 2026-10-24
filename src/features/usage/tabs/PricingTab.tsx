@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usageStoreApi, type UsagePricing } from '@/services/api/usageStore';
+import {
+  usageStoreApi,
+  type UsagePriceOverride,
+  type UsagePricing,
+} from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
+import { IconCheck, IconPencil, IconPlus, IconTrash2, IconX } from '@/components/ui/icons';
 import {
   Table,
   TableBody,
@@ -11,9 +16,27 @@ import {
   TableRow,
 } from '@/components/ui/Table';
 import { useNotificationStore } from '@/stores';
-import { PRICE_FIELDS, emptyRow, parseDraftRows, toDraft, type DraftRow } from '../logic';
-import { PanelHeading } from '../components/PanelBits';
+import {
+  PRICE_FIELDS,
+  emptyRow,
+  parseDraftRows,
+  pricingRows,
+  replaceOverride,
+  toDraft,
+  type DraftRow,
+  type PricingRow,
+} from '../logic';
 import styles from '../UsagePage.module.scss';
+
+/** The row being edited: an existing model, or a new override when `model` is empty. */
+interface Editing {
+  model: string;
+  draft: DraftRow;
+  invalid: boolean;
+}
+
+const priceLabelKey = (field: (typeof PRICE_FIELDS)[number]) =>
+  `usage_stats.col_price_${field === 'cacheRead' ? 'cache_read' : field === 'cacheWrite' ? 'cache_write' : field}`;
 
 export function PricingTab({
   pricing,
@@ -26,24 +49,19 @@ export function PricingTab({
 }) {
   const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
-  const [rows, setRows] = useState<DraftRow[] | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [overrides, setOverrides] = useState<UsagePriceOverride[] | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [invalidRow, setInvalidRow] = useState<number | null>(null);
 
   const loadOverrides = useCallback(async () => {
     try {
-      const overrides = await usageStoreApi.getOverrides();
-      setRows(overrides.map(toDraft));
-      setDirty(false);
-      setInvalidRow(null);
+      setOverrides(await usageStoreApi.getOverrides());
     } catch (err: unknown) {
       showNotification(
         err instanceof Error ? err.message : t('notification.refresh_failed'),
         'error'
       );
-      setRows([]);
     }
   }, [showNotification, t]);
 
@@ -51,29 +69,13 @@ export function PricingTab({
     void loadOverrides();
   }, [loadOverrides]);
 
-  const update = (index: number, patch: Partial<DraftRow>) => {
-    setRows((prev) => (prev ?? []).map((row, i) => (i === index ? { ...row, ...patch } : row)));
-    setDirty(true);
-    setInvalidRow(null);
-  };
-
-  const addRow = (seed?: Partial<DraftRow>) => {
-    setRows((prev) => [...(prev ?? []), { ...emptyRow(), ...seed }]);
-    setDirty(true);
-  };
-
-  const save = async () => {
-    const parsed = parseDraftRows(rows ?? []);
-    if ('invalidRow' in parsed) {
-      setInvalidRow(parsed.invalidRow);
-      showNotification(t('usage_stats.override_invalid', { row: parsed.invalidRow + 1 }), 'error');
-      return;
-    }
+  const persist = async (next: UsagePriceOverride[]) => {
     setSaving(true);
     try {
-      await usageStoreApi.saveOverrides(parsed.overrides);
+      await usageStoreApi.saveOverrides(next);
       showNotification(t('usage_stats.override_saved'), 'success');
-      setDirty(false);
+      setOverrides(next);
+      setEditing(null);
       // Give the config watcher a moment before re-reading effective prices.
       await new Promise((resolve) => setTimeout(resolve, 1200));
       onPricingChange(await usageStoreApi.getPricing());
@@ -88,6 +90,37 @@ export function PricingTab({
       setSaving(false);
     }
   };
+
+  const startEdit = (row: PricingRow) =>
+    setEditing({
+      model: row.model,
+      invalid: false,
+      draft: row.override
+        ? toDraft(row.override)
+        : {
+            model: row.model,
+            input: row.price ? String(row.price.input) : '',
+            output: row.price ? String(row.price.output) : '',
+            cacheRead: row.price ? String(row.price.cacheRead) : '',
+            cacheWrite: row.price ? String(row.price.cacheWrite) : '',
+          },
+    });
+
+  const saveEdit = () => {
+    if (!editing || overrides === null) return;
+    const parsed = parseDraftRows([editing.draft]);
+    if ('invalidRow' in parsed || parsed.overrides.length !== 1) {
+      setEditing({ ...editing, invalid: true });
+      showNotification(t('usage_stats.override_invalid'), 'error');
+      return;
+    }
+    void persist(replaceOverride(overrides, editing.model, parsed.overrides[0]));
+  };
+
+  const updateDraft = (patch: Partial<DraftRow>) =>
+    setEditing((prev) =>
+      prev ? { ...prev, invalid: false, draft: { ...prev.draft, ...patch } } : prev
+    );
 
   const refreshModelsDev = async () => {
     setRefreshing(true);
@@ -104,115 +137,76 @@ export function PricingTab({
     }
   };
 
-  const overridden = new Set((rows ?? []).map((r) => r.model.trim().toLowerCase()));
+  const rows = pricingRows(pricing.models, overrides ?? []);
   const md = pricing.modelsDev;
   const price = (value: number | undefined) => (value === undefined ? '—' : `$${value}`);
+  const busy = saving || overrides === null;
+
+  const editCells = (e: Editing) => (
+    <>
+      {PRICE_FIELDS.map((field) => (
+        <TableCell key={field} alignRight>
+          <input
+            className={styles.cellInputNumber}
+            inputMode="decimal"
+            value={e.draft[field]}
+            placeholder={
+              field === 'cacheRead' || field === 'cacheWrite' ? t('usage_stats.default_input') : '0'
+            }
+            aria-label={t(priceLabelKey(field))}
+            onChange={(ev) => updateDraft({ [field]: ev.target.value })}
+            onKeyDown={(ev) => {
+              if (ev.key === 'Enter') saveEdit();
+              if (ev.key === 'Escape') setEditing(null);
+            }}
+          />
+        </TableCell>
+      ))}
+      <TableCell alignRight>
+        <span className={styles.iconActions}>
+          <IconButton label={t('common.save')} onClick={saveEdit} loading={saving}>
+            <IconCheck size={14} />
+          </IconButton>
+          <IconButton label={t('common.cancel')} onClick={() => setEditing(null)} disabled={saving}>
+            <IconX size={14} />
+          </IconButton>
+        </span>
+      </TableCell>
+    </>
+  );
+
+  const adding = editing !== null && editing.model === '';
 
   return (
-    <>
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <PanelHeading
-            title={t('usage_stats.overrides_title')}
-            desc={t('usage_stats.overrides_hint')}
-          />
-          <div className={styles.toolbarActions}>
-            <Button variant="secondary" size="sm" onClick={() => addRow()} disabled={rows === null}>
-              {t('usage_stats.override_add')}
-            </Button>
-            <Button size="sm" onClick={() => void save()} loading={saving} disabled={!dirty}>
-              {t('usage_stats.override_save')}
-            </Button>
-          </div>
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h2 className={styles.panelTitle}>{t('usage_stats.pricing_title')}</h2>
+          <p className={styles.panelDesc}>
+            {!md.enabled
+              ? t('usage_stats.pricing_models_dev_off')
+              : md.updatedAt
+                ? t('usage_stats.pricing_models_dev_status', {
+                    count: md.count,
+                    time: new Date(md.updatedAt).toLocaleString(i18n.language),
+                  })
+                : t('usage_stats.pricing_models_dev_pending')}
+          </p>
+          <p className={styles.panelDesc}>{t('usage_stats.overrides_hint')}</p>
+          {md.lastError && <p className={styles.errorText}>{md.lastError}</p>}
         </div>
-        {rows && rows.length > 0 ? (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead>{t('usage_stats.col_price_input')}</TableHead>
-                <TableHead>{t('usage_stats.col_price_output')}</TableHead>
-                <TableHead>{t('usage_stats.col_price_cache_read')}</TableHead>
-                <TableHead>{t('usage_stats.col_price_cache_write')}</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, index) => (
-                <TableRow
-                  key={index}
-                  className={invalidRow === index ? styles.invalidRow : undefined}
-                >
-                  <TableCell>
-                    <input
-                      className={styles.cellInput}
-                      list="usage-model-options"
-                      value={row.model}
-                      placeholder="gpt-5"
-                      aria-label={t('usage_stats.col_model')}
-                      onChange={(e) => update(index, { model: e.target.value })}
-                    />
-                  </TableCell>
-                  {PRICE_FIELDS.map((field) => (
-                    <TableCell key={field}>
-                      <input
-                        className={styles.cellInputNumber}
-                        inputMode="decimal"
-                        value={row[field]}
-                        placeholder={
-                          field === 'cacheRead' || field === 'cacheWrite'
-                            ? t('usage_stats.default_input')
-                            : '0'
-                        }
-                        aria-label={t(
-                          `usage_stats.col_price_${field === 'cacheRead' ? 'cache_read' : field === 'cacheWrite' ? 'cache_write' : field}`
-                        )}
-                        onChange={(e) => update(index, { [field]: e.target.value })}
-                      />
-                    </TableCell>
-                  ))}
-                  <TableCell alignRight>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setRows((prev) => (prev ?? []).filter((_, i) => i !== index));
-                        setDirty(true);
-                      }}
-                    >
-                      {t('usage_stats.override_remove')}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className={styles.muted}>{rows === null ? '…' : t('usage_stats.overrides_empty')}</p>
-        )}
-        <datalist id="usage-model-options">
-          {pricing.models.map((m) => (
-            <option key={m.model} value={m.model} />
-          ))}
-        </datalist>
-      </section>
-
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h2 className={styles.panelTitle}>{t('usage_stats.pricing_title')}</h2>
-            <p className={styles.panelDesc}>
-              {!md.enabled
-                ? t('usage_stats.pricing_models_dev_off')
-                : md.updatedAt
-                  ? t('usage_stats.pricing_models_dev_status', {
-                      count: md.count,
-                      time: new Date(md.updatedAt).toLocaleString(i18n.language),
-                    })
-                  : t('usage_stats.pricing_models_dev_pending')}
-            </p>
-            {md.lastError && <p className={styles.errorText}>{md.lastError}</p>}
-          </div>
+        <div className={styles.toolbarActions}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || adding}
+            onClick={() => setEditing({ model: '', draft: emptyRow(), invalid: false })}
+          >
+            <span className={styles.iconLabel}>
+              <IconPlus size={14} />
+              {t('usage_stats.override_add')}
+            </span>
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -223,63 +217,126 @@ export function PricingTab({
             {t('usage_stats.pricing_refresh')}
           </Button>
         </div>
-        {pricing.models.length === 0 ? (
-          <p className={styles.muted}>{t('usage_stats.no_data')}</p>
-        ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead>{t('usage_stats.col_source')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_price_input')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_price_output')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_price_cache_read')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_price_cache_write')}</TableHead>
-                <TableHead />
+      </div>
+      {rows.length === 0 && !adding ? (
+        <p className={styles.muted}>{t('usage_stats.no_data')}</p>
+      ) : (
+        <Table className={styles.table}>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('usage_stats.col_model')}</TableHead>
+              <TableHead>{t('usage_stats.col_source')}</TableHead>
+              {PRICE_FIELDS.map((field) => (
+                <TableHead key={field} alignRight>
+                  {t(priceLabelKey(field))}
+                </TableHead>
+              ))}
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {adding && editing && (
+              <TableRow className={editing.invalid ? styles.invalidRow : undefined}>
+                <TableCell>
+                  <input
+                    className={styles.cellInput}
+                    value={editing.draft.model}
+                    placeholder="gpt-5"
+                    aria-label={t('usage_stats.col_model')}
+                    autoFocus
+                    onChange={(ev) => updateDraft({ model: ev.target.value })}
+                  />
+                </TableCell>
+                <TableCell>{t('usage_stats.source_override')}</TableCell>
+                {editCells(editing)}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pricing.models.map((m) => (
-                <TableRow key={m.model}>
-                  <TableCell className={styles.mono}>{m.model}</TableCell>
+            )}
+            {rows.map((row) => {
+              const isEditing = editing !== null && editing.model === row.model;
+              return (
+                <TableRow
+                  key={row.model}
+                  className={isEditing && editing.invalid ? styles.invalidRow : undefined}
+                >
+                  <TableCell className={styles.mono}>{row.model}</TableCell>
                   <TableCell>
-                    {m.source === 'override' ? (
-                      t('usage_stats.source_override')
-                    ) : m.source ? (
+                    {row.override ? (
+                      <span className={styles.overrideTag}>{t('usage_stats.source_override')}</span>
+                    ) : row.source ? (
                       'models.dev'
                     ) : (
                       <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
                     )}
                   </TableCell>
-                  <TableCell alignRight>{price(m.price?.input)}</TableCell>
-                  <TableCell alignRight>{price(m.price?.output)}</TableCell>
-                  <TableCell alignRight>{price(m.price?.cacheRead)}</TableCell>
-                  <TableCell alignRight>{price(m.price?.cacheWrite)}</TableCell>
-                  <TableCell alignRight>
-                    {!overridden.has(m.model.toLowerCase()) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          addRow({
-                            model: m.model,
-                            input: m.price ? String(m.price.input) : '',
-                            output: m.price ? String(m.price.output) : '',
-                            cacheRead: m.price ? String(m.price.cacheRead) : '',
-                            cacheWrite: m.price ? String(m.price.cacheWrite) : '',
-                          })
-                        }
-                      >
-                        {t('usage_stats.override_this')}
-                      </Button>
-                    )}
-                  </TableCell>
+                  {isEditing ? (
+                    editCells(editing)
+                  ) : (
+                    <>
+                      <TableCell alignRight>{price(row.price?.input)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.output)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.cacheRead)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.cacheWrite)}</TableCell>
+                      <TableCell alignRight>
+                        <span className={styles.iconActions}>
+                          <IconButton
+                            label={t(
+                              row.override
+                                ? 'usage_stats.override_edit'
+                                : 'usage_stats.override_this',
+                              { model: row.model }
+                            )}
+                            onClick={() => startEdit(row)}
+                            disabled={busy || editing !== null}
+                          >
+                            <IconPencil size={14} />
+                          </IconButton>
+                          {row.override && (
+                            <IconButton
+                              label={t('usage_stats.override_remove', { model: row.model })}
+                              onClick={() =>
+                                overrides &&
+                                void persist(replaceOverride(overrides, row.model, null))
+                              }
+                              disabled={busy || editing !== null}
+                            >
+                              <IconTrash2 size={14} />
+                            </IconButton>
+                          )}
+                        </span>
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-    </>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
+    </section>
+  );
+}
+
+function IconButton({
+  label,
+  children,
+  ...rest
+}: {
+  label: string;
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={styles.iconButton}
+      aria-label={label}
+      title={label}
+      {...rest}
+    >
+      {children}
+    </Button>
   );
 }
