@@ -33,7 +33,7 @@ import { PanelHeading } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import { formatCompact, formatCost, formatMs } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import { REALTIME_FEED_LIMIT, eventTransport, mergeRealtimeFeed } from '../logic';
+import { REALTIME_FEED_LIMIT, eventTransport, mergeRealtimeFeed, visibleInFlight } from '../logic';
 import styles from '../UsagePage.module.scss';
 
 const POLL_MS = 5000;
@@ -233,7 +233,10 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
     second: '2-digit',
   });
   const live = !paused && !hidden;
-  const inFlightRows = data?.inFlightRequests ?? [];
+  const inFlightRows = useMemo(
+    () => visibleInFlight(data?.inFlightRequests ?? [], feed),
+    [data?.inFlightRequests, feed]
+  );
   // Ticks once a second while calls are running so their elapsed time keeps counting between polls.
   const [clock, setClock] = useState(() => Date.now());
   const ticking = live && inFlightRows.length > 0;
@@ -242,7 +245,8 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [ticking]);
-  const sincePoll = updatedAt && live ? Math.max(clock - updatedAt, 0) : 0;
+  // Paused or hidden, the clock stops, so elapsed times freeze instead of jumping back.
+  const sincePoll = updatedAt ? Math.max(clock - updatedAt, 0) : 0;
 
   return (
     <>
