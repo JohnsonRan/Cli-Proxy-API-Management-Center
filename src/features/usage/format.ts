@@ -152,6 +152,14 @@ export const formatCompact = (value: number): string => {
   return String(Math.round(value));
 };
 
+/** Hover text for a compact count: the full grouped number, or undefined when nothing is hidden. */
+export const exactCount = (value: number): string | undefined =>
+  Math.abs(value) >= 1000 ? Math.round(value).toLocaleString('en-US') : undefined;
+
+/** Hover text for a rounded cost: dollars to four decimals. */
+export const exactCost = (usd: number): string =>
+  `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+
 export const formatMs = (ms: number): string => {
   if (ms <= 0) return '—';
   if (ms < 1000) return `${Math.round(ms)} ms`;
