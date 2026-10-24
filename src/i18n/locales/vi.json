@@ -1020,6 +1020,8 @@
     "col_output": "Đầu ra",
     "col_tokens": "Token",
     "col_cost": "Chi phí",
+    "col_avg_tokens": "Token / yêu cầu",
+    "col_avg_cost": "Chi phí / yêu cầu",
     "col_key": "Khóa máy khách",
     "col_credential": "Thông tin xác thực",
     "col_time": "Thời gian",

@@ -1064,6 +1064,8 @@
     "col_output": "Output",
     "col_tokens": "Tokens",
     "col_cost": "Cost",
+    "col_avg_tokens": "Tokens / req",
+    "col_avg_cost": "Cost / req",
     "col_key": "Client key",
     "col_credential": "Credential",
     "col_time": "Time",

@@ -1067,6 +1067,8 @@
     "col_output": "Выход",
     "col_tokens": "Токены",
     "col_cost": "Стоимость",
+    "col_avg_tokens": "Токенов / запрос",
+    "col_avg_cost": "Цена / запрос",
     "col_key": "Клиентский ключ",
     "col_credential": "Учётные данные",
     "col_time": "Время",
