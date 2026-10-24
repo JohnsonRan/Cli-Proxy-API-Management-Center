@@ -1240,7 +1240,21 @@
     "request_log_download": "로그 다운로드",
     "request_log_missing": "이 요청의 로그가 없습니다. 요청 로그를 켜면 저장되며, 실패한 요청은 오류 로그가 남습니다.",
     "request_log_failed": "요청 로그를 불러오지 못했습니다",
-    "request_log_too_large": "로그가 2MB를 넘습니다. 다운로드해서 보세요."
+    "request_log_too_large": "로그가 2MB를 넘습니다. 다운로드해서 보세요.",
+    "store_settings_title": "저장소 설정",
+    "store_settings_desc": "내장 SQLite 사용량 저장소(observability.usage.store)를 설정합니다.",
+    "store_enable_hint": "모든 요청을 SQLite에 기록합니다. 끄면 새 요청 기록이 중단됩니다.",
+    "store_disable_models_dev": "models.dev 가격 사용 안 함",
+    "store_disable_models_dev_hint": "models.dev에서 가격을 가져오지 않고 재정의 가격으로만 비용을 추정합니다.",
+    "store_retention_label": "요청 상세 보관 기간(일)",
+    "store_retention_hint": "비우거나 0이면 기본 30일, 음수(예: -1)는 영구 보관합니다. 시간별 집계는 삭제되지 않습니다.",
+    "store_retention_invalid": "정수 일수를 입력하세요 (예: 30 또는 -1)",
+    "store_path_label": "데이터베이스 경로",
+    "store_path_hint": "SQLite 파일 경로입니다. 비우면 로그 디렉터리의 usage.db를 사용합니다.",
+    "store_settings_saved": "저장소 설정이 저장되었습니다",
+    "store_disable_title": "사용량 저장소를 끄시겠습니까?",
+    "store_disable_confirm": "다시 켤 때까지 새 요청이 기록되지 않습니다. 기존 SQLite 데이터와 설정은 유지됩니다.",
+    "store_disable_action": "끄기"
   },
   "logs": {
     "preview_too_large": "이 요청 로그는 2 MiB 미리보기 제한을 초과합니다. 다운로드하여 확인하세요.",

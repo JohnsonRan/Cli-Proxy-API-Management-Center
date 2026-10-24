@@ -1238,7 +1238,21 @@
     "request_log_download": "下载日志",
     "request_log_missing": "没有这条请求的日志。开启请求日志后会保留，失败请求会保留错误日志。",
     "request_log_failed": "加载请求日志失败",
-    "request_log_too_large": "日志超过 2 MB，请下载查看。"
+    "request_log_too_large": "日志超过 2 MB，请下载查看。",
+    "store_settings_title": "存储设置",
+    "store_settings_desc": "配置内置 SQLite 用量存储（observability.usage.store）。",
+    "store_enable_hint": "将每次请求写入 SQLite；关闭后将停止记录新请求。",
+    "store_disable_models_dev": "禁用 models.dev 价格",
+    "store_disable_models_dev_hint": "停止从 models.dev 拉取价格，仅按覆盖价格估算费用。",
+    "store_retention_label": "请求明细保留天数",
+    "store_retention_hint": "留空或填 0 使用默认 30 天，负数（如 -1）永久保留；按小时汇总数据永不清理。",
+    "store_retention_invalid": "请输入整数天数（如 30 或 -1）",
+    "store_path_label": "数据库路径",
+    "store_path_hint": "SQLite 文件路径；留空则使用日志目录下的 usage.db。",
+    "store_settings_saved": "存储设置已保存",
+    "store_disable_title": "关闭用量存储？",
+    "store_disable_confirm": "关闭后将停止记录新请求，直到再次开启。已有的 SQLite 数据与设置会保留。",
+    "store_disable_action": "关闭"
   },
   "logs": {
     "preview_too_large": "报文超过 2 MiB 预览限制，请下载查看",

@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import type {
-  UsageEventsQuery,
-  UsageModelPrice,
-  UsagePriceOverride,
+import {
+  MAX_RETENTION_DAYS,
+  type UsageEventsQuery,
+  type UsageModelPrice,
+  type UsagePriceOverride,
+  type UsageStoreSettings,
 } from '@/services/api/usageStore';
 import {
   USAGE_METRICS,
@@ -564,4 +566,56 @@ export const alignPrevious = <T>(
     const prevIndex = i + offset;
     return prevIndex >= 0 && prevIndex < previous.length ? previous[prevIndex] : undefined;
   });
+};
+
+export interface StoreSettingsDraft {
+  enable: boolean;
+  path: string;
+  retentionDays: string;
+  disableModelsDev: boolean;
+}
+
+export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSettingsDraft => ({
+  enable: settings.enable,
+  path: settings.path,
+  retentionDays: settings.retentionDays === 0 ? '' : String(settings.retentionDays),
+  disableModelsDev: settings.disableModelsDev,
+});
+
+export const parseRetentionDays = (raw: string): number | null => {
+  const trimmed = raw.trim();
+  if (trimmed === '') return 0;
+  if (!/^-?\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  if (!Number.isSafeInteger(n) || Math.abs(n) > MAX_RETENTION_DAYS) return null;
+  return n;
+};
+
+export const parseStoreSettingsDraft = (
+  draft: StoreSettingsDraft
+): { settings: UsageStoreSettings } | { error: 'retentionDays' } => {
+  const retentionDays = parseRetentionDays(draft.retentionDays);
+  if (retentionDays === null) return { error: 'retentionDays' };
+  return {
+    settings: {
+      enable: draft.enable,
+      path: draft.path.trim(),
+      retentionDays,
+      disableModelsDev: draft.disableModelsDev,
+    },
+  };
+};
+
+export const isStoreSettingsDirty = (
+  draft: StoreSettingsDraft,
+  saved: UsageStoreSettings
+): boolean => {
+  const retentionDays = parseRetentionDays(draft.retentionDays);
+  if (retentionDays === null) return true;
+  return (
+    draft.enable !== saved.enable ||
+    draft.path.trim() !== saved.path ||
+    retentionDays !== saved.retentionDays ||
+    draft.disableModelsDev !== saved.disableModelsDev
+  );
 };

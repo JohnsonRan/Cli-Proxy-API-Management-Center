@@ -1240,7 +1240,21 @@
     "request_log_download": "Download log",
     "request_log_missing": "No log for this request. Request logs are kept when request logging is on, and error logs for failed requests.",
     "request_log_failed": "Could not load the request log",
-    "request_log_too_large": "The log is larger than 2 MB; download it instead."
+    "request_log_too_large": "The log is larger than 2 MB; download it instead.",
+    "store_settings_title": "Storage settings",
+    "store_settings_desc": "Configure the built-in SQLite usage store (observability.usage.store).",
+    "store_enable_hint": "Persist each request to SQLite. Turning this off stops recording new requests.",
+    "store_disable_models_dev": "Disable models.dev prices",
+    "store_disable_models_dev_hint": "Stop fetching prices from models.dev and estimate cost from overrides only.",
+    "store_retention_label": "Event retention (days)",
+    "store_retention_hint": "Empty or 0 uses 30 days; negative (e.g. -1) keeps events forever. Hourly aggregates are never pruned.",
+    "store_retention_invalid": "Enter an integer number of days (e.g. 30 or -1)",
+    "store_path_label": "Database path",
+    "store_path_hint": "SQLite file path. Leave empty to use usage.db in the logs directory.",
+    "store_settings_saved": "Storage settings saved",
+    "store_disable_title": "Disable usage store?",
+    "store_disable_confirm": "New requests will stop being recorded until the usage store is enabled again. Existing SQLite data and settings are kept.",
+    "store_disable_action": "Disable"
   },
   "logs": {
     "preview_too_large": "This request log exceeds the 2 MiB preview limit. Download it to view.",
