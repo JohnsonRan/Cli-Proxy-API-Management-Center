@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { IconX } from '@/components/ui/icons';
 import { getTypeLabel } from '@/features/authFiles/constants';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
+import { useInterval } from '@/hooks/useInterval';
 import { useAuthStore } from '@/stores';
 import {
   USAGE_RANGES,
@@ -177,13 +178,13 @@ export function UsagePage() {
   // and reloading the events or pricing tabs would drop loaded pages and edits.
   const [autoRefresh, setAutoRefresh] = useState(() => readUsagePrefs().autoRefresh ?? 0);
   const autoRefreshTab = tab === 'overview' || tab === 'analysis';
-  useEffect(() => {
-    if (!autoRefresh || !autoRefreshTab || !connected || disabled) return;
-    const id = window.setInterval(() => {
+  const autoRefreshActive = autoRefresh > 0 && autoRefreshTab && connected && !disabled;
+  useInterval(
+    () => {
       if (!document.hidden) void load();
-    }, autoRefresh * 1000);
-    return () => window.clearInterval(id);
-  }, [autoRefresh, autoRefreshTab, connected, disabled, load]);
+    },
+    autoRefreshActive ? autoRefresh * 1000 : null
+  );
   const autoRefreshOptions = useMemo(
     () =>
       AUTO_REFRESH_SECONDS.map((value) => ({
