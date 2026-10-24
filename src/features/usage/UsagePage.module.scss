@@ -3,6 +3,8 @@
 $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
 
 .page {
+  // Success reads in the page's earthy palette (METRIC_ACCENTS.success) instead of the global emerald.
+  --viz-success: #6c8a56;
   display: flex;
   flex-direction: column;
   gap: 20px;
