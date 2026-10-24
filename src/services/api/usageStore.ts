@@ -463,6 +463,8 @@ export interface UsageRealtimePoint {
 /** A call still being served; upstream fields are empty until an attempt starts. */
 export interface UsageInFlightRequest {
   id: number;
+  /** Same as the request_id of the events this call records. */
+  requestId: string;
   startedAt: number;
   elapsedMs: number;
   endpoint: string;
@@ -501,6 +503,7 @@ export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
     inFlight: num(d.in_flight),
     inFlightRequests: list(d.in_flight_requests).map((r) => ({
       id: num(r.id),
+      requestId: str(r.request_id),
       startedAt: num(r.started_at),
       elapsedMs: num(r.elapsed_ms),
       endpoint: str(r.endpoint),

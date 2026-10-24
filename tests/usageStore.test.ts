@@ -263,6 +263,15 @@ describe('usage analysis and pricing helpers', () => {
       { model: 'Unused', input: 1, output: 1 },
     ]);
     expect(replaceOverride(overrides, 'unused', null)).toEqual([overrides[0]]);
+
+    // Case variants of one model show as one row with the last variant, as the backend applies it.
+    const variants = [
+      { model: 'Solo', input: 1, output: 1 },
+      { model: 'solo', input: 2, output: 2 },
+    ];
+    const solo = pricingRows([], variants);
+    expect(solo).toHaveLength(1);
+    expect(solo[0].override).toBe(variants[1]);
   });
 
   test('reads stored event columns and builds event queries', () => {
@@ -498,6 +507,7 @@ describe('usage realtime', () => {
       in_flight_requests: [
         {
           id: 7,
+          request_id: 'req-7',
           started_at: 1000,
           elapsed_ms: 2500,
           endpoint: 'POST /v1/responses',
@@ -516,6 +526,7 @@ describe('usage realtime', () => {
     expect(rt.inFlightRequests).toHaveLength(2);
     expect(rt.inFlightRequests[0]).toEqual({
       id: 7,
+      requestId: 'req-7',
       startedAt: 1000,
       elapsedMs: 2500,
       endpoint: 'POST /v1/responses',
@@ -527,6 +538,18 @@ describe('usage realtime', () => {
       apiKey: 'sk-...xyz',
     });
     expect(rt.inFlightRequests[1]).toMatchObject({ id: 8, model: '', provider: '', elapsedMs: 0 });
+  });
+
+  test('drops in-flight HTTP calls whose event is already in the feed', async () => {
+    const { visibleInFlight } = await import('@/features/usage/logic');
+    const inFlight = [
+      { id: 1, requestId: 'done', transport: 'sse' },
+      { id: 2, requestId: 'running', transport: 'http' },
+      { id: 3, requestId: 'done', transport: 'ws' },
+      { id: 4, requestId: '', transport: 'http' },
+    ];
+    const feed = [{ requestId: 'done' }, { requestId: '' }];
+    expect(visibleInFlight(inFlight, feed).map((r) => r.id)).toEqual([2, 3, 4]);
   });
 
   test('merges ascending pages into a newest-first capped feed', async () => {
