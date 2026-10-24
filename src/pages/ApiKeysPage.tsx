@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -30,28 +38,81 @@ import {
 } from '@/components/ui/icons';
 import { ApiKeyStrengthMeter } from '@/features/config/components/blocks/ApiKeyStrengthMeter';
 import {
-  apiKeyNameFingerprint,
-  readApiKeyNames,
-  saveApiKeyName,
-} from '@/features/config/apiKeyNames';
-import { apiKeysApi } from '@/services/api/apiKeys';
-import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+  normalizeExcludedRules,
+  type ExcludedModelCandidate,
+  type ExcludedModelsCatalogState,
+} from '@/components/excludedModels';
+import {
+  apiKeysApi,
+  type ClientApiKeyItem,
+  type GlobalClientModelRules,
+} from '@/services/api/apiKeys';
+import { guardConfigConnection } from '@/services/api/configValue';
+import { modelsApi } from '@/services/api/models';
+import { useConfigStore, useNotificationStore } from '@/stores';
+import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+import { GlobalClientModelRulesCard } from './GlobalClientModelRulesCard';
+
+function useProxyModelCatalog(enabled: boolean) {
+  const [candidates, setCandidates] = useState<ExcludedModelCandidate[]>([]);
+  const [catalogState, setCatalogState] = useState<ExcludedModelsCatalogState>('loading');
+  const loadedRef = useRef(false);
+
+  const load = useCallback(async () => {
+    setCatalogState('loading');
+    try {
+      const items = await modelsApi.listCatalog();
+      setCandidates(items.map((item) => ({ id: item.id, displayName: item.display_name })));
+      setCatalogState('ready');
+      loadedRef.current = true;
+    } catch {
+      loadedRef.current = false;
+      setCatalogState('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || loadedRef.current) return;
+    void load();
+  }, [enabled, load]);
+
+  return { candidates, catalogState, retry: load };
+}
 import { generateSecureApiKey } from '@/utils/apiKey';
-import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
+import {
+  DEFAULT_VISIBLE_MODEL_LIMIT,
+  hasApiKeyModelRestrictions,
+  summarizeApiKeyModelScope,
+} from '@/utils/apiKeyScope';
 import { copyToClipboard } from '@/utils/clipboard';
 import { maskApiKey } from '@/utils/format';
 import { getErrorMessage } from '@/utils/helpers';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import styles from './ApiKeysPage.module.scss';
 
+/** How long the copy button keeps its "copied" check mark before reverting. */
+const COPIED_FEEDBACK_MS = 1500;
+
+/** Metric value that occupies the same space while the first load is in flight. */
+function MetricValue({ loading, children }: PropsWithChildren<{ loading: boolean }>) {
+  if (loading) return <Skeleton width={56} height={22} rounded={6} />;
+  return <span className={styles.metricValue}>{children}</span>;
+}
+
 export function ApiKeysPage() {
   const { t } = useTranslation();
-  const apiBase = useAuthStore((state) => state.apiBase);
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const clearCache = useConfigStore((state) => state.clearCache);
 
-  const [apiKeys, setApiKeys] = useState<string[]>([]);
-  const [names, setNames] = useState<Record<string, string>>(() => readApiKeyNames(apiBase));
+  const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
+  const apiKeys = useMemo(() => apiKeyItems.map((item) => item.apiKey), [apiKeyItems]);
+  const [globalModelRules, setGlobalModelRules] = useState<GlobalClientModelRules>(() => ({
+    models: [],
+    excludedModels: [],
+  }));
+  const [globalRulesEditing, setGlobalRulesEditing] = useState(false);
+  const connectionGuardRef = useRef<() => void>(() => {});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -59,13 +120,17 @@ export function ApiKeysPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(() => new Set());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Add / Edit Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [keyInput, setKeyInput] = useState('');
+  const [allowedModels, setAllowedModels] = useState<string[]>([]);
+  const [excludedModels, setExcludedModels] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
+  const modelCatalog = useProxyModelCatalog(modalOpen || globalRulesEditing);
 
   // Delete Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -78,53 +143,91 @@ export function ApiKeysPage() {
   const apiKeyErrorId = `${apiKeyInputId}-error`;
 
   const loadKeys = useCallback(async () => {
+    const assertConnection = guardConfigConnection();
     setLoading(true);
     try {
-      const keys = await apiKeysApi.list();
-      setApiKeys(keys);
-      setNames(readApiKeyNames(apiBase));
+      const [items, globalRules] = await Promise.all([
+        apiKeysApi.listItems(),
+        apiKeysApi.getGlobalModelRules(),
+      ]);
+      assertConnection();
+      connectionGuardRef.current = assertConnection;
+      setApiKeyItems(items);
+      setGlobalModelRules(globalRules);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       showNotification(getErrorMessage(err), 'error');
     } finally {
       setLoading(false);
     }
-  }, [apiBase, showNotification]);
+  }, [showNotification]);
 
   useEffect(() => {
     void loadKeys();
   }, [loadKeys]);
 
+  const handleSaveGlobalModelRules = useCallback(
+    async (next: GlobalClientModelRules): Promise<boolean> => {
+      const assertConnection = connectionGuardRef.current;
+      try {
+        const saved = await apiKeysApi.replaceGlobalModelRules(
+          next,
+          globalModelRules,
+          assertConnection,
+          (committedModels) => {
+            setGlobalModelRules((current) => ({ ...current, models: committedModels }));
+          }
+        );
+        setGlobalModelRules(saved);
+        clearCache('api-keys');
+        void fetchConfig(true).catch(() => undefined);
+        showNotification(t('common.saved_success', '保存成功'), 'success');
+        return true;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return false;
+        showNotification(getErrorMessage(err), 'error');
+        return false;
+      }
+    },
+    [clearCache, fetchConfig, globalModelRules, showNotification, t]
+  );
+
+  // Drop the pending copy-feedback timer so it cannot fire after unmount.
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Compute metrics
   const totalKeys = apiKeys.length;
-  const namedCount = useMemo(() => {
-    return apiKeys.filter((k) => !!names[apiKeyNameFingerprint(apiBase, k)]).length;
-  }, [apiBase, apiKeys, names]);
+  const namedCount = useMemo(() => apiKeyItems.filter((item) => !!item.name).length, [apiKeyItems]);
 
-  const strongCount = useMemo(() => {
-    return apiKeys.filter((k) => {
-      const { tier } = evaluateApiKeyStrength(k);
-      return tier === 'strong' || tier === 'good';
-    }).length;
-  }, [apiKeys]);
+  // Keys that narrow their model scope, by allow-list or by exclusions.
+  const restrictedCount = useMemo(
+    () => apiKeyItems.filter((item) => hasApiKeyModelRestrictions(item, globalModelRules)).length,
+    [apiKeyItems, globalModelRules]
+  );
 
-  const complianceRate = useMemo(() => {
-    if (totalKeys === 0) return '100%';
-    return `${Math.round((strongCount / totalKeys) * 100)}%`;
-  }, [strongCount, totalKeys]);
+  const metricsLoading = loading && apiKeyItems.length === 0;
 
   // Filtered rows
   const filteredRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const rows = apiKeys.map((key, index) => {
-      const name = names[apiKeyNameFingerprint(apiBase, key)] || '';
-      return { key, index, name };
+    const rows = apiKeyItems.map((item, index) => {
+      const key = item.apiKey;
+      const name = item.name ?? '';
+      return { item, key, index, name };
     });
 
     if (!q) return rows;
     return rows.filter(({ key, name }) => {
       return name.toLowerCase().includes(q) || key.toLowerCase().includes(q);
     });
-  }, [apiBase, apiKeys, names, searchQuery]);
+  }, [apiKeyItems, searchQuery]);
 
   // Actions
   const toggleReveal = useCallback((key: string) => {
@@ -139,13 +242,19 @@ export function ApiKeysPage() {
   const handleCopy = useCallback(
     async (key: string) => {
       const copied = await copyToClipboard(key);
-      if (copied) {
-        setCopiedKey(key);
-        setTimeout(() => setCopiedKey(null), 1500);
-        showNotification(t('api_keys_page.copied', '已复制'), 'success');
-      } else {
+      if (!copied) {
         showNotification(t('notification.copy_failed', '复制失败'), 'error');
+        return;
       }
+
+      // Restart the feedback window so a second copy does not clear its own check mark.
+      if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
+      setCopiedKey(key);
+      copiedTimerRef.current = setTimeout(() => {
+        copiedTimerRef.current = null;
+        setCopiedKey(null);
+      }, COPIED_FEEDBACK_MS);
+      showNotification(t('api_keys_page.copied', '已复制'), 'success');
     },
     [showNotification, t]
   );
@@ -154,16 +263,19 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
     setModalOpen(true);
   };
 
-  const openEditModal = (key: string, index: number) => {
-    const latestNames = readApiKeyNames(apiBase);
-    setNames(latestNames);
+  const openEditModal = (item: ClientApiKeyItem, index: number) => {
     setEditingIndex(index);
-    setNameInput(latestNames[apiKeyNameFingerprint(apiBase, key)] ?? '');
-    setKeyInput(key);
+    setNameInput(item.name ?? '');
+    setKeyInput(item.apiKey);
+    const activeModels = item.models ?? item.allowedModels ?? [];
+    setAllowedModels(normalizeExcludedRules(activeModels));
+    setExcludedModels(normalizeExcludedRules(item.excludedModels ?? []));
     setFormError('');
     setModalOpen(true);
   };
@@ -173,6 +285,8 @@ export function ApiKeysPage() {
     setEditingIndex(null);
     setNameInput('');
     setKeyInput('');
+    setAllowedModels([]);
+    setExcludedModels([]);
     setFormError('');
   };
 
@@ -192,29 +306,25 @@ export function ApiKeysPage() {
       return;
     }
 
+    const nextItem: ClientApiKeyItem = {
+      apiKey: trimmedKey,
+      name: nameInput.trim() || undefined,
+      models: allowedModels.length > 0 ? allowedModels : undefined,
+      excludedModels: excludedModels.length > 0 ? excludedModels : undefined,
+    };
+
     setSaving(true);
     try {
-      let nextKeys: string[];
+      let nextItems: ClientApiKeyItem[];
       if (editingIndex !== null && editingIndex >= 0) {
-        const oldKey = apiKeys[editingIndex];
-        nextKeys = apiKeys.map((k, i) => (i === editingIndex ? trimmedKey : k));
-        if (oldKey !== trimmedKey) {
-          saveApiKeyName(apiBase, oldKey, '');
-        }
+        nextItems = apiKeyItems.map((k, i) => (i === editingIndex ? nextItem : k));
       } else {
-        nextKeys = [...apiKeys, trimmedKey];
+        nextItems = [...apiKeyItems, nextItem];
       }
 
-      if (!saveApiKeyName(apiBase, trimmedKey, nameInput)) {
-        setFormError(t('config_management.visual.api_keys.name_save_error'));
-        setSaving(false);
-        return;
-      }
-
-      await apiKeysApi.replace(nextKeys);
+      await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
-      setApiKeys(nextKeys);
-      setNames(readApiKeyNames(apiBase));
+      setApiKeyItems(nextItems);
       closeModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {
@@ -222,7 +332,17 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeys, editingIndex, fetchConfig, keyInput, nameInput, showNotification, t]);
+  }, [
+    allowedModels,
+    apiKeyItems,
+    editingIndex,
+    excludedModels,
+    fetchConfig,
+    keyInput,
+    nameInput,
+    showNotification,
+    t,
+  ]);
 
   const openDeleteModal = (index: number) => {
     setTargetDeleteIndex(index);
@@ -238,19 +358,16 @@ export function ApiKeysPage() {
     if (
       targetDeleteIndex === null ||
       targetDeleteIndex < 0 ||
-      targetDeleteIndex >= apiKeys.length
+      targetDeleteIndex >= apiKeyItems.length
     ) {
       return;
     }
-    const keyToDelete = apiKeys[targetDeleteIndex];
     setSaving(true);
     try {
-      const nextKeys = apiKeys.filter((_, i) => i !== targetDeleteIndex);
-      saveApiKeyName(apiBase, keyToDelete, '');
-      await apiKeysApi.replace(nextKeys);
+      const nextItems = apiKeyItems.filter((_, i) => i !== targetDeleteIndex);
+      await apiKeysApi.replaceItems(nextItems);
       await fetchConfig(true);
-      setApiKeys(nextKeys);
-      setNames(readApiKeyNames(apiBase));
+      setApiKeyItems(nextItems);
       closeDeleteModal();
       showNotification(t('common.saved_success', '保存成功'), 'success');
     } catch (err) {
@@ -258,12 +375,14 @@ export function ApiKeysPage() {
     } finally {
       setSaving(false);
     }
-  }, [apiBase, apiKeys, fetchConfig, showNotification, t, targetDeleteIndex]);
+  }, [apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
 
   const deleteTargetKey =
     targetDeleteIndex !== null && targetDeleteIndex >= 0 ? apiKeys[targetDeleteIndex] : '';
   const deleteTargetName =
-    deleteTargetKey ? names[apiKeyNameFingerprint(apiBase, deleteTargetKey)] : '';
+    targetDeleteIndex !== null && targetDeleteIndex >= 0
+      ? (apiKeyItems[targetDeleteIndex]?.name ?? '')
+      : '';
 
   return (
     <div className={styles.page}>
@@ -288,12 +407,7 @@ export function ApiKeysPage() {
             <IconRefreshCw size={14} className={loading ? styles.spinning : ''} />
             <span>{t('api_keys_page.refresh')}</span>
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={loading || saving}
-            onClick={openAddModal}
-          >
+          <Button variant="primary" size="sm" disabled={loading || saving} onClick={openAddModal}>
             <IconPlus size={16} />
             <span>{t('api_keys_page.create_key')}</span>
           </Button>
@@ -307,7 +421,7 @@ export function ApiKeysPage() {
             <IconKey size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>{totalKeys}</span>
+            <MetricValue loading={metricsLoading}>{totalKeys}</MetricValue>
             <span className={styles.metricLabel}>{t('api_keys_page.stat_total')}</span>
             <span className={styles.metricDesc}>{t('api_keys_page.stat_total_desc')}</span>
           </div>
@@ -318,12 +432,10 @@ export function ApiKeysPage() {
             <IconFileText size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>
+            <MetricValue loading={metricsLoading}>
               {namedCount}
-              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 4 }}>
-                / {totalKeys}
-              </span>
-            </span>
+              <span className={styles.metricValueSuffix}>/ {totalKeys}</span>
+            </MetricValue>
             <span className={styles.metricLabel}>{t('api_keys_page.stat_named')}</span>
             <span className={styles.metricDesc}>{t('api_keys_page.stat_named_desc')}</span>
           </div>
@@ -334,20 +446,38 @@ export function ApiKeysPage() {
             <IconShield size={20} />
           </div>
           <div className={styles.metricInfo}>
-            <span className={styles.metricValue}>{complianceRate}</span>
-            <span className={styles.metricLabel}>{t('api_keys_page.stat_security')}</span>
-            <span className={styles.metricDesc}>{t('api_keys_page.stat_security_desc')}</span>
+            <MetricValue loading={metricsLoading}>
+              {restrictedCount}
+              <span className={styles.metricValueSuffix}>/ {totalKeys}</span>
+            </MetricValue>
+            <span className={styles.metricLabel}>{t('api_keys_page.stat_restricted')}</span>
+            <span className={styles.metricDesc}>{t('api_keys_page.stat_restricted_desc')}</span>
           </div>
         </div>
       </section>
+
+      {/* 全局默认模型规则 */}
+      <GlobalClientModelRulesCard
+        rules={globalModelRules}
+        loading={loading}
+        disabled={saving}
+        candidates={modelCatalog.candidates}
+        catalogState={modelCatalog.catalogState}
+        onRetryCatalog={() => void modelCatalog.retry()}
+        editing={globalRulesEditing}
+        onEditingChange={setGlobalRulesEditing}
+        onSave={handleSaveGlobalModelRules}
+      />
 
       {/* 工具栏 */}
       <div className={styles.toolbar}>
         <div className={styles.searchWrapper}>
           <IconSearch size={16} className={styles.searchIcon} />
           <input
+            type="search"
             className={styles.searchInput}
             placeholder={t('api_keys_page.search_placeholder')}
+            aria-label={t('api_keys_page.search_aria')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -356,15 +486,15 @@ export function ApiKeysPage() {
               className={styles.clearSearchBtn}
               onClick={() => setSearchQuery('')}
               type="button"
+              aria-label={t('api_keys_page.clear_search')}
+              title={t('api_keys_page.clear_search')}
             >
               <IconX size={14} />
             </button>
           )}
         </div>
         <div className={styles.countBadge}>
-          {searchQuery
-            ? `${filteredRows.length} / ${totalKeys}`
-            : `${totalKeys}`}
+          {searchQuery ? `${filteredRows.length} / ${totalKeys}` : `${totalKeys}`}
         </div>
       </div>
 
@@ -403,37 +533,33 @@ export function ApiKeysPage() {
           <Table
             cols={
               <>
-                <col style={{ width: '56px' }} />
-                <col style={{ minWidth: '160px', width: '22%' }} />
-                <col style={{ minWidth: '260px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '130px' }} />
+                <col style={{ minWidth: '130px', width: '14%' }} />
+                <col style={{ minWidth: '220px' }} />
+                <col style={{ minWidth: '240px', width: '36%' }} />
+                <col style={{ width: '96px' }} />
               </>
             }
           >
             <TableHeader>
               <TableRow>
-                <TableHead>{t('api_keys_page.table_index')}</TableHead>
                 <TableHead>{t('api_keys_page.table_name')}</TableHead>
                 <TableHead>{t('api_keys_page.table_key')}</TableHead>
-                <TableHead>{t('api_keys_page.table_strength')}</TableHead>
+                <TableHead>{t('api_keys_page.table_models')}</TableHead>
                 <TableHead alignRight>{t('api_keys_page.table_actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRows.map(({ key, index, name }) => {
+              {filteredRows.map(({ item, key, index, name }) => {
                 const isRevealed = revealedKeys.has(key);
                 const isCopied = copiedKey === key;
-                const { tier } = evaluateApiKeyStrength(key);
+                const scope = summarizeApiKeyModelScope(
+                  item,
+                  DEFAULT_VISIBLE_MODEL_LIMIT,
+                  globalModelRules
+                );
 
                 return (
                   <TableRow key={`${key}-${index}`}>
-                    <TableCell>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                        #{index + 1}
-                      </span>
-                    </TableCell>
-
                     <TableCell>
                       {name ? (
                         <span className={styles.keyName}>{name}</span>
@@ -444,14 +570,19 @@ export function ApiKeysPage() {
 
                     <TableCell>
                       <div className={styles.keyCell}>
-                        <code className={styles.keyCode}>
+                        <code className={styles.keyCode} title={isRevealed ? key : undefined}>
                           {isRevealed ? key : maskApiKey(key)}
                         </code>
                         <button
                           type="button"
                           className={styles.iconBtn}
                           onClick={() => toggleReveal(key)}
-                          title={t(isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key')}
+                          title={t(
+                            isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
+                          )}
+                          aria-label={t(
+                            isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
+                          )}
                         >
                           {isRevealed ? <IconEyeOff size={15} /> : <IconEye size={15} />}
                         </button>
@@ -460,6 +591,7 @@ export function ApiKeysPage() {
                           className={styles.iconBtn}
                           onClick={() => void handleCopy(key)}
                           title={t('api_keys_page.copy_key')}
+                          aria-label={t('api_keys_page.copy_key')}
                         >
                           {isCopied ? (
                             <IconCheck size={15} className={styles.copiedIcon} />
@@ -471,34 +603,71 @@ export function ApiKeysPage() {
                     </TableCell>
 
                     <TableCell>
-                      <span className={`${styles.strengthBadge} ${styles[tier]}`}>
-                        <span className={styles.strengthDot} />
-                        {t(`config_management.visual.api_keys.strength.${tier}`)}
-                      </span>
+                      <div className={styles.modelTagList}>
+                        {scope.inheritsGlobal && (
+                          <span
+                            className={styles.modelInheritedTag}
+                            title={t('api_keys_page.global_models.inherited_hint')}
+                          >
+                            {t('api_keys_page.global_models.inherited_badge')}
+                          </span>
+                        )}
+                        {!scope.restricted ? (
+                          <span className={styles.allModelsBadge}>
+                            {t('api_keys_page.all_models')}
+                          </span>
+                        ) : (
+                          <>
+                            {scope.visibleAllowed.map((model) => (
+                              <span key={model} className={styles.modelTag} title={model}>
+                                {model}
+                              </span>
+                            ))}
+                            {scope.hiddenAllowedCount > 0 && (
+                              <span
+                                className={styles.modelMoreTag}
+                                title={scope.allowed.join(', ')}
+                              >
+                                {t('excluded_models.chips_more', { n: scope.hiddenAllowedCount })}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {scope.excluded.length > 0 && (
+                          <span
+                            className={styles.modelExcludedTag}
+                            title={scope.excluded.join(', ')}
+                          >
+                            {t('api_keys_page.models_excluded_count', {
+                              n: scope.excluded.length,
+                            })}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell alignRight>
                       <div className={styles.rowActions}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(key, index)}
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          onClick={() => openEditModal(item, index)}
                           disabled={saving}
                           title={t('api_keys_page.edit_key')}
+                          aria-label={t('api_keys_page.edit_key')}
                         >
-                          <IconPencil size={14} />
-                          <span>{t('common.edit', '编辑')}</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={styles.deleteBtn}
+                          <IconPencil size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                           onClick={() => openDeleteModal(index)}
                           disabled={saving}
                           title={t('api_keys_page.delete_key')}
+                          aria-label={t('api_keys_page.delete_key')}
                         >
-                          <IconTrash2 size={14} />
-                        </Button>
+                          <IconTrash2 size={15} />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -524,9 +693,7 @@ export function ApiKeysPage() {
               {t('common.cancel', '取消')}
             </Button>
             <Button onClick={() => void handleSave()} disabled={saving} loading={saving}>
-              {editingIndex !== null
-                ? t('common.save', '保存')
-                : t('common.add', '添加')}
+              {editingIndex !== null ? t('common.save', '保存') : t('common.add', '添加')}
             </Button>
           </>
         }
@@ -543,7 +710,7 @@ export function ApiKeysPage() {
             disabled={saving}
           />
           <div id={nameHintId} className="hint">
-            {t('config_management.visual.api_keys.name_hint')}
+            {t('api_keys_page.name_hint')}
           </div>
         </div>
 
@@ -585,6 +752,30 @@ export function ApiKeysPage() {
             </div>
           )}
         </div>
+
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.models_label')}
+          hint={t('api_keys_page.models_hint')}
+          tone="allow"
+          value={allowedModels}
+          onChange={setAllowedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
+
+        <ClientKeyModelRulesField
+          label={t('api_keys_page.excluded_models_label')}
+          hint={t('api_keys_page.excluded_models_hint')}
+          tone="exclude"
+          value={excludedModels}
+          onChange={setExcludedModels}
+          candidates={modelCatalog.candidates}
+          catalogState={modelCatalog.catalogState}
+          onRetry={() => void modelCatalog.retry()}
+          disabled={saving}
+        />
       </Modal>
 
       {/* 删除确认弹窗 */}
