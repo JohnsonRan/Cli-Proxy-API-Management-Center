@@ -50,6 +50,7 @@ import {
   validateCustomRange,
 } from '@/features/usage/format';
 import { baseCartesianOptions } from '@/features/usage/charts';
+import { OverviewTab } from '@/features/usage/tabs/OverviewTab';
 import { SortHead } from '@/features/usage/components/SortHead';
 import { EventDetailModal } from '@/features/usage/components/EventDetailModal';
 import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
@@ -769,6 +770,33 @@ describe('usage cache savings', () => {
     );
     expect(saved).toBeCloseTo(8.1);
     expect(cacheSavings([], [])).toBe(0);
+  });
+});
+
+describe('usage overview', () => {
+  test('renders eight headline cards, sortable tables and the comparison toggle', () => {
+    const stats = normalizeUsageStats({
+      from: 0,
+      to: 3600,
+      bucket: 'hour',
+      totals: { ...aggregate(1500, 5, 12.5), unpriced_requests: 0 },
+      series: [{ time: 0, ...aggregate(1500, 5, 12.5) }],
+      models: [{ model: 'gpt-5', provider: 'codex', ...aggregate(1500, 5, 12.5) }],
+    });
+    const markup = renderToStaticMarkup(
+      createElement(OverviewTab, {
+        stats,
+        prevStats: stats,
+        prices: [],
+        labels: { credential: (authIndex: string) => authIndex, keyName: () => null },
+        onOpenEvents: () => {},
+        onDrillDown: () => {},
+      })
+    );
+    expect(markup.match(/style="--accent:/g)?.length).toBe(8);
+    expect(markup).toContain('title="1,500"');
+    expect(markup).toContain('aria-sort="none"');
+    expect(markup).toContain('aria-pressed="false"');
   });
 });
 
