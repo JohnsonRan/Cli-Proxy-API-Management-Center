@@ -176,6 +176,16 @@ export const formatTps = (tps: number): string => {
 export const successRate = (a: Pick<UsageAggregate, 'requests' | 'failed'>): number | null =>
   a.requests > 0 ? ((a.requests - a.failed) / a.requests) * 100 : null;
 
+/** Average tokens per request, 0 without requests. */
+export const tokensPerRequest = (a: UsageAggregate): number =>
+  a.requests > 0 ? a.tokens.total / a.requests : 0;
+
+/** Average cost per priced request, or null when none of them had a price. */
+export const costPerRequest = (a: UsageAggregate): number | null => {
+  const priced = a.requests - a.unpricedRequests;
+  return priced > 0 ? a.cost / priced : null;
+};
+
 /** Input tokens including cache reads and writes. */
 export const inputTokens = (a: UsageAggregate): number =>
   a.tokens.inputUncached + a.tokens.cacheRead + a.tokens.cacheWrite;

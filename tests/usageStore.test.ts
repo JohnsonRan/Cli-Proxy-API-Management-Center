@@ -29,6 +29,7 @@ import {
 import {
   cacheHitRate,
   changePercent,
+  costPerRequest,
   exactCost,
   exactCount,
   formatCompact,
@@ -40,6 +41,7 @@ import {
   previousWindow,
   rangeWindow,
   successRate,
+  tokensPerRequest,
   validateCustomRange,
 } from '@/features/usage/format';
 import { baseCartesianOptions } from '@/features/usage/charts';
@@ -198,6 +200,13 @@ describe('usage formatting', () => {
     expect(changePercent(5, 0)).toBeNull();
     const totals = normalizeUsageStats({ totals: aggregate(1, 0, 0) }).totals;
     expect(cacheHitRate(totals)).toBe(40);
+    const four = normalizeUsageStats({
+      totals: { ...aggregate(4, 0, 0.9), unpriced_requests: 1 },
+    }).totals;
+    expect(tokensPerRequest(four)).toBe(300);
+    expect(costPerRequest(four)).toBeCloseTo(0.3);
+    expect(costPerRequest({ ...four, unpricedRequests: 4 })).toBeNull();
+    expect(tokensPerRequest({ ...four, requests: 0 })).toBe(0);
 
     // Range window extensions: today, yesterday, custom
     const nowMs = new Date(2026, 9, 24, 15, 30, 0).getTime();
