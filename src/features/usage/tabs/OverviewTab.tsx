@@ -294,7 +294,10 @@ export function OverviewTab({
 
   return (
     <>
-      <section className={styles.cards} aria-label={t('usage_stats.summary_label')}>
+      <section
+        className={`${styles.cards} ${styles.cardsFour}`}
+        aria-label={t('usage_stats.summary_label')}
+      >
         <StatCard
           accent="requests"
           label={t('usage_stats.card_requests')}

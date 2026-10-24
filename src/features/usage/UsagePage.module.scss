@@ -83,6 +83,16 @@
   gap: 12px;
 }
 
+// The overview's seven headline cards: four per row instead of six plus an orphan.
+.cardsFour {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ---------- Panels ---------- */
 
 .panel {
@@ -699,11 +709,17 @@
 /* ---------- Request events ---------- */
 
 /* A compact take on .statCard: same tint, top edge and icon chip, without sparklines. */
+// Fixed columns keep the 7-8 cards in balanced rows instead of one orphan on a second row.
 .summaryStrip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 12px;
   min-height: 92px;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .summaryItem {
