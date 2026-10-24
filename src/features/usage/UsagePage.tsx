@@ -427,6 +427,8 @@ export function UsagePage() {
             {stats && (
               <span
                 className={stats.exact ? styles.precisionExact : styles.precisionHourly}
+                tabIndex={0}
+                aria-label={`${t(stats.exact ? 'usage_stats.precision_exact' : 'usage_stats.precision_hourly')}: ${t(stats.exact ? 'usage_stats.precision_exact_hint' : 'usage_stats.precision_hourly_hint')}`}
                 title={t(
                   stats.exact
                     ? 'usage_stats.precision_exact_hint'
