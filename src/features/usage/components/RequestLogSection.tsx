@@ -84,7 +84,11 @@ export function RequestLogSection({ requestId }: { requestId: string }) {
           {t('usage_stats.request_log_download')}
         </Button>
       </div>
-      {state.status === 'error' && <p className={styles.errorText}>{state.message}</p>}
+      {state.status === 'error' && (
+        <p className={styles.errorText} role="alert">
+          {state.message}
+        </p>
+      )}
       {state.status === 'ready' && (
         <pre className={styles.logViewer} aria-label={t('usage_stats.request_log_view')}>
           {state.text}
