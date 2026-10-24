@@ -1030,6 +1030,8 @@
     "card_unpriced": "Запросов без цены: {{count}}",
     "card_cache_hit": "Попадания в кэш",
     "card_cache_hit_sub": "{{cached}} входных токенов из кэша",
+    "card_cache_saved": "≈{{value}} экономии",
+    "card_cache_saved_hint": "Оценка по разнице цен ввода и чтения из кэша; без записи в кэш и тарифных уровней",
     "card_latency": "Средняя задержка",
     "card_ttft": "Первый токен в среднем {{value}}",
     "card_latency_sub": "Среднее время всего запроса",

@@ -17,6 +17,7 @@ import {
   emptyGlobalFilter,
   filterMultiSelectOptions,
   histogramLabels,
+  cacheSavings,
   mergeSelectedOptions,
   nextSort,
   parseUsagePrefs,
@@ -742,6 +743,32 @@ describe('usage table sorting and CSV', () => {
     );
     expect(markup).toContain('aria-sort="descending"');
     expect(markup).toContain('<button type="button"');
+  });
+});
+
+describe('usage cache savings', () => {
+  test('prices cache reads at the input minus cache-read price per million tokens', () => {
+    const price = (input: number, cacheRead: number) => ({
+      input,
+      output: 0,
+      cacheRead,
+      cacheWrite: input,
+    });
+    const saved = cacheSavings(
+      [
+        { model: 'a', tokens: { cacheRead: 2_000_000 } },
+        { model: 'a', tokens: { cacheRead: 1_000_000 } },
+        { model: 'unpriced', tokens: { cacheRead: 5_000_000 } },
+        { model: 'odd', tokens: { cacheRead: 1_000_000 } },
+      ],
+      [
+        { model: 'a', source: 'override', price: price(3, 0.3) },
+        { model: 'unpriced', source: '', price: null },
+        { model: 'odd', source: 'override', price: price(1, 2) },
+      ]
+    );
+    expect(saved).toBeCloseTo(8.1);
+    expect(cacheSavings([], [])).toBe(0);
   });
 });
 

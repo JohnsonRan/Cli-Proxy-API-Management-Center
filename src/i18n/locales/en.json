@@ -1027,6 +1027,8 @@
     "card_unpriced": "{{count}} requests without a price",
     "card_cache_hit": "Cache hit rate",
     "card_cache_hit_sub": "{{cached}} input tokens from cache",
+    "card_cache_saved": "~{{value}} saved",
+    "card_cache_saved_hint": "Estimated from each model's input vs cache-read price; ignores cache writes and tiered prices",
     "card_latency": "Avg latency",
     "card_ttft": "Avg first token {{value}}",
     "card_latency_sub": "Average time of the whole request",
