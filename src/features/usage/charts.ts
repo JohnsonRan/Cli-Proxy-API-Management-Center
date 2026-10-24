@@ -75,7 +75,7 @@ const FALLBACK: Record<'light' | 'dark', ChartTheme> = {
     text: '#6d6760',
     muted: '#9a948c',
     grid: '#e3e1db',
-    success: '#10b981',
+    success: METRIC_ACCENTS.success,
     failure: '#c65746',
     surface: '#ffffff',
   },
@@ -83,7 +83,7 @@ const FALLBACK: Record<'light' | 'dark', ChartTheme> = {
     text: '#c9c3bb',
     muted: '#8a847c',
     grid: '#3a3530',
-    success: '#0fae78',
+    success: METRIC_ACCENTS.success,
     failure: '#c65746',
     surface: '#1f1c19',
   },
@@ -97,7 +97,8 @@ const readTheme = (fallback: ChartTheme): ChartTheme => {
     text: read('--text-secondary', fallback.text),
     muted: read('--text-tertiary', fallback.muted),
     grid: read('--border-color', fallback.grid),
-    success: read('--viz-success', fallback.success),
+    // The usage palette owns success; the global --viz-success emerald clashes with it.
+    success: fallback.success,
     failure: read('--viz-failure', fallback.failure),
     surface: read('--bg-primary', fallback.surface),
   };
