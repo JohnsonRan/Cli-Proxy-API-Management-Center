@@ -7,17 +7,20 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '@/i18n';
 import {
   isUsageStoreDisabled,
+  normalizeClientGeo,
   normalizeUsageEvents,
   normalizeUsagePricing,
   normalizeUsageStats,
 } from '@/services/api/usageStore';
 import {
-  DEFAULT_EVENT_COLUMNS,
   alignPrevious,
   clientKeyEntries,
   clientKeyId,
   emptyGlobalFilter,
   filterMultiSelectOptions,
+  formatClientGeoLine,
+  formatDetailIsp,
+  formatDetailLocation,
   histogramLabels,
   cacheSavings,
   mergeSelectedOptions,
@@ -28,7 +31,6 @@ import {
   parseDraftRows,
   parseGlobalFilterFromSearchParams,
   providerDisplay,
-  readEventColumns,
   serializeGlobalFilterToSearchParams,
   toEventsQuery,
   withSelectedOption,
@@ -336,10 +338,7 @@ describe('usage analysis and pricing helpers', () => {
     expect(solo[0].override).toBe(variants[1]);
   });
 
-  test('reads stored event columns and builds event queries', () => {
-    expect(readEventColumns(null)).toEqual(DEFAULT_EVENT_COLUMNS);
-    expect(readEventColumns('{bad')).toEqual(DEFAULT_EVENT_COLUMNS);
-    expect(readEventColumns('["cost","bogus","time"]')).toEqual(['time', 'cost']);
+  test('builds event queries', () => {
     const window = { from: 10, to: 20, tzOffset: 0 };
     const globalFilter = {
       ...emptyGlobalFilter(),
@@ -627,7 +626,7 @@ describe('usage realtime', () => {
 
 describe('usage event cells', () => {
   test('derives the downstream transport and cache hit rate', async () => {
-    const { eventTransport, eventCacheHitRate, DEFAULT_EVENT_COLUMNS, EVENT_COLUMNS } =
+    const { eventTransport, eventCacheHitRate, EVENT_COLUMNS } =
       await import('@/features/usage/logic');
     expect(eventTransport('GET /v1/responses', true)).toBe('ws');
     expect(eventTransport('get /v1/realtime', false)).toBe('ws');
@@ -637,9 +636,7 @@ describe('usage event cells', () => {
     expect(eventCacheHitRate({ inputUncached: 25, cacheRead: 75, cacheWrite: 0 })).toBe(75);
     expect(eventCacheHitRate({ inputUncached: 0, cacheRead: 0, cacheWrite: 0 })).toBeNull();
     expect(EVENT_COLUMNS).not.toContain('tier');
-    expect(
-      DEFAULT_EVENT_COLUMNS.every((c) => (EVENT_COLUMNS as readonly string[]).includes(c))
-    ).toBe(true);
+    expect(EVENT_COLUMNS).toContain('client');
   });
 });
 
@@ -892,6 +889,7 @@ describe('usage store settings', () => {
       path: '',
       retentionDays: 0,
       disableModelsDev: false,
+      disableGeoip: false,
     });
 
     const loaded = normalizeUsageStoreSettings({
@@ -899,12 +897,14 @@ describe('usage store settings', () => {
       path: '  /data/usage.db  ',
       'retention-days': 14,
       pricing: { 'disable-models-dev': true, overrides: [{ model: 'gpt-5', input: 1, output: 2 }] },
+      geoip: { disable: true },
     });
     expect(loaded).toEqual({
       enable: true,
       path: '/data/usage.db',
       retentionDays: 14,
       disableModelsDev: true,
+      disableGeoip: true,
     });
     expect(normalizeUsageStoreSettings({ 'retention-days': -1 }).retentionDays).toBe(-1);
 
@@ -915,6 +915,7 @@ describe('usage store settings', () => {
         path: '/data/usage.db',
         'retention-days': 14,
         pricing: { 'disable-models-dev': true },
+        geoip: { disable: true },
       },
       deletions: [],
     });
@@ -922,7 +923,7 @@ describe('usage store settings', () => {
     // Clearing optional fields deletes them cleanly without touching overrides or enable.
     expect(
       serializeUsageStoreSettings(
-        { enable: true, path: '', retentionDays: 0, disableModelsDev: false },
+        { enable: true, path: '', retentionDays: 0, disableModelsDev: false, disableGeoip: false },
         loaded
       )
     ).toEqual({
@@ -931,6 +932,7 @@ describe('usage store settings', () => {
         '/config/observability/usage/store/path',
         '/config/observability/usage/store/retention-days',
         '/config/observability/usage/store/pricing/disable-models-dev',
+        '/config/observability/usage/store/geoip/disable',
       ],
     });
 
@@ -1043,13 +1045,16 @@ describe('usage store settings', () => {
           path: '/var/lib/usage.db',
           retentionDays: 90,
           disableModelsDev: true,
+          disableGeoip: true,
         },
         onSaved: async () => {},
       })
     );
     expect(markup).toContain('value="/var/lib/usage.db"');
     expect(markup).toContain('value="90"');
-    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(2);
+    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(3);
+    expect(markup).toContain('https://ip.sb/api/');
+    expect(markup).not.toContain('db-ip');
     expect(markup).toContain('aria-describedby=');
 
     const locales = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko'] as const;
@@ -1096,5 +1101,173 @@ describe('usage store settings', () => {
     expect(markup).toContain(`background-color:${METRIC_ACCENTS.cost}`);
     expect(markup).toContain(`stroke="${METRIC_ACCENTS.cost}"`);
     expect(markup).toContain('aria-label=');
+  });
+
+  test('normalizes client_geo and formats location and ISP', async () => {
+    // Missing / invalid
+    expect(normalizeClientGeo(undefined)).toBeUndefined();
+    expect(normalizeClientGeo(null)).toBeUndefined();
+    expect(normalizeClientGeo({})).toBeUndefined();
+    expect(normalizeClientGeo('string')).toBeUndefined();
+    expect(normalizeClientGeo(42)).toBeUndefined();
+
+    // Scopes
+    expect(normalizeClientGeo({ scope: 'private' })).toEqual({ scope: 'private' });
+    expect(normalizeClientGeo({ scope: 'loopback' })).toEqual({ scope: 'loopback' });
+    expect(normalizeClientGeo({ scope: 'PRIVATE' })).toEqual({ scope: 'private' });
+
+    // Full public
+    const full = normalizeClientGeo({
+      scope: 'public',
+      country_code: 'JP',
+      country: 'Japan',
+      region: 'Tokyo',
+      city: 'Tokyo',
+      asn: 4713.9,
+      isp: 'NTT Communications Corporation',
+    });
+    expect(full).toEqual({
+      scope: 'public',
+      countryCode: 'JP',
+      country: 'Japan',
+      region: 'Tokyo',
+      city: 'Tokyo',
+      asn: 4713,
+      isp: 'NTT Communications Corporation',
+    });
+
+    // Partial and invalid ASN
+    expect(normalizeClientGeo({ country_code: 'US', asn: -5 })).toEqual({
+      scope: 'public',
+      countryCode: 'US',
+    });
+    expect(normalizeClientGeo({ city: 'London', asn: 'abc' })).toEqual({
+      scope: 'public',
+      city: 'London',
+    });
+
+    // formatClientGeoLine
+    expect(formatClientGeoLine(undefined)).toBe('');
+    expect(formatClientGeoLine({ scope: 'private' })).toBe('Private network');
+    expect(
+      formatClientGeoLine({ scope: 'private' }, 'zh-CN', (k) =>
+        k === 'usage_stats.client_scope_private' ? '局域网' : k
+      )
+    ).toBe('局域网');
+    expect(formatClientGeoLine({ scope: 'private', isp: 'Internal' })).toBe('Private network');
+    expect(formatClientGeoLine({ scope: 'loopback' })).toBe('Loopback');
+    expect(
+      formatClientGeoLine({ scope: 'loopback' }, 'zh-CN', (k) =>
+        k === 'usage_stats.client_scope_loopback' ? '本机' : k
+      )
+    ).toBe('本机');
+    expect(formatClientGeoLine({ scope: 'loopback', isp: 'Local' })).toBe('Loopback');
+
+    // Public variations
+    expect(
+      formatClientGeoLine({
+        scope: 'public',
+        country: 'Japan',
+        city: 'Tokyo',
+        isp: 'NTT',
+      })
+    ).toBe('Japan, Tokyo · NTT');
+    expect(formatClientGeoLine({ scope: 'public', country: 'Japan', city: 'Tokyo' })).toBe(
+      'Japan, Tokyo'
+    );
+    expect(formatClientGeoLine({ scope: 'public', country: 'Japan', isp: 'NTT' })).toBe(
+      'Japan · NTT'
+    );
+    expect(formatClientGeoLine({ scope: 'public', country: 'Japan' })).toBe('Japan');
+    expect(
+      formatClientGeoLine({ scope: 'public', country: 'Japan', region: 'Kanto', isp: 'NTT' })
+    ).toBe('Japan, Kanto · NTT');
+    expect(formatClientGeoLine({ scope: 'public', region: 'Kanto' })).toBe('Kanto');
+    expect(formatClientGeoLine({ scope: 'public', city: 'Tokyo' })).toBe('Tokyo');
+    expect(formatClientGeoLine({ scope: 'public', isp: 'NTT' })).toBe('NTT');
+    // The organization wins over the ISP.
+    expect(
+      formatClientGeoLine({
+        scope: 'public',
+        country: 'Japan',
+        city: 'Sapporo',
+        isp: 'NTT Communications Corporation',
+        org: 'Open Computer Network',
+      })
+    ).toBe('Japan, Sapporo · Open Computer Network');
+    expect(normalizeClientGeo({ scope: 'public', org: ' Open Computer Network ' })).toEqual({
+      scope: 'public',
+      org: 'Open Computer Network',
+    });
+
+    // Intl DisplayNames region localization
+    expect(
+      formatClientGeoLine(
+        { scope: 'public', countryCode: 'JP', country: 'Japan', city: 'Tokyo', isp: 'NTT' },
+        'zh-CN'
+      )
+    ).toBe('日本, Tokyo · NTT');
+    expect(
+      formatClientGeoLine(
+        { scope: 'public', countryCode: 'INVALID', country: 'Fallback', city: 'City' },
+        'zh-CN'
+      )
+    ).toBe('Fallback, City');
+
+    // formatDetailLocation & formatDetailIsp
+    expect(formatDetailLocation(undefined)).toBe('');
+    expect(formatDetailLocation({ scope: 'private' })).toBe('Private network');
+    expect(formatDetailLocation({ scope: 'loopback' })).toBe('Loopback');
+    expect(
+      formatDetailLocation(
+        { scope: 'public', countryCode: 'JP', country: 'Japan', region: 'Tokyo', city: 'Tokyo' },
+        'zh-CN'
+      )
+    ).toBe('日本, Tokyo');
+    expect(
+      formatDetailLocation({
+        scope: 'public',
+        country: 'United States',
+        region: 'California',
+        city: 'San Francisco',
+      })
+    ).toBe('United States, California, San Francisco');
+
+    expect(formatDetailIsp(undefined)).toBe('');
+    expect(formatDetailIsp({ scope: 'public', isp: 'NTT', asn: 4713 })).toBe('NTT (AS4713)');
+    expect(formatDetailIsp({ scope: 'public', isp: 'NTT' })).toBe('NTT');
+    expect(formatDetailIsp({ scope: 'public', asn: 4713 })).toBe('AS4713');
+    expect(formatDetailIsp({ scope: 'public' })).toBe('');
+    expect(
+      formatDetailIsp({ scope: 'public', org: 'Open Computer Network', isp: 'NTT', asn: 4713 })
+    ).toBe('Open Computer Network · NTT (AS4713)');
+    expect(formatDetailIsp({ scope: 'public', org: 'Google', isp: 'google', asn: 15169 })).toBe(
+      'Google (AS15169)'
+    );
+  });
+
+  test('renders client cell with three lines: IP, location · ISP, and user agent', async () => {
+    const { EventClientCell } = await import('@/features/usage/components/EventCells');
+    const { UsageEvent } = await import('@/services/api/usageStore');
+
+    const event = {
+      clientIp: '153.156.0.1',
+      userAgent: 'Claude-Code/1.0.0',
+      clientGeo: {
+        scope: 'public' as const,
+        country: 'Japan',
+        city: 'Tokyo',
+        isp: 'Open Computer Network',
+      },
+    } as unknown as UsageEvent;
+
+    const markup = renderToStaticMarkup(createElement(EventClientCell, { event }));
+
+    expect(markup).toContain('153.156.0.1');
+    expect(markup).toContain('Japan, Tokyo · Open Computer Network');
+    expect(markup).toContain('Claude-Code/1.0.0');
+    expect(markup).toContain('title="153.156.0.1"');
+    expect(markup).toContain('title="Japan, Tokyo · Open Computer Network"');
+    expect(markup).toContain('title="Claude-Code/1.0.0"');
   });
 });

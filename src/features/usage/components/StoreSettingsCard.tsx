@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usageStoreApi, type UsageStoreSettings } from '@/services/api/usageStore';
+import {
+  usageStoreApi,
+  type UsageGeoipStatus,
+  type UsageStoreSettings,
+} from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -20,6 +24,7 @@ const EMPTY_DRAFT: StoreSettingsDraft = {
   path: '',
   retentionDays: '',
   disableModelsDev: false,
+  disableGeoip: false,
 };
 
 export function StoreSettingsCard({
@@ -31,16 +36,19 @@ export function StoreSettingsCard({
   disabled?: boolean;
   initialSettings?: UsageStoreSettings;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
   const enableHintId = useId();
   const modelsDevHintId = useId();
+  const geoipHintId = useId();
 
   const [saved, setSaved] = useState<UsageStoreSettings | null>(initialSettings ?? null);
   const [draft, setDraft] = useState<StoreSettingsDraft>(() =>
     initialSettings ? toStoreSettingsDraft(initialSettings) : EMPTY_DRAFT
   );
+  const [geoipStatus, setGeoipStatus] = useState<UsageGeoipStatus | null>(null);
+  const [refreshingGeoip, setRefreshingGeoip] = useState(false);
   const [saving, setSaving] = useState(false);
   const [retentionInvalid, setRetentionInvalid] = useState(false);
 
@@ -58,10 +66,14 @@ export function StoreSettingsCard({
   const loadSettings = useCallback(async () => {
     const requestId = ++loadRequestRef.current;
     try {
-      const next = await usageStoreApi.getSettings();
+      const [next, geoStatus] = await Promise.all([
+        usageStoreApi.getSettings(),
+        usageStoreApi.getGeoipStatus().catch(() => null),
+      ]);
       if (requestId !== loadRequestRef.current || !mountedRef.current) return;
       setSaved(next);
       setDraft(toStoreSettingsDraft(next));
+      setGeoipStatus(geoStatus);
       setRetentionInvalid(false);
     } catch (err: unknown) {
       if (requestId !== loadRequestRef.current || !mountedRef.current) return;
@@ -97,6 +109,23 @@ export function StoreSettingsCard({
       );
     } finally {
       if (mountedRef.current) setSaving(false);
+    }
+  };
+
+  const handleRefreshGeoip = async () => {
+    if (refreshingGeoip || controlsDisabled) return;
+    setRefreshingGeoip(true);
+    try {
+      const next = await usageStoreApi.refreshGeoip();
+      setGeoipStatus(next);
+      showNotification(t('usage_stats.store_geoip_refreshed'), 'success');
+    } catch (err: unknown) {
+      showNotification(
+        err instanceof Error && err.message ? err.message : t('notification.refresh_failed'),
+        'error'
+      );
+    } finally {
+      if (mountedRef.current) setRefreshingGeoip(false);
     }
   };
 
@@ -186,6 +215,53 @@ export function StoreSettingsCard({
           />
           <p id={modelsDevHintId} className={styles.settingHint}>
             {t('usage_stats.store_disable_models_dev_hint')}
+          </p>
+        </div>
+
+        <div className={styles.settingToggleBox}>
+          <ToggleSwitch
+            checked={draft.disableGeoip}
+            onChange={(disableGeoip) => setDraft((prev) => ({ ...prev, disableGeoip }))}
+            label={t('usage_stats.store_disable_geoip')}
+            ariaDescribedBy={geoipHintId}
+            disabled={controlsDisabled}
+          />
+          <p id={geoipHintId} className={styles.settingHint}>
+            {t('usage_stats.store_disable_geoip_hint')}
+          </p>
+          {geoipStatus && (
+            <div className={styles.geoipStatusRow}>
+              <span className={styles.settingHint}>
+                {t('usage_stats.store_geoip_status', {
+                  resolved: geoipStatus.resolved,
+                  pending: geoipStatus.pending,
+                  time: geoipStatus.lastLookupAt
+                    ? new Date(geoipStatus.lastLookupAt).toLocaleString(i18n.language)
+                    : '—',
+                })}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={refreshingGeoip}
+                disabled={controlsDisabled || draft.disableGeoip || geoipStatus.pending === 0}
+                onClick={() => void handleRefreshGeoip()}
+              >
+                {t('usage_stats.store_geoip_refresh')}
+              </Button>
+            </div>
+          )}
+          {geoipStatus?.lastError && <p className={styles.errorText}>{geoipStatus.lastError}</p>}
+          <p className={styles.settingHint}>
+            {t('usage_stats.store_geoip_source')}{' '}
+            <a
+              href="https://ip.sb/api/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.attributionLink}
+            >
+              ip.sb
+            </a>
           </p>
         </div>
 

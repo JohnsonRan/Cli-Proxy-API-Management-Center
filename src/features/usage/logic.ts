@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   MAX_RETENTION_DAYS,
+  type ClientGeo,
   type UsageEventsQuery,
   type UsageModelPrice,
   type UsagePriceOverride,
@@ -155,28 +156,6 @@ export const EVENT_COLUMNS = [
   'client',
 ] as const;
 export type EventColumn = (typeof EVENT_COLUMNS)[number];
-export const DEFAULT_EVENT_COLUMNS: EventColumn[] = [
-  'time',
-  'status',
-  'model',
-  'route',
-  'tokens',
-  'latency',
-  'cost',
-];
-
-export const readEventColumns = (raw: string | null): EventColumn[] => {
-  try {
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (Array.isArray(parsed)) {
-      const valid = EVENT_COLUMNS.filter((c) => parsed.includes(c));
-      if (valid.length > 0) return valid;
-    }
-  } catch {
-    // Fall through to the defaults on corrupt storage.
-  }
-  return DEFAULT_EVENT_COLUMNS;
-};
 
 export const toEventsQuery = (
   usageWindow: UsageWindow,
@@ -573,6 +552,7 @@ export interface StoreSettingsDraft {
   path: string;
   retentionDays: string;
   disableModelsDev: boolean;
+  disableGeoip: boolean;
 }
 
 export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSettingsDraft => ({
@@ -580,6 +560,7 @@ export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSetting
   path: settings.path,
   retentionDays: settings.retentionDays === 0 ? '' : String(settings.retentionDays),
   disableModelsDev: settings.disableModelsDev,
+  disableGeoip: settings.disableGeoip,
 });
 
 export const parseRetentionDays = (raw: string): number | null => {
@@ -602,6 +583,7 @@ export const parseStoreSettingsDraft = (
       path: draft.path.trim(),
       retentionDays,
       disableModelsDev: draft.disableModelsDev,
+      disableGeoip: draft.disableGeoip,
     },
   };
 };
@@ -616,6 +598,82 @@ export const isStoreSettingsDirty = (
     draft.enable !== saved.enable ||
     draft.path.trim() !== saved.path ||
     retentionDays !== saved.retentionDays ||
-    draft.disableModelsDev !== saved.disableModelsDev
+    draft.disableModelsDev !== saved.disableModelsDev ||
+    draft.disableGeoip !== saved.disableGeoip
   );
+};
+
+export const formatClientGeoLine = (
+  geo: ClientGeo | undefined,
+  language?: string,
+  t?: (key: string) => string
+): string => {
+  if (!geo) return '';
+  if (geo.scope === 'private') {
+    return t ? t('usage_stats.client_scope_private') : 'Private network';
+  }
+  if (geo.scope === 'loopback') {
+    return t ? t('usage_stats.client_scope_loopback') : 'Loopback';
+  }
+
+  let country = geo.country || '';
+  if (geo.countryCode && language && typeof Intl !== 'undefined' && Intl.DisplayNames) {
+    try {
+      const dn = new Intl.DisplayNames([language], { type: 'region' });
+      const localized = dn.of(geo.countryCode);
+      if (localized) country = localized;
+    } catch {
+      // Fall back to geo.country
+    }
+  }
+
+  const cityOrRegion = geo.city || geo.region || '';
+  const loc = country && cityOrRegion ? `${country}, ${cityOrRegion}` : country || cityOrRegion;
+
+  // The organization names the actual network (e.g. "Open Computer Network"); the ISP is the fallback.
+  const owner = geo.org || geo.isp;
+  if (owner) {
+    return loc ? `${loc} · ${owner}` : owner;
+  }
+  return loc;
+};
+
+export const formatDetailLocation = (
+  geo: ClientGeo | undefined,
+  language?: string,
+  t?: (key: string) => string
+): string => {
+  if (!geo) return '';
+  if (geo.scope === 'private') {
+    return t ? t('usage_stats.client_scope_private') : 'Private network';
+  }
+  if (geo.scope === 'loopback') {
+    return t ? t('usage_stats.client_scope_loopback') : 'Loopback';
+  }
+  let country = geo.country || '';
+  if (geo.countryCode && language && typeof Intl !== 'undefined' && Intl.DisplayNames) {
+    try {
+      const dn = new Intl.DisplayNames([language], { type: 'region' });
+      const localized = dn.of(geo.countryCode);
+      if (localized) country = localized;
+    } catch {
+      // Fall back to geo.country
+    }
+  }
+  const parts = [country, geo.region, geo.city].filter(Boolean) as string[];
+  const uniqueParts = parts.filter(
+    (p, i) => i === 0 || p.toLowerCase() !== parts[i - 1].toLowerCase()
+  );
+  return uniqueParts.join(', ');
+};
+
+export const formatDetailIsp = (geo: ClientGeo | undefined): string => {
+  if (!geo) return '';
+  const org = geo.org?.trim();
+  const isp = geo.isp?.trim();
+  const names =
+    org && isp && org.toLowerCase() !== isp.toLowerCase() ? `${org} · ${isp}` : org || isp;
+  const asn = geo.asn !== undefined && geo.asn > 0 ? `AS${geo.asn}` : '';
+  if (names && asn) return `${names} (${asn})`;
+  return names || asn || '';
 };

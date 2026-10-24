@@ -4,7 +4,12 @@ import type { UsageEvent } from '@/services/api/usageStore';
 import { formatCompact, formatMs, formatPercent, formatTps } from '../format';
 import { Compact } from './PanelBits';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import { eventCacheHitRate, eventTransport, type EventDimension } from '../logic';
+import {
+  eventCacheHitRate,
+  eventTransport,
+  formatClientGeoLine,
+  type EventDimension,
+} from '../logic';
 import { ProviderBadge } from './Labels';
 import styles from '../UsagePage.module.scss';
 
@@ -216,5 +221,27 @@ export function EventLatencyCell({
         {e.outputTps > 0 && ` · ${formatTps(e.outputTps)}`}
       </span>
     </span>
+  );
+}
+
+export function EventClientCell({ event: e }: { event: UsageEvent }) {
+  const { t, i18n } = useTranslation();
+  const geoLine = formatClientGeoLine(e.clientGeo, i18n.language, t);
+  return (
+    <div className={styles.clientCell}>
+      <span className={`${styles.mono} ${styles.clientText}`} title={e.clientIp || undefined}>
+        {e.clientIp || '—'}
+      </span>
+      {geoLine && (
+        <span className={styles.clientSub} title={geoLine}>
+          {geoLine}
+        </span>
+      )}
+      {e.userAgent && (
+        <span className={styles.clientSub} title={e.userAgent}>
+          {e.userAgent}
+        </span>
+      )}
+    </div>
   );
 }

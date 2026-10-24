@@ -4,7 +4,6 @@ import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
-import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import {
   Table,
   TableBody,
@@ -20,6 +19,7 @@ import { EventDetailModal } from '../components/EventDetailModal';
 import { MetricIcon, type MetricIconName } from '../components/MetricIcon';
 import { CountUp } from '../components/Motion';
 import {
+  EventClientCell,
   EventLatencyCell,
   EventModelCell,
   EventRouteCell,
@@ -37,18 +37,11 @@ import {
   successRate,
 } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import {
-  EVENT_COLUMNS,
-  readEventColumns,
-  toEventsQuery,
-  type EventColumn,
-  type UsageGlobalFilter,
-} from '../logic';
+import { EVENT_COLUMNS, toEventsQuery, type EventColumn, type UsageGlobalFilter } from '../logic';
 import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
 
 const PAGE_SIZE = 50;
-const COLUMNS_STORAGE_KEY = 'cpamc-usage-event-columns:v4';
 const NUMERIC_COLUMNS = new Set<EventColumn>(['tokens', 'latency', 'cost']);
 
 interface EventsTabProps {
@@ -185,12 +178,6 @@ export function EventsTab({
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<'' | 'csv' | 'json'>('');
   const [selected, setSelected] = useState<UsageEvent | null>(null);
-  const [columns, setColumns] = useState<EventColumn[]>(() =>
-    readEventColumns(
-      typeof localStorage === 'undefined' ? null : localStorage.getItem(COLUMNS_STORAGE_KEY)
-    )
-  );
-  const [columnsOpen, setColumnsOpen] = useState(false);
   const requestRef = useRef(0);
   const summaryRef = useRef(0);
   const query = useMemo(
@@ -259,13 +246,6 @@ export function EventsTab({
     } finally {
       setExporting('');
     }
-  };
-
-  const toggleColumn = (column: EventColumn, on: boolean) => {
-    const next = EVENT_COLUMNS.filter((c) => (c === column ? on : columns.includes(c)));
-    if (next.length === 0) return;
-    setColumns(next);
-    localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(next));
   };
 
   const resultOptions = useMemo(
@@ -344,14 +324,7 @@ export function EventsTab({
       case 'client':
         return (
           <TableCell>
-            <span className={styles.rankText}>
-              <span className={styles.mono}>{e.clientIp || '—'}</span>
-              {e.userAgent && (
-                <span className={styles.endpointSub} title={e.userAgent}>
-                  {e.userAgent}
-                </span>
-              )}
-            </span>
+            <EventClientCell event={e} />
           </TableCell>
         );
     }
@@ -365,29 +338,6 @@ export function EventsTab({
           desc={t('usage_stats.events_subtitle')}
         />
         <div className={styles.toolbarActions}>
-          <div className={styles.popoverWrap}>
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-expanded={columnsOpen}
-              onClick={() => setColumnsOpen((open) => !open)}
-            >
-              {t('usage_stats.columns')}
-            </Button>
-            {columnsOpen && (
-              <div className={styles.popover} role="group" aria-label={t('usage_stats.columns')}>
-                {EVENT_COLUMNS.map((column) => (
-                  <SelectionCheckbox
-                    key={column}
-                    checked={columns.includes(column)}
-                    onChange={(on) => toggleColumn(column, on)}
-                    label={t(`usage_stats.column_${column}`)}
-                    ariaLabel={t(`usage_stats.column_${column}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
           <Button
             variant="secondary"
             size="sm"
@@ -434,7 +384,7 @@ export function EventsTab({
         <Table className={styles.table}>
           <TableHeader>
             <TableRow>
-              {columns.map((column) => (
+              {EVENT_COLUMNS.map((column) => (
                 <TableHead key={column} alignRight={NUMERIC_COLUMNS.has(column)}>
                   {t(`usage_stats.column_${column}`)}
                 </TableHead>
@@ -458,7 +408,7 @@ export function EventsTab({
                   }
                 }}
               >
-                {columns.map((column) => (
+                {EVENT_COLUMNS.map((column) => (
                   <Fragment key={column}>{cell(column, e)}</Fragment>
                 ))}
               </TableRow>

@@ -68,6 +68,18 @@ export interface UsageStats {
   credentials: UsageCredentialStat[];
 }
 
+export interface ClientGeo {
+  scope: 'public' | 'private' | 'loopback';
+  countryCode?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  asn?: number;
+  isp?: string;
+  /** Organization using the address (more specific than the ISP when known). */
+  org?: string;
+}
+
 export interface UsageEvent {
   id: number;
   timestamp: number;
@@ -94,6 +106,7 @@ export interface UsageEvent {
   cost: number;
   priced: boolean;
   clientIp: string;
+  clientGeo?: ClientGeo;
   /** Recorded downstream transport ('' for rows stored before it was recorded). */
   transport: string;
   userAgent: string;
@@ -290,6 +303,37 @@ export const normalizeUsageStats = (data: unknown): UsageStats => {
   };
 };
 
+export const normalizeClientGeo = (raw: unknown): ClientGeo | undefined => {
+  if (!isRecord(raw)) return undefined;
+  const rawScope = str(raw.scope).toLowerCase();
+  const scope: 'public' | 'private' | 'loopback' =
+    rawScope === 'private' || rawScope === 'loopback' ? rawScope : 'public';
+  const countryCode = str(raw.country_code ?? raw.countryCode).trim() || undefined;
+  const country = str(raw.country).trim() || undefined;
+  const region = str(raw.region).trim() || undefined;
+  const city = str(raw.city).trim() || undefined;
+  const rawAsn = raw.asn;
+  const asn =
+    typeof rawAsn === 'number' && Number.isFinite(rawAsn) && rawAsn > 0
+      ? Math.trunc(rawAsn)
+      : undefined;
+  const isp = str(raw.isp).trim() || undefined;
+  const org = str(raw.org).trim() || undefined;
+  if (!rawScope && !countryCode && !country && !region && !city && !asn && !isp && !org) {
+    return undefined;
+  }
+  return {
+    scope,
+    ...(countryCode ? { countryCode } : {}),
+    ...(country ? { country } : {}),
+    ...(region ? { region } : {}),
+    ...(city ? { city } : {}),
+    ...(asn !== undefined ? { asn } : {}),
+    ...(isp ? { isp } : {}),
+    ...(org ? { org } : {}),
+  };
+};
+
 export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
   const d = rec(data);
   return {
@@ -320,6 +364,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       cost: num(e.cost),
       priced: e.priced === true,
       clientIp: str(e.client_ip),
+      clientGeo: normalizeClientGeo(e.client_geo),
       transport: str(e.transport),
       userAgent: str(e.user_agent),
       responseModel: str(e.response_model),
@@ -554,6 +599,7 @@ const STORE_ENABLE_PATH = `${STORE_PATH}/enable`;
 const STORE_DB_PATH = `${STORE_PATH}/path`;
 const STORE_RETENTION_PATH = `${STORE_PATH}/retention-days`;
 const DISABLE_MODELS_DEV_PATH = `${STORE_PATH}/pricing/disable-models-dev`;
+const DISABLE_GEOIP_PATH = `${STORE_PATH}/geoip/disable`;
 const OVERRIDES_PATH = `${STORE_PATH}/pricing/overrides`;
 
 /** Max magnitude accepted so Go `time.Duration(days) * 24h` cannot overflow int64. */
@@ -567,7 +613,33 @@ export interface UsageStoreSettings {
   retentionDays: number;
   /** Stops fetching prices from models.dev when true. */
   disableModelsDev: boolean;
+  /** Stops sending new public client IPs to the online lookup when true. */
+  disableGeoip: boolean;
 }
+
+export interface UsageGeoipStatus {
+  enabled: boolean;
+  /** Online lookup service the core asks, e.g. "ip.sb". */
+  provider: string;
+  /** Distinct public client IPs with a stored answer. */
+  resolved: number;
+  /** Public client IPs still waiting for a lookup. */
+  pending: number;
+  lastLookupAt: string | null;
+  lastError: string;
+}
+
+export const normalizeUsageGeoipStatus = (data: unknown): UsageGeoipStatus => {
+  const d = rec(data);
+  return {
+    enabled: d.enabled !== false,
+    provider: str(d.provider),
+    resolved: Math.max(0, Math.trunc(num(d.resolved))),
+    pending: Math.max(0, Math.trunc(num(d.pending))),
+    lastLookupAt: d.last_lookup_at ? str(d.last_lookup_at) : null,
+    lastError: str(d.last_error),
+  };
+};
 
 export interface UsageStoreSettingsMutation {
   patch: Record<string, unknown>;
@@ -577,6 +649,7 @@ export interface UsageStoreSettingsMutation {
 export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings => {
   const d = rec(data);
   const pricing = rec(d.pricing);
+  const geoip = rec(d.geoip);
   const rawRetention = d['retention-days'];
   const retentionDays =
     typeof rawRetention === 'number' && Number.isFinite(rawRetention)
@@ -587,6 +660,7 @@ export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings =
     path: str(d.path).trim(),
     retentionDays,
     disableModelsDev: pricing['disable-models-dev'] === true,
+    disableGeoip: geoip.disable === true,
   };
 };
 
@@ -630,6 +704,14 @@ export const serializeUsageStoreSettings = (
     }
   } else if (!previous || previous.disableModelsDev) {
     deletions.push(DISABLE_MODELS_DEV_PATH);
+  }
+
+  if (next.disableGeoip) {
+    if (!previous || !previous.disableGeoip) {
+      patch.geoip = { disable: true };
+    }
+  } else if (!previous || previous.disableGeoip) {
+    deletions.push(DISABLE_GEOIP_PATH);
   }
 
   return { patch, deletions };
@@ -749,6 +831,16 @@ export const usageStoreApi = {
     normalizeUsagePricing(await apiClient.get('/observability/usage/pricing')),
   refreshPricing: async () =>
     normalizeUsagePricing(await apiClient.post('/observability/usage/pricing/refresh')),
+  getGeoipStatus: async (): Promise<UsageGeoipStatus | null> => {
+    try {
+      return normalizeUsageGeoipStatus(await apiClient.get('/observability/usage/geoip'));
+    } catch (error) {
+      if (isRecord(error) && error.status === 404) return null;
+      throw error;
+    }
+  },
+  refreshGeoip: async (): Promise<UsageGeoipStatus> =>
+    normalizeUsageGeoipStatus(await apiClient.post('/observability/usage/geoip/refresh')),
   getSettings: async () =>
     normalizeUsageStoreSettings(await getConfigValue<unknown>(STORE_PATH, {})),
   saveSettings: async (next: UsageStoreSettings, previous?: UsageStoreSettings) => {

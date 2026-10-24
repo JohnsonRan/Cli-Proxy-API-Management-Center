@@ -404,25 +404,6 @@
   color: var(--text-tertiary);
 }
 
-.popoverWrap {
-  position: relative;
-}
-
-.popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(110px, 1fr));
-  gap: 6px 14px;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-primary);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
 /* ---------- Event detail ---------- */
 
 .detailList {
@@ -1291,6 +1272,28 @@
   white-space: nowrap;
 }
 
+.clientCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 140px;
+  min-width: 0;
+}
+
+.clientText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientSub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .subArrow {
   margin: 0 4px;
   color: #d97706;
@@ -1550,6 +1553,26 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-tertiary);
+}
+
+.geoipStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.attributionLink {
+  color: var(--text-tertiary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 11.5px;
+
+  &:hover {
+    color: var(--text-primary);
+  }
 }
 
 /* ---------- Credential quota column & modal ---------- */
