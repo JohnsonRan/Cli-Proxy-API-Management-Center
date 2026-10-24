@@ -13,6 +13,7 @@ import styles from '../UsagePage.module.scss';
 export function StatCard({
   label,
   value,
+  valueTitle,
   sub,
   change,
   changeUnit = '%',
@@ -22,6 +23,8 @@ export function StatCard({
 }: {
   label: string;
   value: ReactNode;
+  /** Hover text for the value, e.g. the exact number behind a compact one. */
+  valueTitle?: string;
   sub?: ReactNode;
   change?: number | null;
   changeUnit?: '%' | 'pt';
@@ -50,7 +53,9 @@ export function StatCard({
         </span>
       </div>
       <div className={styles.statValueRow}>
-        <span className={styles.statValue}>{value}</span>
+        <span className={styles.statValue} title={valueTitle}>
+          {value}
+        </span>
         {hasChange && (
           <span
             className={tone}

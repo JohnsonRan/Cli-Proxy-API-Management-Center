@@ -29,6 +29,8 @@ import {
 import {
   cacheHitRate,
   changePercent,
+  exactCost,
+  exactCount,
   formatCompact,
   formatCost,
   formatDatetimeLocal,
@@ -152,6 +154,10 @@ describe('usage formatting', () => {
     expect(formatCompact(1250)).toBe('1.3K');
     expect(formatCompact(3_400_000)).toBe('3.4M');
     expect(formatCompact(250_000_000)).toBe('250M');
+    expect(exactCount(950)).toBeUndefined();
+    expect(exactCount(12_345_678)).toBe('12,345,678');
+    expect(exactCost(1234.5)).toBe('$1,234.50');
+    expect(exactCost(0.00843)).toBe('$0.0084');
     expect(formatMs(0)).toBe('—');
     expect(formatMs(420)).toBe('420 ms');
     expect(formatMs(1500)).toBe('1.50 s');
@@ -661,7 +667,7 @@ describe('usage precision, transport and cells', () => {
     expect(status).toContain('SSE');
     expect(status).toContain('POST /v1/chat/completions');
     const tokens = renderToStaticMarkup(createElement(EventTokensCell, { event }));
-    expect(tokens).toContain('1K → 300');
+    expect(tokens).toContain('<span title="1,000">1K</span> → <span>300</span>');
     expect(tokens).toContain('75%');
     expect(tokens).toContain('80');
     const latency = (outputTps: number) =>

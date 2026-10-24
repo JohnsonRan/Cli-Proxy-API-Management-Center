@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UsageEvent } from '@/services/api/usageStore';
 import { formatCompact, formatMs, formatPercent, formatTps } from '../format';
+import { Compact } from './PanelBits';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import { eventCacheHitRate, eventTransport, type EventDimension } from '../logic';
 import { ProviderBadge } from './Labels';
@@ -172,7 +173,7 @@ export function EventTokensCell({ event: e }: { event: UsageEvent }) {
   return (
     <span className={styles.rankText}>
       <span className={styles.cellStrong}>
-        {formatCompact(input)} → {formatCompact(tk.output)}
+        <Compact value={input} /> → <Compact value={tk.output} />
       </span>
       <span className={`${styles.cellSub} ${styles.tokenDetail}`}>
         <span title={t('usage_stats.cache_rw_hint')}>

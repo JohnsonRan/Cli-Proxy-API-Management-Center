@@ -18,12 +18,14 @@ import {
   rankColor,
   useChartTheme,
 } from '../charts';
-import { PanelHeading, Rate } from '../components/PanelBits';
+import { Compact, PanelHeading, Rate } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import {
   USAGE_METRICS,
   cacheHitRate,
   changePercent,
+  exactCost,
+  exactCount,
   formatBucketLabel,
   formatCompact,
   formatCost,
@@ -54,7 +56,9 @@ function Share({ value, total, color }: { value: number; total: number; color: s
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <span className={styles.share}>
-      <span className={styles.shareText}>{formatCompact(value)}</span>
+      <span className={styles.shareText}>
+        <Compact value={value} />
+      </span>
       <span className={styles.shareTrack}>
         <span className={styles.shareBar} style={{ width: `${pct}%`, background: color }} />
       </span>
@@ -281,7 +285,9 @@ export function OverviewTab({
     a.unpricedRequests >= a.requests && a.requests > 0 ? (
       <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
     ) : (
-      <span className={styles.cellStrong}>{formatCost(a.cost)}</span>
+      <span className={styles.cellStrong} title={exactCost(a.cost)}>
+        {formatCost(a.cost)}
+      </span>
     );
 
   const rowProps = (filter: EventsFilter, label: string) => ({
@@ -308,6 +314,7 @@ export function OverviewTab({
           accent="requests"
           label={t('usage_stats.card_requests')}
           value={<CountUp value={totals.requests} format={formatCompact} />}
+          valueTitle={exactCount(totals.requests)}
           change={prev ? changePercent(totals.requests, prev.requests) : undefined}
           spark={stats.series.map((p) => p.requests)}
           sub={
@@ -335,6 +342,7 @@ export function OverviewTab({
           accent="tokens"
           label={t('usage_stats.card_tokens')}
           value={<CountUp value={totals.tokens.total} format={formatCompact} />}
+          valueTitle={exactCount(totals.tokens.total)}
           change={prev ? changePercent(totals.tokens.total, prev.tokens.total) : undefined}
           spark={stats.series.map((p) => p.tokens.total)}
           sub={t('usage_stats.card_tokens_sub', {
@@ -346,6 +354,7 @@ export function OverviewTab({
           accent="cost"
           label={t('usage_stats.card_cost')}
           value={<CountUp value={totals.cost} format={formatCost} />}
+          valueTitle={exactCost(totals.cost)}
           change={prev ? changePercent(totals.cost, prev.cost) : undefined}
           goodWhenUp={false}
           spark={stats.series.map((p) => p.cost)}
@@ -537,9 +546,15 @@ export function OverviewTab({
                   <TableCell alignRight>
                     <Rate value={successRate(m)} />
                   </TableCell>
-                  <TableCell alignRight>{formatCompact(inputTokens(m))}</TableCell>
-                  <TableCell alignRight>{formatCompact(m.tokens.cacheRead)}</TableCell>
-                  <TableCell alignRight>{formatCompact(m.tokens.output)}</TableCell>
+                  <TableCell alignRight>
+                    <Compact value={inputTokens(m)} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={m.tokens.cacheRead} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={m.tokens.output} />
+                  </TableCell>
                   <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
                   <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
                   <TableCell alignRight>{costCell(m)}</TableCell>
@@ -584,7 +599,9 @@ export function OverviewTab({
                     <TableCell alignRight>
                       <Share value={k.requests} total={totals.requests} color={rankColor(index)} />
                     </TableCell>
-                    <TableCell alignRight>{formatCompact(k.tokens.total)}</TableCell>
+                    <TableCell alignRight>
+                      <Compact value={k.tokens.total} />
+                    </TableCell>
                     <TableCell alignRight>{costCell(k)}</TableCell>
                   </TableRow>
                 ))}
