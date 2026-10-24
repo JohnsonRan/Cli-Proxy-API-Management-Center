@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Chart, Doughnut } from 'react-chartjs-2';
 import type {
   UsageAggregate,
   UsageApiKeyStat,
@@ -161,6 +161,13 @@ export function OverviewTab({
     setMetricState(next);
     saveUsagePrefs({ metric: next });
   };
+  const [comparePrevious, setComparePrevious] = useState(
+    () => readUsagePrefs().comparePrevious ?? false
+  );
+  const toggleComparePrevious = () => {
+    setComparePrevious(!comparePrevious);
+    saveUsagePrefs({ comparePrevious: !comparePrevious });
+  };
   const totals = stats.totals;
   const prev = prevStats?.totals;
   const rate = successRate(totals);
@@ -175,6 +182,36 @@ export function OverviewTab({
 
   const trend = useMemo(() => {
     const step = stats.bucket === 'day' ? 86400 : 3600;
+    // The previous window has the same length, so bucket i lines up with bucket i.
+    const pickTotal =
+      metric === 'requests'
+        ? (p: UsageAggregate) => p.requests
+        : metric === 'tokens'
+          ? (p: UsageAggregate) => p.tokens.total
+          : (p: UsageAggregate) => p.cost;
+    const previous =
+      comparePrevious && prevStats
+        ? [
+            {
+              type: 'line' as const,
+              label: t('usage_stats.series_previous'),
+              data: stats.series.map((_, i) => {
+                const point = prevStats.series[i];
+                return point ? pickTotal(point) : null;
+              }),
+              borderColor: theme.muted,
+              backgroundColor: 'transparent',
+              borderDash: [5, 4],
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: false,
+              tension: 0.3,
+              // Its own stack, so stacked bar charts do not add it on top of the bars.
+              stack: 'previous',
+              order: 0,
+            },
+          ]
+        : [];
     const options = {
       ...baseCartesianOptions(
         theme,
@@ -203,13 +240,16 @@ export function OverviewTab({
               data: stats.series.map((p) => p.requests - p.failed),
               backgroundColor: theme.success,
               borderRadius: 3,
+              order: 1,
             },
             {
               label: t('usage_stats.series_failed'),
               data: stats.series.map((p) => p.failed),
               backgroundColor: theme.failure,
               borderRadius: 3,
+              order: 1,
             },
+            ...previous,
           ],
         },
       };
@@ -226,12 +266,16 @@ export function OverviewTab({
         options,
         data: {
           labels: bucketLabels,
-          datasets: series.map(([key, pick], index) => ({
-            label: t(`usage_stats.${key}`),
-            data: stats.series.map(pick),
-            backgroundColor: SERIES_COLORS[index],
-            borderRadius: 3,
-          })),
+          datasets: [
+            ...series.map(([key, pick], index) => ({
+              label: t(`usage_stats.${key}`),
+              data: stats.series.map(pick),
+              backgroundColor: SERIES_COLORS[index],
+              borderRadius: 3,
+              order: 1,
+            })),
+            ...previous,
+          ],
         },
       };
     }
@@ -249,11 +293,23 @@ export function OverviewTab({
             fill: true,
             tension: 0.3,
             pointRadius: 0,
+            order: 1,
           },
+          ...previous,
         ],
       },
     };
-  }, [bucketLabels, metric, onDrillDown, stats.bucket, stats.series, t, theme]);
+  }, [
+    bucketLabels,
+    comparePrevious,
+    metric,
+    onDrillDown,
+    prevStats,
+    stats.bucket,
+    stats.series,
+    t,
+    theme,
+  ]);
 
   const composition = useMemo(() => {
     const parts = [
@@ -583,18 +639,35 @@ export function OverviewTab({
             title={t('usage_stats.trend_title')}
             desc={`${t('usage_stats.trend_desc')} ${t('usage_stats.trend_drill_hint')}`}
           />
-          <div className={styles.segmented} role="group" aria-label={t('usage_stats.metric_label')}>
-            {USAGE_METRICS.map((value) => (
+          <div className={styles.panelActions}>
+            <div className={styles.segmented}>
               <button
-                key={value}
                 type="button"
-                className={metric === value ? styles.segmentActive : styles.segment}
-                aria-pressed={metric === value}
-                onClick={() => setMetric(value)}
+                className={comparePrevious ? styles.segmentActive : styles.segment}
+                aria-pressed={comparePrevious}
+                title={t('usage_stats.compare_previous_hint')}
+                onClick={toggleComparePrevious}
               >
-                {t(`usage_stats.metric_${value}`)}
+                {t('usage_stats.compare_previous')}
               </button>
-            ))}
+            </div>
+            <div
+              className={styles.segmented}
+              role="group"
+              aria-label={t('usage_stats.metric_label')}
+            >
+              {USAGE_METRICS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={metric === value ? styles.segmentActive : styles.segment}
+                  aria-pressed={metric === value}
+                  onClick={() => setMetric(value)}
+                >
+                  {t(`usage_stats.metric_${value}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div
@@ -603,9 +676,9 @@ export function OverviewTab({
           aria-label={t('usage_stats.chart_label', { metric: t(`usage_stats.metric_${metric}`) })}
         >
           {trend.kind === 'bar' ? (
-            <Bar data={trend.data} options={trend.options} />
+            <Chart type="bar" data={trend.data} options={trend.options} />
           ) : (
-            <Line data={trend.data} options={trend.options} />
+            <Chart type="line" data={trend.data} options={trend.options} />
           )}
         </div>
       </section>

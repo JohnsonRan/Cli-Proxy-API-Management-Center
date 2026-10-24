@@ -1,11 +1,13 @@
 import {
   ArcElement,
+  BarController,
   BarElement,
   CategoryScale,
   Chart,
   Filler,
   Legend,
   LinearScale,
+  LineController,
   LineElement,
   PointElement,
   Tooltip,
@@ -15,14 +17,17 @@ import { prefersReducedMotion } from '@/hooks/motion';
 import { useThemeStore } from '@/stores';
 import { formatCompact } from './format';
 
-// Register only what the usage page draws so the single-file bundle stays small.
+// Register only what the usage page draws so the single-file bundle stays small. The trend
+// chart mixes a dashed line into bar charts, so the generic <Chart> needs both controllers.
 Chart.register(
   ArcElement,
+  BarController,
   BarElement,
   CategoryScale,
   Filler,
   Legend,
   LinearScale,
+  LineController,
   LineElement,
   PointElement,
   Tooltip
