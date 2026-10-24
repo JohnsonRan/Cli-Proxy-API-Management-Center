@@ -1400,6 +1400,8 @@
           "error_logs_max_files": "Retained Error Log Files",
           "usage_statistics_enabled": "Enable In-memory Usage Statistics",
           "usage_statistics_enabled_desc": "Aggregate request usage statistics in memory",
+          "usage_exclude_embeddings": "Exclude embeddings from usage statistics",
+          "usage_exclude_embeddings_desc": "Leave /v1/embeddings requests out of usage statistics (the usage queue and the built-in usage store). They still appear in request and application logs. Rerank requests are still counted. Ignored in Home mode.",
           "redis_usage_retention": "Redis Usage Queue Retention (seconds)",
           "redis_usage_retention_hint": "In-memory retention for RESP LPOP/RPOP usage output, max 3600 seconds",
           "antigravity_sensitive_words": "Sensitive Word Obfuscation",
