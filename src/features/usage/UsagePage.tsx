@@ -42,6 +42,7 @@ import { AnalysisTab } from './tabs/AnalysisTab';
 import { RealtimeTab } from './tabs/RealtimeTab';
 import { EventsTab } from './tabs/EventsTab';
 import {
+  AUTO_REFRESH_SECONDS,
   emptyGlobalFilter,
   hasActiveGlobalFilters,
   parseGlobalFilterFromSearchParams,
@@ -170,6 +171,26 @@ export function UsagePage() {
   }, [connected, globalFilter, t]);
 
   useHeaderRefresh(load);
+
+  // Only the overview and analysis follow the auto-refresh; the realtime tab polls on its own
+  // and reloading the events or pricing tabs would drop loaded pages and edits.
+  const [autoRefresh, setAutoRefresh] = useState(() => readUsagePrefs().autoRefresh ?? 0);
+  const autoRefreshTab = tab === 'overview' || tab === 'analysis';
+  useEffect(() => {
+    if (!autoRefresh || !autoRefreshTab || !connected || disabled) return;
+    const id = window.setInterval(() => {
+      if (!document.hidden) void load();
+    }, autoRefresh * 1000);
+    return () => window.clearInterval(id);
+  }, [autoRefresh, autoRefreshTab, connected, disabled, load]);
+  const autoRefreshOptions = useMemo(
+    () =>
+      AUTO_REFRESH_SECONDS.map((value) => ({
+        value: String(value),
+        label: t(`usage_stats.auto_refresh_${value}`),
+      })),
+    [t]
+  );
 
   useEffect(() => {
     void load();
@@ -504,6 +525,22 @@ export function UsagePage() {
               className={styles.rangeSelect}
               disabled={!connected || disabled || tab === 'realtime'}
             />
+
+            {autoRefreshTab && (
+              <Select
+                value={String(autoRefresh)}
+                options={autoRefreshOptions}
+                onChange={(value) => {
+                  const next = Number(value);
+                  setAutoRefresh(next);
+                  saveUsagePrefs({ autoRefresh: next });
+                }}
+                ariaLabel={t('usage_stats.auto_refresh_label')}
+                size="sm"
+                className={styles.rangeSelect}
+                disabled={!connected || disabled}
+              />
+            )}
 
             {globalFilter.range === 'custom' && (
               <div className={styles.customRangeWrap}>
