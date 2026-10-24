@@ -164,6 +164,8 @@ describe('usage formatting', () => {
     expect(formatCompact(1250)).toBe('1.3K');
     expect(formatCompact(3_400_000)).toBe('3.4M');
     expect(formatCompact(250_000_000)).toBe('250M');
+    expect(formatCompact(999_949)).toBe('1M');
+    expect(formatCompact(999_950_000)).toBe('1B');
     expect(exactCount(950)).toBeUndefined();
     expect(exactCount(12_345_678)).toBe('12,345,678');
     expect(exactCost(1234.5)).toBe('$1,234.50');
