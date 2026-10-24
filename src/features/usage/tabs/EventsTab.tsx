@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/usageStore';
@@ -24,6 +25,7 @@ import { useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
 import { METRIC_ACCENTS } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
+import { MetricIcon, type MetricIconName } from '../components/MetricIcon';
 import {
   EventLatencyCell,
   EventModelCell,
@@ -32,7 +34,7 @@ import {
   EventTokensCell,
 } from '../components/EventCells';
 import { PanelHeading, Rate } from '../components/PanelBits';
-import { formatCompact, formatCost, formatMs, successRate } from '../format';
+import { formatCompact, formatCost, formatMs, formatTps, successRate } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   EVENT_COLUMNS,
@@ -72,40 +74,83 @@ function FilterSummary({
   const { t } = useTranslation();
   if (!summary) return <div className={styles.summaryStrip} aria-hidden="true" />;
   const totals = summary.totals;
-  const items: [string, string, string][] = [
-    [t('usage_stats.card_requests'), formatCompact(totals.requests), METRIC_ACCENTS.requests],
-    [t('usage_stats.card_failed_short'), formatCompact(totals.failed), 'var(--viz-failure)'],
-    [t('usage_stats.card_tokens'), formatCompact(totals.tokens.total), METRIC_ACCENTS.tokens],
-    [t('usage_stats.card_cost'), formatCost(totals.cost), METRIC_ACCENTS.cost],
-    [t('usage_stats.card_latency'), formatMs(totals.avgLatencyMs), METRIC_ACCENTS.latency],
+  const items: {
+    icon: MetricIconName;
+    label: string;
+    value: ReactNode;
+    color: string;
+    sub?: string;
+  }[] = [
+    {
+      icon: 'requests',
+      label: t('usage_stats.card_requests'),
+      value: formatCompact(totals.requests),
+      color: METRIC_ACCENTS.requests,
+    },
+    {
+      icon: 'success',
+      label: t('usage_stats.card_success_rate'),
+      value: <Rate value={successRate(totals)} />,
+      color: METRIC_ACCENTS.success,
+    },
+    {
+      icon: 'failed',
+      label: t('usage_stats.card_failed_short'),
+      value: formatCompact(totals.failed),
+      color: 'var(--viz-failure)',
+    },
+    {
+      icon: 'tokens',
+      label: t('usage_stats.card_tokens'),
+      value: formatCompact(totals.tokens.total),
+      color: METRIC_ACCENTS.tokens,
+    },
+    {
+      icon: 'cost',
+      label: t('usage_stats.card_cost'),
+      value: formatCost(totals.cost),
+      color: METRIC_ACCENTS.cost,
+    },
+    {
+      icon: 'latency',
+      label: t('usage_stats.card_latency'),
+      value: formatMs(totals.avgLatencyMs),
+      color: METRIC_ACCENTS.latency,
+      sub: t('usage_stats.card_ttft', { value: formatMs(totals.avgTtftMs) }),
+    },
+    {
+      icon: 'speed',
+      label: t('usage_stats.card_speed'),
+      value: formatTps(totals.outputTps),
+      color: METRIC_ACCENTS.speed,
+    },
   ];
+  if (totals.substituted > 0) {
+    items.push({
+      icon: 'substituted',
+      label: t('usage_stats.card_substituted'),
+      value: formatCompact(totals.substituted),
+      color: '#d97706',
+    });
+  }
   return (
     <div className={styles.summaryStrip} aria-label={t('usage_stats.events_summary')}>
-      {items.map(([label, value, color]) => (
+      {items.map((item) => (
         <div
-          key={label}
+          key={item.icon}
           className={styles.summaryItem}
-          style={{ '--accent': color } as CSSProperties}
+          style={{ '--accent': item.color } as CSSProperties}
         >
-          <span className={styles.summaryLabel}>{label}</span>
-          <span className={styles.summaryValue}>{value}</span>
+          <div className={styles.summaryTop}>
+            <span className={styles.summaryLabel}>{item.label}</span>
+            <span className={styles.summaryIcon}>
+              <MetricIcon name={item.icon} />
+            </span>
+          </div>
+          <span className={styles.summaryValue}>{item.value}</span>
+          {item.sub && <span className={styles.summarySub}>{item.sub}</span>}
         </div>
       ))}
-      <div
-        className={styles.summaryItem}
-        style={{ '--accent': METRIC_ACCENTS.success } as CSSProperties}
-      >
-        <span className={styles.summaryLabel}>{t('usage_stats.card_success_rate')}</span>
-        <span className={styles.summaryValue}>
-          <Rate value={successRate(totals)} />
-        </span>
-      </div>
-      {totals.substituted > 0 && (
-        <div className={styles.summaryItem} style={{ '--accent': '#d97706' } as CSSProperties}>
-          <span className={styles.summaryLabel}>{t('usage_stats.card_substituted')}</span>
-          <span className={styles.summaryValue}>{formatCompact(totals.substituted)}</span>
-        </div>
-      )}
       {showResultHint && (
         <p className={styles.summaryNote}>{t('usage_stats.events_summary_hint')}</p>
       )}

@@ -27,6 +27,8 @@ export interface UsageAggregate {
   unpricedRequests: number;
   avgLatencyMs: number;
   avgTtftMs: number;
+  /** Token-weighted output tokens per second after the first token; 0 when not measured. */
+  outputTps: number;
 }
 
 export interface UsageSeriesPoint extends UsageAggregate {
@@ -86,6 +88,8 @@ export interface UsageEvent {
   error: string;
   latencyMs: number;
   ttftMs: number;
+  /** Output tokens per second after the first token; 0 when not measured (non-streamed etc.). */
+  outputTps: number;
   tokens: UsageTokens;
   cost: number;
   priced: boolean;
@@ -198,9 +202,16 @@ export interface UsageAnalysis {
   sampled: boolean;
   latency: UsagePercentiles;
   ttft: UsagePercentiles;
+  /** Per-request output speed in tokens per second. */
+  tps: UsagePercentiles;
   histogram: number[];
   histogramBoundsMs: number[];
-  models: { model: string; latency: UsagePercentiles; ttft: UsagePercentiles }[];
+  models: {
+    model: string;
+    latency: UsagePercentiles;
+    ttft: UsagePercentiles;
+    tps: UsagePercentiles;
+  }[];
   heatmap: UsageHeatCell[];
 }
 
@@ -244,6 +255,7 @@ const normalizeAggregate = (value: unknown): UsageAggregate => {
     unpricedRequests: num(a.unpriced_requests),
     avgLatencyMs: num(a.avg_latency_ms),
     avgTtftMs: num(a.avg_ttft_ms),
+    outputTps: num(a.output_tps),
   };
 };
 
@@ -303,6 +315,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       error: str(e.error),
       latencyMs: num(e.latency_ms),
       ttftMs: num(e.ttft_ms),
+      outputTps: num(e.output_tps),
       tokens: normalizeTokens(e.tokens),
       cost: num(e.cost),
       priced: e.priced === true,
@@ -389,12 +402,14 @@ export const normalizeUsageAnalysis = (data: unknown): UsageAnalysis => {
     sampled: d.sampled === true,
     latency: normalizePercentiles(d.latency),
     ttft: normalizePercentiles(d.ttft),
+    tps: normalizePercentiles(d.tps),
     histogram: nums(d.histogram),
     histogramBoundsMs: nums(d.histogram_bounds_ms),
     models: list(d.models).map((m) => ({
       model: str(m.model),
       latency: normalizePercentiles(m.latency),
       ttft: normalizePercentiles(m.ttft),
+      tps: normalizePercentiles(m.tps),
     })),
     heatmap: list(d.heatmap).map((c) => ({
       weekday: num(c.weekday),
