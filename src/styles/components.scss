@@ -67,6 +67,25 @@
     font-size: 14px;
   }
 
+  /*
+   * <Button> wraps its children in a single span, so the icon + label pair has to be laid
+   * out here. Without this the SVG stays inline on the text baseline: icons of different
+   * sizes then sit at different heights and the label touches the icon.
+   */
+  > .btn-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    /* Keeps buttons the same height whether their icon is 14px or 16px. */
+    line-height: 1.5;
+  }
+
+  svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -478,19 +497,6 @@ textarea {
   .empty-desc {
     color: var(--text-secondary);
     margin-top: 4px;
-  }
-
-  .empty-action .btn > span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    line-height: 1;
-  }
-
-  .empty-action .btn svg {
-    display: block;
-    flex-shrink: 0;
   }
 }
 
