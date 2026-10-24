@@ -24,6 +24,7 @@ import {
   USAGE_METRICS,
   cacheHitRate,
   changePercent,
+  costPerRequest,
   exactCost,
   exactCount,
   formatBucketLabel,
@@ -34,6 +35,7 @@ import {
   formatTps,
   inputTokens,
   successRate,
+  tokensPerRequest,
   type UsageMetric,
 } from '../format';
 import type { EventsFilter } from '../logic';
@@ -290,6 +292,15 @@ export function OverviewTab({
       </span>
     );
 
+  const avgCostCell = (a: UsageAggregate) => {
+    const value = costPerRequest(a);
+    return value === null ? (
+      <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
+    ) : (
+      <span title={exactCost(value)}>{formatCost(value)}</span>
+    );
+  };
+
   const rowProps = (filter: EventsFilter, label: string) => ({
     className: styles.clickableRow,
     tabIndex: 0,
@@ -503,9 +514,11 @@ export function OverviewTab({
                 <TableHead alignRight>{t('usage_stats.col_input')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_cached')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_output')}</TableHead>
+                <TableHead alignRight>{t('usage_stats.col_avg_tokens')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_latency')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_speed')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_cost')}</TableHead>
+                <TableHead alignRight>{t('usage_stats.col_avg_cost')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -555,9 +568,13 @@ export function OverviewTab({
                   <TableCell alignRight>
                     <Compact value={m.tokens.output} />
                   </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={tokensPerRequest(m)} />
+                  </TableCell>
                   <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
                   <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
                   <TableCell alignRight>{costCell(m)}</TableCell>
+                  <TableCell alignRight>{avgCostCell(m)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
