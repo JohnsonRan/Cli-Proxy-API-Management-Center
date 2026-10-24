@@ -1084,6 +1084,7 @@
     "col_cost": "Cost",
     "col_avg_tokens": "Tokens / req",
     "col_avg_cost": "Cost / req",
+    "col_cost_per_m": "$ / M tokens",
     "col_key": "Client key",
     "col_key_masked": "Masked key",
     "col_credential": "Credential",

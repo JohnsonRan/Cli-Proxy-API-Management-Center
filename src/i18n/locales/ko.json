@@ -1084,6 +1084,7 @@
     "col_cost": "비용",
     "col_avg_tokens": "요청당 토큰",
     "col_avg_cost": "요청당 비용",
+    "col_cost_per_m": "$ / 100만 토큰",
     "col_key": "클라이언트 키",
     "col_key_masked": "마스킹된 키",
     "col_credential": "자격 증명",

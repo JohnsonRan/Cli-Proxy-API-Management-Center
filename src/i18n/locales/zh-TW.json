@@ -1110,6 +1110,7 @@
     "col_cost": "費用",
     "col_avg_tokens": "單次 Token",
     "col_avg_cost": "單次費用",
+    "col_cost_per_m": "百萬 Token 單價",
     "col_key": "用戶端金鑰",
     "col_key_masked": "遮罩金鑰",
     "col_credential": "憑證",

@@ -38,6 +38,7 @@ import {
 import {
   cacheHitRate,
   changePercent,
+  costPerMillionTokens,
   costPerRequest,
   exactCost,
   exactCount,
@@ -219,6 +220,9 @@ describe('usage formatting', () => {
     expect(tokensPerRequest(four)).toBe(300);
     expect(costPerRequest(four)).toBeCloseTo(0.3);
     expect(costPerRequest({ ...four, unpricedRequests: 4 })).toBeNull();
+    // 0.9 USD over the 900 tokens of the 3 priced requests.
+    expect(costPerMillionTokens(four)).toBeCloseTo(1000);
+    expect(costPerMillionTokens({ ...four, unpricedRequests: 4 })).toBeNull();
     expect(tokensPerRequest({ ...four, requests: 0 })).toBe(0);
 
     // Range window extensions: today, yesterday, custom

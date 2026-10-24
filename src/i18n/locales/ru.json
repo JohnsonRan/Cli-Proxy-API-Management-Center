@@ -1087,6 +1087,7 @@
     "col_cost": "Стоимость",
     "col_avg_tokens": "Токенов / запрос",
     "col_avg_cost": "Цена / запрос",
+    "col_cost_per_m": "$ / 1M токенов",
     "col_key": "Клиентский ключ",
     "col_key_masked": "Ключ (скрыт)",
     "col_credential": "Учётные данные",

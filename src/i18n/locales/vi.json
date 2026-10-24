@@ -1040,6 +1040,7 @@
     "col_cost": "Chi phí",
     "col_avg_tokens": "Token / yêu cầu",
     "col_avg_cost": "Chi phí / yêu cầu",
+    "col_cost_per_m": "$ / 1M token",
     "col_key": "Khóa máy khách",
     "col_key_masked": "Khóa đã ẩn",
     "col_credential": "Thông tin xác thực",
