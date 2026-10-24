@@ -113,13 +113,16 @@ export function UsagePage() {
 
   const requestRef = useRef(0);
   const labels = useUsageLabels(connected);
-  const seededFromUrl = useRef(searchParams.toString() !== '');
+  // A link's own tab and range are not the user's choice: save only once they change them.
+  // Compared by value rather than a run-once flag so StrictMode's double effect cannot save.
+  const linkView = useRef(
+    searchParams.toString() !== '' ? { tab, range: globalFilter.range } : null
+  );
 
   useEffect(() => {
-    if (seededFromUrl.current) {
-      seededFromUrl.current = false;
-      return;
-    }
+    const link = linkView.current;
+    if (link && link.tab === tab && link.range === globalFilter.range) return;
+    linkView.current = null;
     saveUsagePrefs(globalFilter.range === 'custom' ? { tab } : { tab, range: globalFilter.range });
   }, [globalFilter.range, tab]);
 
