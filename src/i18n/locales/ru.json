@@ -1403,6 +1403,8 @@
           "error_logs_max_files": "Файлов журнала ошибок",
           "usage_statistics_enabled": "Включить статистику использования в памяти",
           "usage_statistics_enabled_desc": "Агрегировать статистику использования запросов в памяти",
+          "usage_exclude_embeddings": "Исключить эмбеддинги из статистики использования",
+          "usage_exclude_embeddings_desc": "Не учитывать запросы /v1/embeddings в статистике использования (очереди usage и встроенном хранилище usage). Они по-прежнему попадают в журналы запросов и приложения. Запросы rerank учитываются. В режиме Home не применяется.",
           "redis_usage_retention": "Хранение очереди Redis usage (сек)",
           "redis_usage_retention_hint": "Время хранения вывода RESP LPOP/RPOP в памяти, максимум 3600 секунд",
           "antigravity_sensitive_words": "Обфускация стоп-слов",
