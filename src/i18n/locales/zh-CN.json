@@ -1073,6 +1073,7 @@
     "col_avg_tokens": "单次 Token",
     "col_avg_cost": "单次费用",
     "col_key": "客户端密钥",
+    "col_key_masked": "打码密钥",
     "col_credential": "凭证",
     "col_time": "时间",
     "col_status": "状态",

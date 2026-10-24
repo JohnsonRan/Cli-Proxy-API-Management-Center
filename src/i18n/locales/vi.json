@@ -1031,6 +1031,7 @@
     "col_avg_tokens": "Token / yêu cầu",
     "col_avg_cost": "Chi phí / yêu cầu",
     "col_key": "Khóa máy khách",
+    "col_key_masked": "Khóa đã ẩn",
     "col_credential": "Thông tin xác thực",
     "col_time": "Thời gian",
     "col_status": "Trạng thái",

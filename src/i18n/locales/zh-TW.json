@@ -1101,6 +1101,7 @@
     "col_avg_tokens": "單次 Token",
     "col_avg_cost": "單次費用",
     "col_key": "用戶端金鑰",
+    "col_key_masked": "遮罩金鑰",
     "col_credential": "憑證",
     "col_time": "時間",
     "col_status": "狀態",
