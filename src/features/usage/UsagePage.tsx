@@ -62,6 +62,7 @@ import { KeyLabel, ProviderBadge } from './components/Labels';
 import styles from './UsagePage.module.scss';
 
 const ENABLE_RETRY_MS = 1500;
+const NO_PRICES: UsagePricing['models'] = [];
 
 const errorMessage = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
@@ -659,6 +660,7 @@ export function UsagePage() {
             <OverviewTab
               stats={stats}
               prevStats={prevStats}
+              prices={pricing?.models ?? NO_PRICES}
               labels={labels}
               onOpenEvents={handleOpenEventsFromOverview}
               onDrillDown={handleDrillDown}

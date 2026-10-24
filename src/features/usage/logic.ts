@@ -532,3 +532,20 @@ export const saveUsagePrefs = (patch: UsagePrefs) => {
     // Storage may be full or blocked; preferences are only a convenience.
   }
 };
+
+/**
+ * Rough USD saved by cache reads: each read token billed at the cache-read price instead of
+ * the input price. Uses each model's standard price, so tiers and long-context rates are
+ * ignored; cache writes are not subtracted. Returns 0 without priced cache reads.
+ */
+export const cacheSavings = (
+  models: readonly { model: string; tokens: { cacheRead: number } }[],
+  prices: readonly UsageModelPrice[]
+): number => {
+  const byModel = new Map(prices.map((p) => [p.model, p.price]));
+  return models.reduce((sum, m) => {
+    const price = byModel.get(m.model);
+    if (!price || m.tokens.cacheRead <= 0) return sum;
+    return sum + (m.tokens.cacheRead * Math.max(0, price.input - price.cacheRead)) / 1e6;
+  }, 0);
+};
