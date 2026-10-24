@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Chart, Doughnut } from 'react-chartjs-2';
 import type {
@@ -11,6 +11,12 @@ import type {
 } from '@/services/api/usageStore';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
+import { IconRefreshCw } from '@/components/ui/icons';
+import { useQuotaBatchLoader } from '@/features/quota/hooks/useQuotaBatchLoader';
+import type { QuotaFileEntry } from '@/features/quota/logic';
+import type { QuotaStore } from '@/features/quota/providers/types';
+import { useNow } from '@/hooks/useNow';
+import { useAuthStore, useQuotaStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
 import {
   METRIC_ACCENTS,
@@ -53,8 +59,19 @@ import {
 import { SortHead } from '../components/SortHead';
 import { useSort } from '../hooks/useSort';
 import { KeyLabel, ProviderBadge } from '../components/Labels';
+import { CredentialQuotaCell } from '../components/CredentialQuotaCell';
+import {
+  CredentialQuotaModal,
+  type CredentialQuotaModalTarget,
+} from '../components/CredentialQuotaModal';
 import { CountUp } from '../components/Motion';
 import type { UsageLabels } from '../hooks/useUsageLabels';
+import {
+  collectCredentialQuotaTargets,
+  readCachedQuota,
+  summarizeCredentialQuota,
+  type CredentialQuotaSummary,
+} from '../quota';
 import styles from '../UsagePage.module.scss';
 
 interface OverviewTabProps {
@@ -66,6 +83,8 @@ interface OverviewTabProps {
   onOpenEvents: (filter: EventsFilter) => void;
   /** Narrows the global time range to one trend bucket and opens its requests. */
   onDrillDown: (from: number, to: number) => void;
+  connected?: boolean;
+  nowMs?: number;
 }
 
 /** Request count with a share bar in the row's colour. */
@@ -152,9 +171,24 @@ export function OverviewTab({
   labels,
   onOpenEvents,
   onDrillDown,
+  connected,
+  nowMs,
 }: OverviewTabProps) {
   const { t, i18n } = useTranslation();
   const theme = useChartTheme();
+  const storeConnected = useAuthStore((state) => state.connectionStatus === 'connected');
+  const isConnected = connected ?? storeConnected;
+  const quotaStore = useSyncExternalStore(
+    useQuotaStore.subscribe,
+    useQuotaStore.getState,
+    useQuotaStore.getState
+  ) as unknown as QuotaStore;
+  const { batchLoading, loadQuota } = useQuotaBatchLoader();
+  const [selectedQuotaKey, setSelectedQuotaKey] = useState<{
+    authIndex: string;
+    source: string;
+    provider: string;
+  } | null>(null);
   const [metric, setMetricState] = useState<UsageMetric>(
     () => readUsagePrefs().metric ?? 'requests'
   );
@@ -441,7 +475,51 @@ export function OverviewTab({
     { key: 'tokens', label: t('usage_stats.col_tokens'), value: (k) => k.tokens.total },
     { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
   ];
+  const quotaTargets = useMemo(
+    () => collectCredentialQuotaTargets(stats.credentials, labels.quotaEntry),
+    [labels.quotaEntry, stats.credentials]
+  );
+  const hasLoadedQuota = useMemo(
+    () => quotaTargets.some((entry) => readCachedQuota(quotaStore, entry)?.status === 'success'),
+    [quotaStore, quotaTargets]
+  );
+  const tickNow = useNow(hasLoadedQuota && nowMs === undefined);
+  const effectiveNow = nowMs ?? tickNow;
+
+  const credentialQuotas = useMemo(() => {
+    const map = new Map<
+      string,
+      { entry: QuotaFileEntry | null; summary: CredentialQuotaSummary | null }
+    >();
+    for (const c of stats.credentials) {
+      const entry = labels.quotaEntry?.(c.authIndex) ?? null;
+      const summary = entry
+        ? summarizeCredentialQuota(
+            entry.type,
+            readCachedQuota(quotaStore, entry),
+            effectiveNow,
+            entry.file.name
+          )
+        : null;
+      map.set(c.authIndex, { entry, summary });
+    }
+    return map;
+  }, [effectiveNow, labels, quotaStore, stats.credentials]);
+
+  const modalTarget: CredentialQuotaModalTarget | null = useMemo(() => {
+    if (!selectedQuotaKey) return null;
+    const entry = labels.quotaEntry?.(selectedQuotaKey.authIndex) ?? null;
+    if (!entry) return null;
+    return {
+      entry,
+      credentialLabel: labels.credential(selectedQuotaKey.authIndex, selectedQuotaKey.source),
+      provider: selectedQuotaKey.provider,
+    };
+  }, [labels, selectedQuotaKey]);
+
   const credentialName = (c: UsageCredentialStat) => labels.credential(c.authIndex, c.source);
+  const quotaRemaining = (c: UsageCredentialStat) =>
+    credentialQuotas.get(c.authIndex)?.summary?.remaining ?? null;
   const credentialColumns: Column<UsageCredentialStat>[] = [
     {
       key: 'credential',
@@ -452,6 +530,7 @@ export function OverviewTab({
     { key: 'requests', label: t('usage_stats.col_requests'), value: (c) => c.requests },
     { key: 'success', label: t('usage_stats.col_success_rate'), value: successRate },
     { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
+    { key: 'quota', label: t('usage_stats.col_quota'), value: quotaRemaining },
   ];
   const sortedModels = ranked(stats.models, modelColumns, modelSort.sort);
   const sortedKeys = ranked(stats.apiKeys, keyColumns, keySort.sort);
@@ -501,6 +580,7 @@ export function OverviewTab({
     'aria-label': t('usage_stats.open_events_for', { name: label }),
     onClick: () => onOpenEvents(filter),
     onKeyDown: (event: React.KeyboardEvent) => {
+      if (event.target !== event.currentTarget) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         onOpenEvents(filter);
@@ -866,19 +946,37 @@ export function OverviewTab({
               title={t('usage_stats.credentials_title')}
               desc={t('usage_stats.credentials_desc')}
             />
-            {exportButton(
-              () =>
-                downloadCsv(
-                  'credentials',
-                  [
-                    [t('usage_stats.col_credential'), credentialName],
-                    [t('usage_stats.col_provider'), (c: UsageCredentialStat) => c.provider],
-                    ...aggregateFields,
-                  ],
-                  sortedCredentials
-                ),
-              stats.credentials.length === 0
-            )}
+            <div className={styles.panelActions}>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={batchLoading}
+                disabled={!isConnected || quotaTargets.length === 0}
+                onClick={() => void loadQuota(quotaTargets)}
+              >
+                <span className={styles.iconLabel}>
+                  {!batchLoading && <IconRefreshCw size={14} />}
+                  {t('usage_stats.quota_load')}
+                </span>
+              </Button>
+              {exportButton(
+                () =>
+                  downloadCsv(
+                    'credentials',
+                    [
+                      [t('usage_stats.col_credential'), credentialName],
+                      [t('usage_stats.col_provider'), (c: UsageCredentialStat) => c.provider],
+                      ...aggregateFields,
+                      [
+                        `${t('usage_stats.col_quota')} (%)`,
+                        (c: UsageCredentialStat) => round(quotaRemaining(c), 1),
+                      ],
+                    ],
+                    sortedCredentials
+                  ),
+                stats.credentials.length === 0
+              )}
+            </div>
           </div>
           {stats.credentials.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
@@ -888,36 +986,57 @@ export function OverviewTab({
                 <TableRow>{sortHeads(credentialColumns, credentialSort)}</TableRow>
               </TableHeader>
               <TableBody>
-                {sortedCredentials.map(({ row: c, color }, index) => (
-                  <TableRow
-                    key={c.authIndex || 'none'}
-                    {...rowProps(
-                      { auth_index: c.authIndex },
-                      labels.credential(c.authIndex, c.source)
-                    )}
-                  >
-                    <TableCell>
-                      <RankName
-                        rank={index + 1}
-                        color={color}
-                        name={labels.credential(c.authIndex, c.source)}
-                        sub={<ProviderBadge provider={c.provider} />}
-                      />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Share value={c.requests} total={totals.requests} color={color} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Rate value={successRate(c)} />
-                    </TableCell>
-                    <TableCell alignRight>{costCell(c)}</TableCell>
-                  </TableRow>
-                ))}
+                {sortedCredentials.map(({ row: c, color }, index) => {
+                  const credLabel = labels.credential(c.authIndex, c.source);
+                  const quotaInfo = credentialQuotas.get(c.authIndex);
+                  return (
+                    <TableRow
+                      key={c.authIndex || 'none'}
+                      {...rowProps({ auth_index: c.authIndex }, credLabel)}
+                    >
+                      <TableCell>
+                        <RankName
+                          rank={index + 1}
+                          color={color}
+                          name={credLabel}
+                          sub={<ProviderBadge provider={c.provider} />}
+                        />
+                      </TableCell>
+                      <TableCell alignRight>
+                        <Share value={c.requests} total={totals.requests} color={color} />
+                      </TableCell>
+                      <TableCell alignRight>
+                        <Rate value={successRate(c)} />
+                      </TableCell>
+                      <TableCell alignRight>{costCell(c)}</TableCell>
+                      <TableCell alignRight>
+                        <CredentialQuotaCell
+                          entry={quotaInfo?.entry ?? null}
+                          summary={quotaInfo?.summary ?? null}
+                          credentialLabel={credLabel}
+                          nowMs={effectiveNow}
+                          onOpen={() =>
+                            setSelectedQuotaKey({
+                              authIndex: c.authIndex,
+                              source: c.source,
+                              provider: c.provider,
+                            })
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </section>
       </div>
+      <CredentialQuotaModal
+        target={modalTarget}
+        disableControls={!isConnected}
+        onClose={() => setSelectedQuotaKey(null)}
+      />
     </>
   );
 }
