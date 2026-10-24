@@ -457,6 +457,45 @@ describe('usage realtime', () => {
     });
     expect(rt.series).toHaveLength(1);
     expect(rt.series[0]).toMatchObject({ time: 60, requests: 3, failed: 1, avgLatencyMs: 400 });
+    expect(rt.inFlightRequests).toEqual([]);
+  });
+
+  test('normalizes in-flight requests', async () => {
+    const { normalizeUsageRealtime } = await import('@/services/api/usageStore');
+    const rt = normalizeUsageRealtime({
+      in_flight: 2,
+      in_flight_requests: [
+        {
+          id: 7,
+          started_at: 1000,
+          elapsed_ms: 2500,
+          endpoint: 'POST /v1/responses',
+          transport: 'sse',
+          provider: 'codex',
+          model: 'gpt-x',
+          auth_index: 'a1',
+          api_key_id: 'abc',
+          api_key: 'sk-...xyz',
+        },
+        { id: 8, endpoint: 'POST /v1/messages/count_tokens' },
+        'junk',
+      ],
+    });
+    expect(rt.inFlight).toBe(2);
+    expect(rt.inFlightRequests).toHaveLength(2);
+    expect(rt.inFlightRequests[0]).toEqual({
+      id: 7,
+      startedAt: 1000,
+      elapsedMs: 2500,
+      endpoint: 'POST /v1/responses',
+      transport: 'sse',
+      provider: 'codex',
+      model: 'gpt-x',
+      authIndex: 'a1',
+      apiKeyId: 'abc',
+      apiKey: 'sk-...xyz',
+    });
+    expect(rt.inFlightRequests[1]).toMatchObject({ id: 8, model: '', provider: '', elapsedMs: 0 });
   });
 
   test('merges ascending pages into a newest-first capped feed', async () => {
