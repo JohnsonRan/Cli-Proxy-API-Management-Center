@@ -51,7 +51,7 @@ export function ActivityHeatmap({
               day: dayName(weekday),
               hour: String(hour).padStart(2, '0'),
               value: format(value),
-              failed: cell?.failed ?? 0,
+              failed: formatCompact(cell?.failed ?? 0),
             });
             return (
               <span

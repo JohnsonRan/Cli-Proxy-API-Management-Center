@@ -83,7 +83,7 @@
   gap: 12px;
 }
 
-// The overview's seven headline cards: four per row instead of six plus an orphan.
+// The overview's eight headline cards: two even rows of four.
 .cardsFour {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-auto-rows: 1fr;

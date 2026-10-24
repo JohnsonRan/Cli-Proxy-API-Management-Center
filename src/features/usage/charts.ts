@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { prefersReducedMotion } from '@/hooks/motion';
 import { useThemeStore } from '@/stores';
+import { formatCompact } from './format';
 
 // Register only what the usage page draws so the single-file bundle stays small.
 Chart.register(
@@ -119,8 +120,15 @@ export function useChartTheme(): ChartTheme {
 export const chartAnimation = () =>
   prefersReducedMotion() ? (false as const) : { duration: 900, easing: 'easeOutQuart' as const };
 
-/** Shared axis/legend/tooltip options for cartesian charts. */
-export const baseCartesianOptions = (theme: ChartTheme, stacked: boolean) => ({
+/**
+ * Shared axis/legend/tooltip options for cartesian charts. `format` renders the y-axis ticks
+ * and tooltip values, compact (1.2K, 3.4M) by default.
+ */
+export const baseCartesianOptions = (
+  theme: ChartTheme,
+  stacked: boolean,
+  format: (value: number) => string = formatCompact
+) => ({
   responsive: true,
   maintainAspectRatio: false,
   animation: chartAnimation(),
@@ -130,7 +138,16 @@ export const baseCartesianOptions = (theme: ChartTheme, stacked: boolean) => ({
       position: 'bottom' as const,
       labels: { color: theme.text, boxWidth: 10, boxHeight: 10, usePointStyle: true },
     },
-    tooltip: { mode: 'index' as const, intersect: false },
+    tooltip: {
+      mode: 'index' as const,
+      intersect: false,
+      callbacks: {
+        label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) => {
+          const value = format(ctx.parsed.y ?? 0);
+          return ctx.dataset.label ? `${ctx.dataset.label}: ${value}` : value;
+        },
+      },
+    },
   },
   scales: {
     x: {
@@ -142,7 +159,13 @@ export const baseCartesianOptions = (theme: ChartTheme, stacked: boolean) => ({
     y: {
       stacked,
       beginAtZero: true,
-      ticks: { color: theme.muted, maxTicksLimit: 6 },
+      ticks: {
+        color: theme.muted,
+        maxTicksLimit: 6,
+        // Counts are whole numbers; without this a small range ticks 0.2, 0.4… shown as 0, 0, 1.
+        ...(format === formatCompact ? { precision: 0 } : {}),
+        callback: (value: number | string) => format(Number(value)),
+      },
       grid: { color: theme.grid },
       border: { display: false },
     },

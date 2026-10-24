@@ -40,6 +40,7 @@ import {
   successRate,
   validateCustomRange,
 } from '@/features/usage/format';
+import { baseCartesianOptions } from '@/features/usage/charts';
 import { EventDetailModal } from '@/features/usage/components/EventDetailModal';
 import { ActivityHeatmap } from '@/features/usage/components/ActivityHeatmap';
 import {
@@ -158,6 +159,26 @@ describe('usage formatting', () => {
     expect(formatTps(Number.NaN)).toBe('—');
     expect(formatTps(42.46)).toBe('42.5 t/s');
     expect(formatTps(1234.4)).toBe('1,234 t/s');
+  });
+
+  test('chart axes and tooltips use compact units unless told otherwise', () => {
+    const theme = {
+      text: '',
+      muted: '',
+      grid: '',
+      success: '',
+      failure: '',
+      surface: '',
+    };
+    const counts = baseCartesianOptions(theme, true);
+    expect(counts.scales.y.ticks.callback(12_500_000)).toBe('12.5M');
+    const label = counts.plugins.tooltip.callbacks.label;
+    expect(label({ dataset: { label: 'Input' }, parsed: { y: 3_400 } })).toBe('Input: 3.4K');
+    expect(label({ dataset: {}, parsed: { y: null } })).toBe('0');
+    expect(counts.scales.y.ticks.precision).toBe(0);
+    const cost = baseCartesianOptions(theme, false, formatCost);
+    expect('precision' in cost.scales.y.ticks).toBe(false);
+    expect(cost.scales.y.ticks.callback('1234.5')).toBe('$1,235');
   });
 
   test('computes rates, windows and period changes', () => {

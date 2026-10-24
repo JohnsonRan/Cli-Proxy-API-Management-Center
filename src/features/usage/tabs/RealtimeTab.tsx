@@ -197,8 +197,9 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
     [data?.series, labelsForChart, t, theme]
   );
 
-  const tokensChart = useMemo(
-    () => ({
+  const tokensChart = useMemo(() => {
+    const base = baseCartesianOptions(theme, false);
+    return {
       data: {
         labels: labelsForChart,
         datasets: [
@@ -214,16 +215,12 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
         ],
       },
       options: {
-        ...baseCartesianOptions(theme, false),
+        ...base,
         animation: false as const,
-        plugins: {
-          legend: { display: false },
-          tooltip: { mode: 'index' as const, intersect: false },
-        },
+        plugins: { ...base.plugins, legend: { display: false } },
       },
-    }),
-    [data?.series, labelsForChart, t, theme]
-  );
+    };
+  }, [data?.series, labelsForChart, t, theme]);
 
   const windowOptions = WINDOWS.map((value) => ({
     value: String(value),
