@@ -114,7 +114,11 @@ export function OverviewTab({
   const trend = useMemo(() => {
     const step = stats.bucket === 'day' ? 86400 : 3600;
     const options = {
-      ...baseCartesianOptions(theme, metric !== 'cost'),
+      ...baseCartesianOptions(
+        theme,
+        metric !== 'cost',
+        metric === 'cost' ? formatCost : formatCompact
+      ),
       // Clicking a bucket narrows the range to it and opens its requests.
       onClick: (_event: unknown, elements: { index: number }[]) => {
         const point = elements[0] ? stats.series[elements[0].index] : undefined;
@@ -171,18 +175,7 @@ export function OverviewTab({
     }
     return {
       kind: 'line' as const,
-      options: {
-        ...options,
-        plugins: {
-          ...options.plugins,
-          tooltip: {
-            ...options.plugins.tooltip,
-            callbacks: {
-              label: (ctx: { parsed: { y: number | null } }) => formatCost(ctx.parsed.y ?? 0),
-            },
-          },
-        },
-      },
+      options,
       data: {
         labels: bucketLabels,
         datasets: [
@@ -230,6 +223,14 @@ export function OverviewTab({
             position: 'right' as const,
             labels: { color: theme.text, boxWidth: 10, boxHeight: 10, usePointStyle: true },
           },
+          tooltip: {
+            callbacks: {
+              label: (ctx: { label: string; parsed: number }) =>
+                `${ctx.label}: ${formatCompact(ctx.parsed)} (${formatPercent(
+                  totals.tokens.total > 0 ? (ctx.parsed / totals.tokens.total) * 100 : null
+                )})`,
+            },
+          },
         },
       },
     };
@@ -265,14 +266,16 @@ export function OverviewTab({
           tooltip: {
             callbacks: {
               label: (ctx: { label: string; parsed: number }) =>
-                `${ctx.label}: ${formatCost(ctx.parsed)}`,
+                `${ctx.label}: ${formatCost(ctx.parsed)} (${formatPercent(
+                  totals.cost > 0 ? (ctx.parsed / totals.cost) * 100 : null
+                )})`,
             },
           },
         },
       },
       empty: top.length === 0,
     };
-  }, [stats.models, theme]);
+  }, [stats.models, theme, totals.cost]);
 
   const costCell = (a: UsageAggregate) =>
     a.unpricedRequests >= a.requests && a.requests > 0 ? (
@@ -310,9 +313,11 @@ export function OverviewTab({
           sub={
             <>
               <span className={styles.legendDot} style={{ background: theme.success }} />
-              {t('usage_stats.card_succeeded', { count: totals.requests - totals.failed })}
+              {t('usage_stats.card_succeeded', {
+                count: formatCompact(totals.requests - totals.failed),
+              })}
               <span className={styles.legendDot} style={{ background: theme.failure }} />
-              {t('usage_stats.card_failed', { count: totals.failed })}
+              {t('usage_stats.card_failed', { count: formatCompact(totals.failed) })}
             </>
           }
         />
@@ -346,7 +351,7 @@ export function OverviewTab({
           spark={stats.series.map((p) => p.cost)}
           sub={
             totals.unpricedRequests > 0
-              ? t('usage_stats.card_unpriced', { count: totals.unpricedRequests })
+              ? t('usage_stats.card_unpriced', { count: formatCompact(totals.unpricedRequests) })
               : t('usage_stats.card_cost_sub')
           }
         />
@@ -376,7 +381,20 @@ export function OverviewTab({
           }
           goodWhenUp={false}
           spark={stats.series.map((p) => p.avgLatencyMs)}
-          sub={t('usage_stats.card_ttft', { value: formatMs(totals.avgTtftMs) })}
+          sub={t('usage_stats.card_latency_sub')}
+        />
+        <StatCard
+          accent="ttft"
+          label={t('usage_stats.card_ttft_title')}
+          value={<CountUp value={totals.avgTtftMs} format={formatMs} />}
+          change={
+            prev && prev.avgTtftMs > 0 && totals.avgTtftMs > 0
+              ? changePercent(totals.avgTtftMs, prev.avgTtftMs)
+              : undefined
+          }
+          goodWhenUp={false}
+          spark={stats.series.map((p) => p.avgTtftMs)}
+          sub={t('usage_stats.card_ttft_sub')}
         />
         <StatCard
           accent="speed"

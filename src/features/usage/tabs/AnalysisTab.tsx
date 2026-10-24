@@ -70,6 +70,7 @@ export function AnalysisTab({
 
   const histogram = useMemo(() => {
     if (!analysis) return null;
+    const base = baseCartesianOptions(theme, false);
     return {
       data: {
         labels: histogramLabels(analysis.histogramBoundsMs),
@@ -83,11 +84,8 @@ export function AnalysisTab({
         ],
       },
       options: {
-        ...baseCartesianOptions(theme, false),
-        plugins: {
-          legend: { display: false },
-          tooltip: { mode: 'index' as const, intersect: false },
-        },
+        ...base,
+        plugins: { ...base.plugins, legend: { display: false } },
       },
     };
   }, [analysis, t, theme]);
