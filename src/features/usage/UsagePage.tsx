@@ -53,6 +53,7 @@ import {
 } from './logic';
 import { PricingTab } from './tabs/PricingTab';
 import { useUsageLabels } from './hooks/useUsageLabels';
+import { RevealGroup } from './components/Motion';
 import { MultiSelectFilter } from './components/MultiSelectFilter';
 import { KeyLabel, ProviderBadge } from './components/Labels';
 import styles from './UsagePage.module.scss';
@@ -600,7 +601,9 @@ export function UsagePage() {
           ))}
         </div>
       ) : stats ? (
-        <div
+        // Keyed by tab so each tab cascades in when it opens; refreshes keep it mounted.
+        <RevealGroup
+          key={tab}
           role="tabpanel"
           id={`usage-panel-${tab}`}
           aria-labelledby={`usage-tab-${tab}`}
@@ -637,7 +640,7 @@ export function UsagePage() {
           {tab === 'pricing' && pricing && (
             <PricingTab pricing={pricing} onPricingChange={setPricing} onReload={load} />
           )}
-        </div>
+        </RevealGroup>
       ) : null}
     </div>
   );

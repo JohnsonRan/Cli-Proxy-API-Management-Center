@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from 'chart.js';
 import { useEffect, useState } from 'react';
+import { prefersReducedMotion } from '@/hooks/motion';
 import { useThemeStore } from '@/stores';
 
 // Register only what the usage page draws so the single-file bundle stays small.
@@ -111,11 +112,18 @@ export function useChartTheme(): ChartTheme {
   return colors;
 }
 
+/**
+ * Chart grow-in and refresh transition, timed like the counting card values; off when the user
+ * prefers reduced motion.
+ */
+export const chartAnimation = () =>
+  prefersReducedMotion() ? (false as const) : { duration: 900, easing: 'easeOutQuart' as const };
+
 /** Shared axis/legend/tooltip options for cartesian charts. */
 export const baseCartesianOptions = (theme: ChartTheme, stacked: boolean) => ({
   responsive: true,
   maintainAspectRatio: false,
-  animation: false as const,
+  animation: chartAnimation(),
   interaction: { mode: 'index' as const, intersect: false },
   plugins: {
     legend: {

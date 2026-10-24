@@ -42,7 +42,7 @@ export function StatCard({
     ? `${change > 0 ? '+' : ''}${changeUnit === 'pt' ? change.toFixed(1) + ' pt' : formatPercent(change)}`
     : '';
   return (
-    <div className={styles.statCard} style={{ '--accent': color } as CSSProperties}>
+    <div className={styles.statCard} style={{ '--accent': color } as CSSProperties} data-reveal="">
       <div className={styles.statTop}>
         <span className={styles.statLabel}>{label}</span>
         <span className={styles.statIcon}>

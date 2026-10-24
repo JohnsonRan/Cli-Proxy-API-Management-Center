@@ -26,6 +26,7 @@ import { downloadBlob } from '@/utils/download';
 import { METRIC_ACCENTS } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
 import { MetricIcon, type MetricIconName } from '../components/MetricIcon';
+import { CountUp } from '../components/Motion';
 import {
   EventLatencyCell,
   EventModelCell,
@@ -84,7 +85,7 @@ function FilterSummary({
     {
       icon: 'requests',
       label: t('usage_stats.card_requests'),
-      value: formatCompact(totals.requests),
+      value: <CountUp value={totals.requests} format={formatCompact} />,
       color: METRIC_ACCENTS.requests,
     },
     {
@@ -96,32 +97,32 @@ function FilterSummary({
     {
       icon: 'failed',
       label: t('usage_stats.card_failed_short'),
-      value: formatCompact(totals.failed),
+      value: <CountUp value={totals.failed} format={formatCompact} />,
       color: 'var(--viz-failure)',
     },
     {
       icon: 'tokens',
       label: t('usage_stats.card_tokens'),
-      value: formatCompact(totals.tokens.total),
+      value: <CountUp value={totals.tokens.total} format={formatCompact} />,
       color: METRIC_ACCENTS.tokens,
     },
     {
       icon: 'cost',
       label: t('usage_stats.card_cost'),
-      value: formatCost(totals.cost),
+      value: <CountUp value={totals.cost} format={formatCost} />,
       color: METRIC_ACCENTS.cost,
     },
     {
       icon: 'latency',
       label: t('usage_stats.card_latency'),
-      value: formatMs(totals.avgLatencyMs),
+      value: <CountUp value={totals.avgLatencyMs} format={formatMs} />,
       color: METRIC_ACCENTS.latency,
       sub: t('usage_stats.card_ttft', { value: formatMs(totals.avgTtftMs) }),
     },
     {
       icon: 'speed',
       label: t('usage_stats.card_speed'),
-      value: formatTps(totals.outputTps),
+      value: <CountUp value={totals.outputTps} format={formatTps} />,
       color: METRIC_ACCENTS.speed,
     },
   ];
@@ -129,7 +130,7 @@ function FilterSummary({
     items.push({
       icon: 'substituted',
       label: t('usage_stats.card_substituted'),
-      value: formatCompact(totals.substituted),
+      value: <CountUp value={totals.substituted} format={formatCompact} />,
       color: '#d97706',
     });
   }
@@ -348,7 +349,7 @@ export function EventsTab({
   };
 
   return (
-    <section className={styles.panel}>
+    <section className={styles.panel} data-reveal="">
       <div className={styles.panelHeader}>
         <PanelHeading
           title={t('usage_stats.events_title')}

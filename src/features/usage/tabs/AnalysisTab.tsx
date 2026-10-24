@@ -19,6 +19,7 @@ import {
 import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { PanelHeading } from '../components/PanelBits';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
+import { CountUp, RevealGroup } from '../components/Motion';
 import { StatCard } from '../components/StatCard';
 import { USAGE_METRICS, formatCompact, formatMs, formatTps, type UsageMetric } from '../format';
 import { histogramLabels } from '../logic';
@@ -103,43 +104,48 @@ export function AnalysisTab({
   }
 
   const { latency, ttft, tps } = analysis;
+  // Mounted once the analysis has loaded, so its panels cascade in like the other tabs.
   return (
-    <>
+    <RevealGroup className={styles.panelStack}>
       <section className={styles.cards} aria-label={t('usage_stats.latency_title')}>
         <StatCard
           accent="latency"
           label={t('usage_stats.latency_p50')}
-          value={formatMs(latency.p50)}
+          value={<CountUp value={latency.p50} format={formatMs} />}
         />
         <StatCard
           accent="latency"
           label={t('usage_stats.latency_p95')}
-          value={formatMs(latency.p95)}
+          value={<CountUp value={latency.p95} format={formatMs} />}
         />
         <StatCard
           accent="latency"
           label={t('usage_stats.latency_p99')}
-          value={formatMs(latency.p99)}
+          value={<CountUp value={latency.p99} format={formatMs} />}
           sub={t('usage_stats.latency_max', { value: formatMs(latency.max) })}
         />
-        <StatCard accent="ttft" label={t('usage_stats.ttft_p50')} value={formatMs(ttft.p50)} />
+        <StatCard
+          accent="ttft"
+          label={t('usage_stats.ttft_p50')}
+          value={<CountUp value={ttft.p50} format={formatMs} />}
+        />
         <StatCard
           accent="ttft"
           label={t('usage_stats.ttft_p95')}
-          value={formatMs(ttft.p95)}
+          value={<CountUp value={ttft.p95} format={formatMs} />}
           sub={t('usage_stats.samples', { count: formatCompact(latency.count) })}
         />
         <StatCard
           accent="speed"
           label={t('usage_stats.speed_p50')}
-          value={formatTps(tps.p50)}
+          value={<CountUp value={tps.p50} format={formatTps} />}
           sub={t('usage_stats.samples', { count: formatCompact(tps.count) })}
         />
       </section>
       {analysis.sampled && <p className={styles.muted}>{t('usage_stats.sampled_hint')}</p>}
 
       <div className={styles.split}>
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <PanelHeading
             title={t('usage_stats.histogram_title')}
             desc={t('usage_stats.histogram_desc')}
@@ -152,7 +158,7 @@ export function AnalysisTab({
             <Bar data={histogram.data} options={histogram.options} />
           </div>
         </section>
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <div className={styles.panelHeader}>
             <PanelHeading
               title={t('usage_stats.heatmap_title')}
@@ -180,7 +186,7 @@ export function AnalysisTab({
         </section>
       </div>
 
-      <section className={styles.panel}>
+      <section className={styles.panel} data-reveal="">
         <PanelHeading
           title={t('usage_stats.model_latency_title')}
           desc={t('usage_stats.latency_hint')}
@@ -218,6 +224,6 @@ export function AnalysisTab({
           </Table>
         )}
       </section>
-    </>
+    </RevealGroup>
   );
 }

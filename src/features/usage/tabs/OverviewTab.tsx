@@ -14,6 +14,7 @@ import {
   METRIC_ACCENTS,
   SERIES_COLORS,
   baseCartesianOptions,
+  chartAnimation,
   rankColor,
   useChartTheme,
 } from '../charts';
@@ -35,6 +36,7 @@ import {
 } from '../format';
 import type { EventsFilter } from '../logic';
 import { KeyLabel, ProviderBadge } from '../components/Labels';
+import { CountUp } from '../components/Motion';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import styles from '../UsagePage.module.scss';
 
@@ -102,6 +104,7 @@ export function OverviewTab({
   const prev = prevStats?.totals;
   const rate = successRate(totals);
   const prevRate = prev ? successRate(prev) : null;
+  const cacheRate = cacheHitRate(totals);
 
   const bucketLabels = useMemo(
     () => stats.series.map((p) => formatBucketLabel(p.time, stats.bucket, i18n.language)),
@@ -220,7 +223,7 @@ export function OverviewTab({
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: false as const,
+        animation: chartAnimation(),
         cutout: '62%',
         plugins: {
           legend: {
@@ -252,7 +255,7 @@ export function OverviewTab({
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: false as const,
+        animation: chartAnimation(),
         cutout: '62%',
         plugins: {
           legend: {
@@ -301,7 +304,7 @@ export function OverviewTab({
         <StatCard
           accent="requests"
           label={t('usage_stats.card_requests')}
-          value={formatCompact(totals.requests)}
+          value={<CountUp value={totals.requests} format={formatCompact} />}
           change={prev ? changePercent(totals.requests, prev.requests) : undefined}
           spark={stats.series.map((p) => p.requests)}
           sub={
@@ -316,7 +319,9 @@ export function OverviewTab({
         <StatCard
           accent="success"
           label={t('usage_stats.card_success_rate')}
-          value={formatPercent(rate)}
+          value={
+            rate === null ? formatPercent(null) : <CountUp value={rate} format={formatPercent} />
+          }
           change={rate !== null && prevRate !== null ? rate - prevRate : undefined}
           changeUnit="pt"
           spark={stats.series.map((p) => successRate(p) ?? 0)}
@@ -324,7 +329,7 @@ export function OverviewTab({
         <StatCard
           accent="tokens"
           label={t('usage_stats.card_tokens')}
-          value={formatCompact(totals.tokens.total)}
+          value={<CountUp value={totals.tokens.total} format={formatCompact} />}
           change={prev ? changePercent(totals.tokens.total, prev.tokens.total) : undefined}
           spark={stats.series.map((p) => p.tokens.total)}
           sub={t('usage_stats.card_tokens_sub', {
@@ -335,7 +340,7 @@ export function OverviewTab({
         <StatCard
           accent="cost"
           label={t('usage_stats.card_cost')}
-          value={formatCost(totals.cost)}
+          value={<CountUp value={totals.cost} format={formatCost} />}
           change={prev ? changePercent(totals.cost, prev.cost) : undefined}
           goodWhenUp={false}
           spark={stats.series.map((p) => p.cost)}
@@ -348,7 +353,13 @@ export function OverviewTab({
         <StatCard
           accent="cache"
           label={t('usage_stats.card_cache_hit')}
-          value={formatPercent(cacheHitRate(totals))}
+          value={
+            cacheRate === null ? (
+              formatPercent(null)
+            ) : (
+              <CountUp value={cacheRate} format={formatPercent} />
+            )
+          }
           spark={stats.series.map((p) => cacheHitRate(p) ?? 0)}
           sub={t('usage_stats.card_cache_hit_sub', {
             cached: formatCompact(totals.tokens.cacheRead),
@@ -357,7 +368,7 @@ export function OverviewTab({
         <StatCard
           accent="latency"
           label={t('usage_stats.card_latency')}
-          value={formatMs(totals.avgLatencyMs)}
+          value={<CountUp value={totals.avgLatencyMs} format={formatMs} />}
           change={
             prev && prev.avgLatencyMs > 0
               ? changePercent(totals.avgLatencyMs, prev.avgLatencyMs)
@@ -370,7 +381,7 @@ export function OverviewTab({
         <StatCard
           accent="speed"
           label={t('usage_stats.card_speed')}
-          value={formatTps(totals.outputTps)}
+          value={<CountUp value={totals.outputTps} format={formatTps} />}
           change={
             prev && prev.outputTps > 0 && totals.outputTps > 0
               ? changePercent(totals.outputTps, prev.outputTps)
@@ -381,7 +392,7 @@ export function OverviewTab({
         />
       </section>
 
-      <section className={styles.panel}>
+      <section className={styles.panel} data-reveal="">
         <div className={styles.panelHeader}>
           <PanelHeading
             title={t('usage_stats.trend_title')}
@@ -415,7 +426,7 @@ export function OverviewTab({
       </section>
 
       <div className={styles.split}>
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <PanelHeading
             title={t('usage_stats.composition_title')}
             desc={t('usage_stats.composition_desc')}
@@ -432,7 +443,7 @@ export function OverviewTab({
             )}
           </div>
         </section>
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <PanelHeading
             title={t('usage_stats.cost_by_model_title')}
             desc={t('usage_stats.cost_by_model_desc')}
@@ -451,7 +462,7 @@ export function OverviewTab({
         </section>
       </div>
 
-      <section className={styles.panel}>
+      <section className={styles.panel} data-reveal="">
         <PanelHeading title={t('usage_stats.models_title')} desc={t('usage_stats.models_desc')} />
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
@@ -522,7 +533,7 @@ export function OverviewTab({
       </section>
 
       <div className={styles.split}>
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <PanelHeading title={t('usage_stats.keys_title')} desc={t('usage_stats.keys_desc')} />
           {stats.apiKeys.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
@@ -564,7 +575,7 @@ export function OverviewTab({
           )}
         </section>
 
-        <section className={styles.panel}>
+        <section className={styles.panel} data-reveal="">
           <PanelHeading
             title={t('usage_stats.credentials_title')}
             desc={t('usage_stats.credentials_desc')}
