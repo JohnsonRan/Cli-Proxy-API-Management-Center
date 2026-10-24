@@ -1045,6 +1045,8 @@
     "card_unpriced": "{{count}} 次請求無價格",
     "card_cache_hit": "快取命中率",
     "card_cache_hit_sub": "{{cached}} 輸入 Token 來自快取",
+    "card_cache_saved": "約省 {{value}}",
+    "card_cache_saved_hint": "依各模型輸入價與快取讀取價之差估算，未計快取寫入與分級價格",
     "card_latency": "平均延遲",
     "card_ttft": "平均首字 {{value}}",
     "card_latency_sub": "完整請求的平均耗時",

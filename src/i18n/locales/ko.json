@@ -1019,6 +1019,8 @@
     "card_unpriced": "가격 없는 요청 {{count}}건",
     "card_cache_hit": "캐시 적중률",
     "card_cache_hit_sub": "캐시에서 입력 토큰 {{cached}}",
+    "card_cache_saved": "약 {{value}} 절약",
+    "card_cache_saved_hint": "모델별 입력 가격과 캐시 읽기 가격 차이로 추정; 캐시 쓰기와 구간별 가격은 제외",
     "card_latency": "평균 지연",
     "card_ttft": "평균 첫 토큰 {{value}}",
     "card_latency_sub": "전체 요청의 평균 소요 시간",

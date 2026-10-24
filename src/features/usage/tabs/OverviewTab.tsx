@@ -5,6 +5,7 @@ import type {
   UsageAggregate,
   UsageApiKeyStat,
   UsageCredentialStat,
+  UsageModelPrice,
   UsageModelStat,
   UsageStats,
 } from '@/services/api/usageStore';
@@ -40,6 +41,7 @@ import {
   type UsageMetric,
 } from '../format';
 import {
+  cacheSavings,
   readUsagePrefs,
   saveUsagePrefs,
   sortRows,
@@ -57,6 +59,8 @@ import styles from '../UsagePage.module.scss';
 interface OverviewTabProps {
   stats: UsageStats;
   prevStats: UsageStats | null;
+  /** Effective model prices, used to estimate what cache reads saved. */
+  prices: UsageModelPrice[];
   labels: UsageLabels;
   onOpenEvents: (filter: EventsFilter) => void;
   /** Narrows the global time range to one trend bucket and opens its requests. */
@@ -143,6 +147,7 @@ const sortHeads = <T,>(columns: Column<T>[], { sort, toggle }: ReturnType<typeof
 export function OverviewTab({
   stats,
   prevStats,
+  prices,
   labels,
   onOpenEvents,
   onDrillDown,
@@ -161,6 +166,7 @@ export function OverviewTab({
   const rate = successRate(totals);
   const prevRate = prev ? successRate(prev) : null;
   const cacheRate = cacheHitRate(totals);
+  const saved = useMemo(() => cacheSavings(stats.models, prices), [prices, stats.models]);
 
   const bucketLabels = useMemo(
     () => stats.series.map((p) => formatBucketLabel(p.time, stats.bucket, i18n.language)),
@@ -517,9 +523,19 @@ export function OverviewTab({
             )
           }
           spark={stats.series.map((p) => cacheHitRate(p) ?? 0)}
-          sub={t('usage_stats.card_cache_hit_sub', {
-            cached: formatCompact(totals.tokens.cacheRead),
-          })}
+          sub={
+            <>
+              {t('usage_stats.card_cache_hit_sub', {
+                cached: formatCompact(totals.tokens.cacheRead),
+              })}
+              {saved > 0 && (
+                <span title={t('usage_stats.card_cache_saved_hint')}>
+                  {' · '}
+                  {t('usage_stats.card_cache_saved', { value: formatCost(saved) })}
+                </span>
+              )}
+            </>
+          }
         />
         <StatCard
           accent="latency"

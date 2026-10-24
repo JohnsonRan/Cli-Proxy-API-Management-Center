@@ -1017,6 +1017,8 @@
     "card_unpriced": "{{count}} 次请求无价格",
     "card_cache_hit": "缓存命中率",
     "card_cache_hit_sub": "{{cached}} 输入 Token 来自缓存",
+    "card_cache_saved": "约省 {{value}}",
+    "card_cache_saved_hint": "按各模型输入价与缓存读取价之差估算，未计缓存写入和分档价格",
     "card_latency": "平均延迟",
     "card_ttft": "平均首字 {{value}}",
     "card_latency_sub": "完整请求的平均耗时",

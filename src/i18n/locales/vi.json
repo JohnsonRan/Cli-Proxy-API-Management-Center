@@ -975,6 +975,8 @@
     "card_unpriced": "{{count}} yêu cầu chưa có giá",
     "card_cache_hit": "Tỷ lệ trúng bộ nhớ đệm",
     "card_cache_hit_sub": "{{cached}} token đầu vào từ bộ nhớ đệm",
+    "card_cache_saved": "Tiết kiệm ~{{value}}",
+    "card_cache_saved_hint": "Ước tính theo chênh lệch giá đầu vào và giá đọc bộ nhớ đệm; chưa tính ghi bộ nhớ đệm và giá theo bậc",
     "card_latency": "Độ trễ trung bình",
     "card_ttft": "Token đầu tiên trung bình {{value}}",
     "card_latency_sub": "Thời gian trung bình của cả yêu cầu",
