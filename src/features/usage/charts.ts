@@ -43,6 +43,7 @@ export const METRIC_ACCENTS = {
   latency: '#ab8039',
   ttft: '#967d5a',
   speed: '#b36b64',
+  failed: '#c65746',
 } as const;
 export type MetricAccent = keyof typeof METRIC_ACCENTS;
 

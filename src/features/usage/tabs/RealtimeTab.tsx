@@ -311,7 +311,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
               spark={data.series.slice(-30).map((p) => p.tokens)}
             />
             <StatCard
-              accent="success"
+              accent="failed"
               label={t('usage_stats.realtime_failed_5m')}
               value={formatCompact(data.current.failed5m)}
               spark={data.series.slice(-30).map((p) => p.failed)}
