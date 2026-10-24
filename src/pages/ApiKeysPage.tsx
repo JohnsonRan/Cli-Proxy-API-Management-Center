@@ -43,9 +43,12 @@ import {
   type ExcludedModelsCatalogState,
 } from '@/components/excludedModels';
 import { apiKeysApi, ClientApiKeyItem } from '@/services/api/apiKeys';
+import { guardConfigConnection } from '@/services/api/configValue';
+import { keyScopesApi, type ClientKeyScope } from '@/services/api/keyScopes';
 import { modelsApi } from '@/services/api/models';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+import { ClientKeyScopesCard } from './ClientKeyScopesCard';
 
 function useProxyModelCatalog(enabled: boolean) {
   const [candidates, setCandidates] = useState<ExcludedModelCandidate[]>([]);
@@ -74,6 +77,11 @@ function useProxyModelCatalog(enabled: boolean) {
 }
 import { generateSecureApiKey } from '@/utils/apiKey';
 import { hasApiKeyModelRestrictions, summarizeApiKeyModelScope } from '@/utils/apiKeyScope';
+import {
+  effectiveKeyScopeProviders,
+  KEY_SCOPE_BUILTIN_PROVIDERS,
+  resolveKeyScope,
+} from '@/utils/keyScope';
 import { copyToClipboard } from '@/utils/clipboard';
 import { maskApiKey } from '@/utils/format';
 import { getErrorMessage } from '@/utils/helpers';
@@ -93,9 +101,13 @@ export function ApiKeysPage() {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const openaiCompatibility = useConfigStore((state) => state.config?.openaiCompatibility);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
   const apiKeys = useMemo(() => apiKeyItems.map((item) => item.apiKey), [apiKeyItems]);
+  const [keyScopes, setKeyScopes] = useState<ClientKeyScope[]>([]);
+  // Connection the scopes were read from; a save after a connection switch must fail.
+  const scopesConnectionRef = useRef<() => void>(() => {});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -128,8 +140,12 @@ export function ApiKeysPage() {
   const loadKeys = useCallback(async () => {
     setLoading(true);
     try {
-      const items = await apiKeysApi.listItems();
+      const assertConnection = guardConfigConnection();
+      const [items, scopes] = await Promise.all([apiKeysApi.listItems(), keyScopesApi.list()]);
+      assertConnection();
+      scopesConnectionRef.current = assertConnection;
       setApiKeyItems(items);
+      setKeyScopes(scopes);
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
     } finally {
@@ -140,6 +156,36 @@ export function ApiKeysPage() {
   useEffect(() => {
     void loadKeys();
   }, [loadKeys]);
+
+  // openai-compatibility entry names are valid scope providers; the store caches the config.
+  useEffect(() => {
+    void fetchConfig().catch(() => undefined);
+  }, [fetchConfig]);
+
+  const providerSuggestions = useMemo(() => {
+    const names = new Set<string>(KEY_SCOPE_BUILTIN_PROVIDERS);
+    (openaiCompatibility ?? []).forEach((entry) => {
+      const name = entry.name?.trim();
+      if (name) names.add(name);
+    });
+    return [...names];
+  }, [openaiCompatibility]);
+
+  const handleSaveScopes = useCallback(
+    async (next: ClientKeyScope[]) => {
+      try {
+        await keyScopesApi.replace(next, keyScopes.length === 0, scopesConnectionRef.current);
+        await fetchConfig(true);
+        setKeyScopes(next);
+        showNotification(t('common.saved_success', '保存成功'), 'success');
+        return true;
+      } catch (err) {
+        showNotification(getErrorMessage(err), 'error');
+        return false;
+      }
+    },
+    [fetchConfig, keyScopes.length, showNotification, t]
+  );
 
   // Drop the pending copy-feedback timer so it cannot fire after unmount.
   useEffect(() => {
@@ -160,8 +206,11 @@ export function ApiKeysPage() {
 
   // Keys that narrow their model scope, by allow-list or by exclusions.
   const restrictedCount = useMemo(
-    () => apiKeyItems.filter(hasApiKeyModelRestrictions).length,
-    [apiKeyItems]
+    () =>
+      apiKeyItems.filter(
+        (item) => hasApiKeyModelRestrictions(item) || resolveKeyScope(item.apiKey, keyScopes)
+      ).length,
+    [apiKeyItems, keyScopes]
   );
 
   const metricsLoading = loading && apiKeyItems.length === 0;
@@ -318,6 +367,8 @@ export function ApiKeysPage() {
       setSaving(false);
     }
   }, [apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
+
+  const modalScope = modalOpen ? resolveKeyScope(keyInput, keyScopes)?.scope : undefined;
 
   const deleteTargetKey =
     targetDeleteIndex !== null && targetDeleteIndex >= 0 ? apiKeys[targetDeleteIndex] : '';
@@ -489,6 +540,7 @@ export function ApiKeysPage() {
                 const isRevealed = revealedKeys.has(key);
                 const isCopied = copiedKey === key;
                 const scope = summarizeApiKeyModelScope(item);
+                const providerScope = resolveKeyScope(key, keyScopes)?.scope;
 
                 return (
                   <TableRow key={`${key}-${index}`}>
@@ -534,6 +586,20 @@ export function ApiKeysPage() {
 
                     <TableCell>
                       <div className={styles.modelTagList}>
+                        {providerScope && (
+                          <span
+                            className={styles.providerScopeTag}
+                            title={t('api_keys_page.scopes.matched_prefix', {
+                              prefix: providerScope.keyPrefix,
+                            })}
+                          >
+                            {t('api_keys_page.scopes.tag', {
+                              providers: effectiveKeyScopeProviders(providerScope.providers).join(
+                                ', '
+                              ),
+                            })}
+                          </span>
+                        )}
                         {scope.allowed.length === 0 ? (
                           <span className={styles.allModelsBadge}>
                             {t('api_keys_page.all_models')}
@@ -599,6 +665,14 @@ export function ApiKeysPage() {
           </Table>
         )}
       </Card>
+
+      <ClientKeyScopesCard
+        scopes={keyScopes}
+        providerSuggestions={providerSuggestions}
+        loading={loading}
+        disabled={saving}
+        onSave={handleSaveScopes}
+      />
 
       {/* 添加 / 编辑弹窗 */}
       <Modal
@@ -676,6 +750,15 @@ export function ApiKeysPage() {
             </div>
           )}
         </div>
+
+        {modalScope && (
+          <div className={`hint ${styles.modalScopeNote}`}>
+            {t('api_keys_page.scopes.modal_note', {
+              prefix: modalScope.keyPrefix,
+              providers: effectiveKeyScopeProviders(modalScope.providers).join(', '),
+            })}
+          </div>
+        )}
 
         <ClientKeyModelRulesField
           label={t('api_keys_page.models_label')}
