@@ -141,6 +141,17 @@ export const ADDITION_FIELDS = [
     path: 'oauth.providers.codex.live-media-relay.udp-port-max'.split('.'),
     kind: 'integer',
   },
+  // Official Codex clients on /v1/responses SSE; 0 or empty keeps the backend default (30s).
+  {
+    key: 'codexAppKeepaliveSeconds',
+    path: 'requests.streaming.codex-app-keepalive-seconds'.split('.'),
+    kind: 'integer',
+  },
+  {
+    key: 'disableCodexAppKeepalive',
+    path: 'requests.streaming.disable-codex-app-keepalive'.split('.'),
+    kind: 'boolean',
+  },
 ] as const;
 export const ICE_KEY = 'codexLiveMediaRelayICEServers';
 export const ICE_PATH = ['oauth', 'providers', 'codex', 'live-media-relay', 'ice-servers'];
@@ -311,12 +322,15 @@ export function validateVisualAdditions(
     codexLiveMediaRelayUDPPortMin: undefined,
     codexLiveMediaRelayUDPPortMax: undefined,
     codexLiveMediaRelayICEServers: undefined,
+    codexAppKeepaliveSeconds: undefined,
   };
   for (const { key, kind } of ADDITION_FIELDS) {
     const value = String(values[key]).trim();
     if (!value || kind !== 'integer') continue;
     const signed =
       key === 'transientErrorCooldownSeconds' ||
+      // Core treats a negative interval like 0: the 30 second default.
+      key === 'codexAppKeepaliveSeconds' ||
       key === 'antigravityConnectionPoolMaxIdleConnsPerHost' ||
       (key === 'codexLiveMediaRelayMaxSessions' && !values.codexLiveMediaRelayEnabled);
     if (
