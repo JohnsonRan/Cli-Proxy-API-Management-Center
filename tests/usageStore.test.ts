@@ -880,3 +880,189 @@ describe('usage motion', () => {
     ).toBe('0');
   });
 });
+
+describe('usage store settings', () => {
+  test('normalizes and serializes observability.usage.store settings', async () => {
+    const { MAX_RETENTION_DAYS, normalizeUsageStoreSettings, serializeUsageStoreSettings } =
+      await import('@/services/api/usageStore');
+
+    expect(normalizeUsageStoreSettings(null)).toEqual({
+      enable: false,
+      path: '',
+      retentionDays: 0,
+      disableModelsDev: false,
+    });
+
+    const loaded = normalizeUsageStoreSettings({
+      enable: true,
+      path: '  /data/usage.db  ',
+      'retention-days': 14,
+      pricing: { 'disable-models-dev': true, overrides: [{ model: 'gpt-5', input: 1, output: 2 }] },
+    });
+    expect(loaded).toEqual({
+      enable: true,
+      path: '/data/usage.db',
+      retentionDays: 14,
+      disableModelsDev: true,
+    });
+    expect(normalizeUsageStoreSettings({ 'retention-days': -1 }).retentionDays).toBe(-1);
+
+    const defaults = normalizeUsageStoreSettings({});
+    expect(serializeUsageStoreSettings(loaded, defaults)).toEqual({
+      patch: {
+        enable: true,
+        path: '/data/usage.db',
+        'retention-days': 14,
+        pricing: { 'disable-models-dev': true },
+      },
+      deletions: [],
+    });
+
+    // Clearing optional fields deletes them cleanly without touching overrides or enable.
+    expect(
+      serializeUsageStoreSettings(
+        { enable: true, path: '', retentionDays: 0, disableModelsDev: false },
+        loaded
+      )
+    ).toEqual({
+      patch: {},
+      deletions: [
+        '/config/observability/usage/store/path',
+        '/config/observability/usage/store/retention-days',
+        '/config/observability/usage/store/pricing/disable-models-dev',
+      ],
+    });
+
+    // Disabling keeps path, retention-days and pricing intact on disk.
+    expect(serializeUsageStoreSettings({ ...loaded, enable: false }, loaded)).toEqual({
+      patch: { enable: false },
+      deletions: [],
+    });
+
+    expect(() => serializeUsageStoreSettings({ ...defaults, retentionDays: 1.5 })).toThrow(
+      RangeError
+    );
+    expect(() =>
+      serializeUsageStoreSettings({ ...defaults, retentionDays: MAX_RETENTION_DAYS + 1 })
+    ).toThrow(RangeError);
+  });
+
+  test('orders PATCH and DELETE safely when enabling vs disabling and tolerates 404 on DELETE', async () => {
+    const { apiClient } = await import('@/services/api/client');
+    const { usageStoreApi } = await import('@/services/api/usageStore');
+
+    const origPatch = apiClient.patch.bind(apiClient);
+    const origDelete = apiClient.delete.bind(apiClient);
+    const calls: string[] = [];
+
+    apiClient.patch = (async (url: string, data?: unknown) => {
+      calls.push(`PATCH ${url} ${JSON.stringify(data)}`);
+      return { status: 'ok' } as never;
+    }) as typeof apiClient.patch;
+    apiClient.delete = (async (url: string) => {
+      calls.push(`DELETE ${url}`);
+      throw { status: 404, apiCode: 'not_found' };
+    }) as typeof apiClient.delete;
+
+    try {
+      // Enabling while clearing path: DELETE runs before PATCH enable=true, 404 ignored.
+      await usageStoreApi.saveSettings(
+        { enable: true, path: '', retentionDays: 30, disableModelsDev: false },
+        { enable: false, path: '/old.db', retentionDays: 30, disableModelsDev: false }
+      );
+      expect(calls).toEqual([
+        'DELETE /config/observability/usage/store/path',
+        'PATCH /config/observability/usage/store {"enable":true}',
+      ]);
+
+      // Disabling while clearing path: PATCH enable=false runs before DELETE.
+      calls.length = 0;
+      await usageStoreApi.saveSettings(
+        { enable: false, path: '', retentionDays: 30, disableModelsDev: false },
+        { enable: true, path: '/old.db', retentionDays: 30, disableModelsDev: false }
+      );
+      expect(calls).toEqual([
+        'PATCH /config/observability/usage/store {"enable":false}',
+        'DELETE /config/observability/usage/store/path',
+      ]);
+    } finally {
+      apiClient.patch = origPatch;
+      apiClient.delete = origDelete;
+    }
+  });
+
+  test('validates retention-days drafts and tracks dirty state', async () => {
+    const {
+      isStoreSettingsDirty,
+      parseRetentionDays,
+      parseStoreSettingsDraft,
+      toStoreSettingsDraft,
+    } = await import('@/features/usage/logic');
+
+    expect(parseRetentionDays('')).toBe(0);
+    expect(parseRetentionDays(' 0 ')).toBe(0);
+    expect(parseRetentionDays('30')).toBe(30);
+    expect(parseRetentionDays('-1')).toBe(-1);
+    expect(parseRetentionDays('1.5')).toBeNull();
+    expect(parseRetentionDays('1e2')).toBeNull();
+    expect(parseRetentionDays('abc')).toBeNull();
+    expect(parseRetentionDays('999999')).toBeNull();
+
+    const saved = {
+      enable: true,
+      path: '/data/usage.db',
+      retentionDays: 0,
+      disableModelsDev: false,
+    };
+    const draft = toStoreSettingsDraft(saved);
+    expect(draft).toEqual({
+      enable: true,
+      path: '/data/usage.db',
+      retentionDays: '',
+      disableModelsDev: false,
+    });
+    expect(isStoreSettingsDirty(draft, saved)).toBe(false);
+    expect(isStoreSettingsDirty({ ...draft, retentionDays: '0' }, saved)).toBe(false);
+    expect(isStoreSettingsDirty({ ...draft, retentionDays: '30' }, saved)).toBe(true);
+    expect(isStoreSettingsDirty({ ...draft, retentionDays: 'bad' }, saved)).toBe(true);
+    expect(parseStoreSettingsDraft({ ...draft, retentionDays: 'bad' })).toEqual({
+      error: 'retentionDays',
+    });
+    expect(parseStoreSettingsDraft({ ...draft, path: ' /x.db ', retentionDays: '-1' })).toEqual({
+      settings: { enable: true, path: '/x.db', retentionDays: -1, disableModelsDev: false },
+    });
+  });
+
+  test('renders StoreSettingsCard with accessible controls and synchronized locales', async () => {
+    const { StoreSettingsCard } = await import('@/features/usage/components/StoreSettingsCard');
+    const markup = renderToStaticMarkup(
+      createElement(StoreSettingsCard, {
+        initialSettings: {
+          enable: true,
+          path: '/var/lib/usage.db',
+          retentionDays: 90,
+          disableModelsDev: true,
+        },
+        onSaved: async () => {},
+      })
+    );
+    expect(markup).toContain('value="/var/lib/usage.db"');
+    expect(markup).toContain('value="90"');
+    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(2);
+    expect(markup).toContain('aria-describedby=');
+
+    const locales = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko'] as const;
+    const maps = await Promise.all(
+      locales.map(async (loc) => {
+        const json = (await Bun.file(`src/i18n/locales/${loc}.json`).json()) as {
+          usage_stats: Record<string, string>;
+        };
+        return [loc, Object.keys(json.usage_stats).sort()] as const;
+      })
+    );
+    const baseline = maps[0][1];
+    for (const [, keys] of maps.slice(1)) {
+      expect(keys).toEqual(baseline);
+    }
+  });
+});

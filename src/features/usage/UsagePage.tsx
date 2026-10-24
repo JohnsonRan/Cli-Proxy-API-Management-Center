@@ -23,7 +23,7 @@ import { IconX } from '@/components/ui/icons';
 import { getTypeLabel } from '@/features/authFiles/constants';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useInterval } from '@/hooks/useInterval';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useConfigStore } from '@/stores';
 import {
   USAGE_RANGES,
   USAGE_TABS,
@@ -60,6 +60,7 @@ import { useUsageLabels } from './hooks/useUsageLabels';
 import { RevealGroup } from './components/Motion';
 import { MultiSelectFilter } from './components/MultiSelectFilter';
 import { KeyLabel, ProviderBadge } from './components/Labels';
+import { StoreSettingsCard } from './components/StoreSettingsCard';
 import styles from './UsagePage.module.scss';
 
 const ENABLE_RETRY_MS = 1500;
@@ -225,6 +226,7 @@ export function UsagePage() {
     setError('');
     try {
       await usageStoreApi.enable();
+      useConfigStore.getState().clearCache();
       // The backend applies the saved config through its watcher; give it a moment.
       await new Promise((resolve) => setTimeout(resolve, ENABLE_RETRY_MS));
       await load();
@@ -652,15 +654,18 @@ export function UsagePage() {
       )}
 
       {disabled ? (
-        <EmptyState
-          title={t('usage_stats.disabled_title')}
-          description={t('usage_stats.disabled_desc')}
-          action={
-            <Button size="sm" onClick={() => void handleEnable()} loading={enabling}>
-              {t('usage_stats.enable')}
-            </Button>
-          }
-        />
+        <div className={styles.panelStack}>
+          <EmptyState
+            title={t('usage_stats.disabled_title')}
+            description={t('usage_stats.disabled_desc')}
+            action={
+              <Button size="sm" onClick={() => void handleEnable()} loading={enabling}>
+                {t('usage_stats.enable')}
+              </Button>
+            }
+          />
+          {connected && <StoreSettingsCard onSaved={load} disabled={enabling} />}
+        </div>
       ) : loading && !stats ? (
         <div className={styles.cards} aria-hidden="true">
           {Array.from({ length: 6 }, (_, index) => (

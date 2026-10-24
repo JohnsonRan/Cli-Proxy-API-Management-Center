@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from './client';
-import { getConfigValue } from './configValue';
+import { getConfigValue, guardConfigConnection, isMissingConfigValue } from './configValue';
 import { isRecord } from '@/utils/helpers';
 
 export const USAGE_STORE_DISABLED = 'usage_store_disabled';
@@ -549,7 +549,99 @@ export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
   };
 };
 
-const OVERRIDES_PATH = '/config/observability/usage/store/pricing/overrides';
+const STORE_PATH = '/config/observability/usage/store';
+const STORE_ENABLE_PATH = `${STORE_PATH}/enable`;
+const STORE_DB_PATH = `${STORE_PATH}/path`;
+const STORE_RETENTION_PATH = `${STORE_PATH}/retention-days`;
+const DISABLE_MODELS_DEV_PATH = `${STORE_PATH}/pricing/disable-models-dev`;
+const OVERRIDES_PATH = `${STORE_PATH}/pricing/overrides`;
+
+/** Max magnitude accepted so Go `time.Duration(days) * 24h` cannot overflow int64. */
+export const MAX_RETENTION_DAYS = 36500;
+
+export interface UsageStoreSettings {
+  enable: boolean;
+  /** SQLite file path; empty uses `usage.db` in the logs directory. */
+  path: string;
+  /** Event retention in days; 0 uses the 30-day default, negative keeps forever. */
+  retentionDays: number;
+  /** Stops fetching prices from models.dev when true. */
+  disableModelsDev: boolean;
+}
+
+export interface UsageStoreSettingsMutation {
+  patch: Record<string, unknown>;
+  deletions: string[];
+}
+
+export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings => {
+  const d = rec(data);
+  const pricing = rec(d.pricing);
+  const rawRetention = d['retention-days'];
+  const retentionDays =
+    typeof rawRetention === 'number' && Number.isFinite(rawRetention)
+      ? Math.trunc(rawRetention)
+      : 0;
+  return {
+    enable: d.enable === true,
+    path: str(d.path).trim(),
+    retentionDays,
+    disableModelsDev: pricing['disable-models-dev'] === true,
+  };
+};
+
+/**
+ * Builds the minimal PATCH + DELETE plan for `observability.usage.store` so unset optional
+ * fields are removed with DELETE instead of persisted as empty defaults, while sibling
+ * fields such as `pricing.overrides` remain untouched.
+ */
+export const serializeUsageStoreSettings = (
+  next: UsageStoreSettings,
+  previous?: UsageStoreSettings
+): UsageStoreSettingsMutation => {
+  if (!Number.isInteger(next.retentionDays) || Math.abs(next.retentionDays) > MAX_RETENTION_DAYS) {
+    throw new RangeError('retention-days must be an integer within ±36500');
+  }
+  const path = next.path.trim();
+  const patch: Record<string, unknown> = {};
+  const deletions: string[] = [];
+
+  if (!previous || previous.enable !== next.enable) {
+    patch.enable = next.enable;
+  }
+
+  if (path !== '') {
+    if (!previous || previous.path !== path) patch.path = path;
+  } else if (!previous || previous.path !== '') {
+    deletions.push(STORE_DB_PATH);
+  }
+
+  if (next.retentionDays !== 0) {
+    if (!previous || previous.retentionDays !== next.retentionDays) {
+      patch['retention-days'] = next.retentionDays;
+    }
+  } else if (!previous || previous.retentionDays !== 0) {
+    deletions.push(STORE_RETENTION_PATH);
+  }
+
+  if (next.disableModelsDev) {
+    if (!previous || !previous.disableModelsDev) {
+      patch.pricing = { 'disable-models-dev': true };
+    }
+  } else if (!previous || previous.disableModelsDev) {
+    deletions.push(DISABLE_MODELS_DEV_PATH);
+  }
+
+  return { patch, deletions };
+};
+
+const deleteOptionalConfig = async (path: string) => {
+  try {
+    await apiClient.delete(path);
+  } catch (error) {
+    if (!isMissingConfigValue(error)) throw error;
+  }
+};
 
 /** True when the backend reports the store is turned off (409 usage_store_disabled). */
 export const isUsageStoreDisabled = (error: unknown): boolean =>
@@ -657,5 +749,32 @@ export const usageStoreApi = {
     normalizeUsagePricing(await apiClient.get('/observability/usage/pricing')),
   refreshPricing: async () =>
     normalizeUsagePricing(await apiClient.post('/observability/usage/pricing/refresh')),
-  enable: () => apiClient.put('/config/observability/usage/store/enable', true),
+  getSettings: async () =>
+    normalizeUsageStoreSettings(await getConfigValue<unknown>(STORE_PATH, {})),
+  saveSettings: async (next: UsageStoreSettings, previous?: UsageStoreSettings) => {
+    const assertConnection = guardConfigConnection();
+    const { patch, deletions } = serializeUsageStoreSettings(next, previous);
+    const runPatch = async () => {
+      if (Object.keys(patch).length === 0) return;
+      assertConnection();
+      await apiClient.patch(STORE_PATH, patch);
+    };
+    const runDeletions = async () => {
+      for (const path of deletions) {
+        assertConnection();
+        await deleteOptionalConfig(path);
+      }
+    };
+    // Close first when disabling so deleting `path` cannot briefly open default `usage.db`;
+    // otherwise delete stale fields before patching `enable: true`.
+    if (patch.enable === false) {
+      await runPatch();
+      await runDeletions();
+    } else {
+      await runDeletions();
+      await runPatch();
+    }
+  },
+  setEnabled: (enabled: boolean) => apiClient.put(STORE_ENABLE_PATH, enabled),
+  enable: () => apiClient.put(STORE_ENABLE_PATH, true),
 };
