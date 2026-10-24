@@ -148,7 +148,7 @@ Re-run on 2026-10-16 before `patch/commandcode-oauth`, searching open and closed
     - **Goal**: Keep `/v1/embeddings` requests out of usage statistics from the panel.
     - **Scope**: The logging section gains `observability.usage.exclude-embeddings` right after `usage-statistics-enabled`, through the visual-config additions. Rerank requests are still counted. Localized in all 6 locales; tests in `tests/usageExcludeEmbeddings.test.ts`.
     - **Note**: Kept apart from `patch/embeddings-and-rerank` so that branch, and `patch/systemone-endpoint` stacked on it, do not need a rebase.
-    - **Cross-repo**: Needs the core patch `patch/embeddings-and-rerank` (setting added in core `2cca4366`).
+    - **Cross-repo**: Needs the core patch `patch/embeddings-and-rerank` (setting added in core `2cca4366`). The core compatibility patch `tmp/patch/usage-store-exclude-embeddings` makes the same switch cover the built-in usage store read by `/usage`.
 
 16. **`patch/quota-api`**
     - **Goal**: Choose, per client API key, which OAuth credentials the key can read through the core's `GET /v1/usage`, and edit its cache TTL.
