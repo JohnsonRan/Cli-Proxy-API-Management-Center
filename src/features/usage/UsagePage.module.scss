@@ -241,6 +241,12 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
   border-bottom-color: var(--text-primary);
 }
 
+// button-reset draws a focus outline on mouse clicks too; keep it for keyboard focus only.
+.tab:focus:not(:focus-visible),
+.tabActive:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .panelStack {
   display: flex;
   flex-direction: column;
@@ -479,7 +485,7 @@ $usage-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times 
 .heatCell {
   aspect-ratio: 1;
   border-radius: 3px;
-  background: #3b82f6;
+  background: #c96846; // METRIC_ACCENTS.cost terracotta, the page's one warm accent
 
   &[data-empty='true'] {
     background: var(--border-color);
