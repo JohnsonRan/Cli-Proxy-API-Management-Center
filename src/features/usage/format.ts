@@ -158,6 +158,12 @@ export const formatMs = (ms: number): string => {
   return `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)} s`;
 };
 
+/** Output speed: "42.5 t/s" below 100, "180 t/s" above; '—' when not measured. */
+export const formatTps = (tps: number): string => {
+  if (!(tps > 0)) return '—';
+  return `${tps < 100 ? tps.toFixed(1) : Math.round(tps).toLocaleString('en-US')} t/s`;
+};
+
 /** Success rate in percent, or null when there were no requests. */
 export const successRate = (a: Pick<UsageAggregate, 'requests' | 'failed'>): number | null =>
   a.requests > 0 ? ((a.requests - a.failed) / a.requests) * 100 : null;

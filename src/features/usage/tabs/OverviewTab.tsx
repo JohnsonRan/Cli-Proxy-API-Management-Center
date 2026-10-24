@@ -28,6 +28,7 @@ import {
   formatCost,
   formatMs,
   formatPercent,
+  formatTps,
   inputTokens,
   successRate,
   type UsageMetric,
@@ -363,6 +364,18 @@ export function OverviewTab({
           spark={stats.series.map((p) => p.avgLatencyMs)}
           sub={t('usage_stats.card_ttft', { value: formatMs(totals.avgTtftMs) })}
         />
+        <StatCard
+          accent="speed"
+          label={t('usage_stats.card_speed')}
+          value={formatTps(totals.outputTps)}
+          change={
+            prev && prev.outputTps > 0 && totals.outputTps > 0
+              ? changePercent(totals.outputTps, prev.outputTps)
+              : undefined
+          }
+          spark={stats.series.map((p) => p.outputTps)}
+          sub={t('usage_stats.card_speed_sub')}
+        />
       </section>
 
       <section className={styles.panel}>
@@ -450,6 +463,7 @@ export function OverviewTab({
                 <TableHead alignRight>{t('usage_stats.col_cached')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_output')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_latency')}</TableHead>
+                <TableHead alignRight>{t('usage_stats.col_speed')}</TableHead>
                 <TableHead alignRight>{t('usage_stats.col_cost')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -495,6 +509,7 @@ export function OverviewTab({
                   <TableCell alignRight>{formatCompact(m.tokens.cacheRead)}</TableCell>
                   <TableCell alignRight>{formatCompact(m.tokens.output)}</TableCell>
                   <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
+                  <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
                   <TableCell alignRight>{costCell(m)}</TableCell>
                 </TableRow>
               ))}
