@@ -113,8 +113,13 @@ export function UsagePage() {
 
   const requestRef = useRef(0);
   const labels = useUsageLabels(connected);
+  const seededFromUrl = useRef(searchParams.toString() !== '');
 
   useEffect(() => {
+    if (seededFromUrl.current) {
+      seededFromUrl.current = false;
+      return;
+    }
     saveUsagePrefs(globalFilter.range === 'custom' ? { tab } : { tab, range: globalFilter.range });
   }, [globalFilter.range, tab]);
 
