@@ -43,6 +43,7 @@ export interface ModelAlias {
   image?: boolean;
   embedding?: boolean;
   rerank?: boolean;
+  systemone?: boolean;
   displayName?: string;
   maxContextLength?: number;
   forceMapping?: boolean;
