@@ -7,6 +7,7 @@ import { CredentialQuotaCell } from '@/features/usage/components/CredentialQuota
 import { sortRows } from '@/features/usage/logic';
 import {
   collectCredentialQuotaTargets,
+  credentialNamesByAuthIndex,
   indexQuotaEntriesByAuthIndex,
   readCachedQuota,
   resolveUsageQuotaEntry,
@@ -359,6 +360,27 @@ describe('authIndex to quota entry mapping and sorting', () => {
       (authIndex) => index.get(authIndex) ?? null
     );
     expect(targets.map((t) => t.file.name)).toEqual(['codex-a.json', 'custom-plugin.json']);
+  });
+
+  test('names credentials by email unless another file shares that email', () => {
+    const names = credentialNamesByAuthIndex([
+      makeFile({ name: 'codex-a@example.com-plus.json', authIndex: '1', email: 'a@example.com' }),
+      makeFile({
+        name: 'claude-a@example.com.json',
+        authIndex: '2',
+        email: 'A@example.com',
+        type: 'claude',
+        provider: 'claude',
+      }),
+      makeFile({ name: 'codex-b@example.com.json', authIndex: '3', email: 'b@example.com' }),
+      makeFile({ name: 'vertex.json', authIndex: '4', type: 'vertex', provider: 'vertex' }),
+    ]);
+    expect(Object.fromEntries(names)).toEqual({
+      '1': 'codex-a@example.com-plus.json',
+      '2': 'claude-a@example.com.json',
+      '3': 'b@example.com',
+      '4': 'vertex.json',
+    });
   });
 
   test('sorts remaining quota with unloaded, error and unsupported credentials last in both directions', () => {

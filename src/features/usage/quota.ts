@@ -70,6 +70,27 @@ export function indexQuotaEntriesByAuthIndex(
   return map;
 }
 
+/**
+ * Map normalized `auth_index` strings to a display name: the account email, or the file name when
+ * several files share that email (one account signed in to Codex and Claude, or to two workspaces).
+ */
+export function credentialNamesByAuthIndex(files: readonly AuthFileItem[]): Map<string, string> {
+  const emailCounts = new Map<string, number>();
+  for (const file of files) {
+    const email = file.email?.trim().toLowerCase();
+    if (email) emailCounts.set(email, (emailCounts.get(email) ?? 0) + 1);
+  }
+  const names = new Map<string, string>();
+  for (const file of files) {
+    const authIndex = normalizeRecentRequestAuthIndex(file['auth_index'] ?? file.authIndex);
+    if (!authIndex) continue;
+    const email = file.email?.trim();
+    const unique = email && emailCounts.get(email.toLowerCase()) === 1;
+    names.set(authIndex, (unique ? email : file.name) || email || '');
+  }
+  return names;
+}
+
 /** Collect deduplicated batch-load targets for the credentials shown in the table. */
 export function collectCredentialQuotaTargets(
   credentials: readonly { authIndex: string }[],
