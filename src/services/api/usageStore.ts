@@ -114,6 +114,8 @@ export interface UsageEvent {
   substituted: boolean;
   /** Upstream safety action (cyber_policy, model_reroute, ...); "" when none. */
   risk: string;
+  /** Reason the upstream gave (rejection message, Claude refusal explanation); "" when none. */
+  riskReason: string;
   /** Flagged turn as plain text, kept only for risk events. */
   riskPrompt: string;
 }
@@ -376,6 +378,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       responseModel: str(e.response_model),
       substituted: e.substituted === true,
       risk: str(e.risk),
+      riskReason: str(e.risk_reason),
       riskPrompt: str(e.risk_prompt),
     })),
   };
