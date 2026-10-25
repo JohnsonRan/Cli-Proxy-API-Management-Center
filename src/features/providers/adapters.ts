@@ -156,10 +156,10 @@ export function openaiToResource(config: OpenAIProviderConfig, index: number): P
     models: collectModelNames(config.models),
     priority: normalizePriority(config.priority),
     headerCount: countHeaders(config.headers),
-    excludedModelCount: 0,
+    excludedModelCount: config.excludedModels?.length ?? 0,
     apiKeyEntryCount: config.apiKeyEntries?.length ?? 0,
     disabled: config.disabled === true,
-    flags: {},
+    flags: config.autoDiscoverModels === true ? { autoDiscoverModels: true } : {},
     selector: { brand: 'openaiCompatibility', name, index: sourceIndex },
     raw: config,
   };
