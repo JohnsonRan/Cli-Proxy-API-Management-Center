@@ -141,6 +141,8 @@ const buildModelAliases = (
       };
       if (includeImage) {
         entry.image = m.image === true;
+        entry.embedding = m.embedding === true;
+        entry.rerank = m.rerank === true;
       }
       return entry;
     })
