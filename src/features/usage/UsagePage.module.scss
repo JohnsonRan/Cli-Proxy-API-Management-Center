@@ -1272,6 +1272,15 @@
   white-space: nowrap;
 }
 
+.errorSub {
+  font-size: 11px;
+  color: var(--viz-failure);
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .clientCell {
   display: flex;
   flex-direction: column;

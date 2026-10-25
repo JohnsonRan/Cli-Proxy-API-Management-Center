@@ -599,6 +599,35 @@ export const isStoreSettingsDirty = (
   );
 };
 
+/** One-line summary of a stored error: the upstream JSON message when there is one, else the first line. */
+export const eventErrorSummary = (error: string): string => {
+  const text = error.trim();
+  if (!text) return '';
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === 'object') {
+      const root = parsed as Record<string, unknown>;
+      const inner = root.error;
+      if (typeof inner === 'string' && inner) return inner;
+      if (inner && typeof inner === 'object') {
+        const message = (inner as Record<string, unknown>).message;
+        if (typeof message === 'string' && message) return message;
+      }
+      if (typeof root.message === 'string' && root.message) return root.message;
+    }
+  } catch {
+    // Not JSON: fall through to the raw text.
+  }
+  return text.split('\n', 1)[0];
+};
+
+/** Blended cost per million tokens of one priced event; null when unpriced or tokenless. */
+export const eventCostPerMillion = (e: {
+  priced: boolean;
+  cost: number;
+  tokens: { total: number };
+}): number | null => (e.priced && e.tokens.total > 0 ? (e.cost / e.tokens.total) * 1e6 : null);
+
 export const formatClientGeoLine = (
   geo: ClientGeo | undefined,
   language?: string,

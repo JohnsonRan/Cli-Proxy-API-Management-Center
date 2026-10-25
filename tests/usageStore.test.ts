@@ -17,6 +17,8 @@ import {
   clientKeyEntries,
   clientKeyId,
   emptyGlobalFilter,
+  eventCostPerMillion,
+  eventErrorSummary,
   filterMultiSelectOptions,
   formatClientGeoLine,
   formatDetailIsp,
@@ -1215,6 +1217,19 @@ describe('usage store settings', () => {
       scope: 'public',
       city: 'London',
     });
+
+    // eventErrorSummary / eventCostPerMillion
+    expect(eventErrorSummary('')).toBe('');
+    expect(
+      eventErrorSummary('{"error":{"type":"usage_limit_reached","message":"limit reached"}}')
+    ).toBe('limit reached');
+    expect(eventErrorSummary('{"error":"bad key"}')).toBe('bad key');
+    expect(eventErrorSummary('{"message":"top level"}')).toBe('top level');
+    expect(eventErrorSummary('upstream reset\nstack...')).toBe('upstream reset');
+    expect(eventErrorSummary('[1,2]')).toBe('[1,2]');
+    expect(eventCostPerMillion({ priced: true, cost: 0.5, tokens: { total: 250_000 } })).toBe(2);
+    expect(eventCostPerMillion({ priced: false, cost: 0.5, tokens: { total: 1 } })).toBeNull();
+    expect(eventCostPerMillion({ priced: true, cost: 0, tokens: { total: 0 } })).toBeNull();
 
     // formatClientGeoLine
     expect(formatClientGeoLine(undefined)).toBe('');

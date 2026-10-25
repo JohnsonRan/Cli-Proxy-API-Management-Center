@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UsageEvent } from '@/services/api/usageStore';
-import { formatCompact, formatMs, formatPercent, formatTps } from '../format';
+import { formatCompact, formatCost, formatMs, formatPercent, formatTps } from '../format';
 import { Compact } from './PanelBits';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   eventCacheHitRate,
+  eventCostPerMillion,
+  eventErrorSummary,
   eventTransport,
   formatClientGeoLine,
   type EventDimension,
@@ -55,6 +57,7 @@ export function EventStatusCell({
 }) {
   const { t } = useTranslation();
   const transport = eventTransport(e.endpoint, e.stream, e.transport);
+  const errorLine = e.failed ? eventErrorSummary(e.error) : '';
   return (
     <span className={styles.rankText}>
       <span className={styles.cellLine}>
@@ -78,6 +81,47 @@ export function EventStatusCell({
       {e.endpoint && (
         <span className={styles.endpointSub} title={e.endpoint}>
           {e.endpoint}
+        </span>
+      )}
+      {errorLine && (
+        <span className={styles.errorSub} title={e.error}>
+          {errorLine}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Time on top, date below, so the column stays narrow. */
+export function EventTimeCell({
+  timestamp,
+  timeFormatter,
+  dateFormatter,
+}: {
+  timestamp: number;
+  timeFormatter: Intl.DateTimeFormat;
+  dateFormatter: Intl.DateTimeFormat;
+}) {
+  const date = new Date(timestamp);
+  return (
+    <span className={`${styles.rankText} ${styles.mono}`}>
+      <span className={styles.cellStrong}>{timeFormatter.format(date)}</span>
+      <span className={styles.cellSub}>{dateFormatter.format(date)}</span>
+    </span>
+  );
+}
+
+/** Cost on top; the event's blended price per million tokens below. */
+export function EventCostCell({ event: e }: { event: UsageEvent }) {
+  const { t } = useTranslation();
+  if (!e.priced) return <span className={styles.muted}>{t('usage_stats.unpriced')}</span>;
+  const perMillion = eventCostPerMillion(e);
+  return (
+    <span className={styles.rankText}>
+      <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
+      {perMillion !== null && (
+        <span className={styles.cellSub} title={t('usage_stats.col_cost_per_m')}>
+          {formatCost(perMillion)}/M
         </span>
       )}
     </span>
