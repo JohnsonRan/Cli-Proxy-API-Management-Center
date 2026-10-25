@@ -718,7 +718,10 @@ export const normalizeUsageRealtime = (data: unknown): UsageRealtime => {
   };
 };
 
-const STORE_PATH = '/config/observability/usage/store';
+const USAGE_PATH = '/config/observability/usage';
+const STORE_PATH = `${USAGE_PATH}/store`;
+// Owned by the core's embeddings patch; it filters both the RESP usage queue and the store.
+const EXCLUDE_EMBEDDINGS_PATH = `${USAGE_PATH}/exclude-embeddings`;
 const STORE_ENABLE_PATH = `${STORE_PATH}/enable`;
 const STORE_DB_PATH = `${STORE_PATH}/path`;
 const STORE_RETENTION_PATH = `${STORE_PATH}/retention-days`;
@@ -739,6 +742,8 @@ export interface UsageStoreSettings {
   disableGeoip: boolean;
   /** Stops storing the prompt of requests the upstream flagged when true. */
   disableRiskPrompts: boolean;
+  /** `observability.usage.exclude-embeddings`: leaves /v1/embeddings requests out of usage. */
+  excludeEmbeddings: boolean;
 }
 
 export interface UsageGeoipStatus {
@@ -765,12 +770,79 @@ export const normalizeUsageGeoipStatus = (data: unknown): UsageGeoipStatus => {
   };
 };
 
+export interface UsageStorageOptimize {
+  running: boolean;
+  /** Events older than this many days were deleted first; 0 kept the retention setting. */
+  keepDays: number;
+  /** Unix ms, 0 when never. */
+  startedAt: number;
+  finishedAt: number;
+  beforeBytes: number;
+  afterBytes: number;
+  deletedEvents: number;
+  error: string;
+}
+
+export interface UsageStorageStatus {
+  path: string;
+  fileBytes: number;
+  walBytes: number;
+  /** Pages freed by deletes; reused for new data, returned to the disk only by an optimize. */
+  freeBytes: number;
+  events: number;
+  /** Unix ms of the oldest stored event, 0 without events. */
+  oldestEvent: number;
+  eventsPerDay: number;
+  /** Estimated new data per day (an upper estimate: rollups count toward the per-event size). */
+  growthBytesPerDay: number;
+  retentionDays: number;
+  optimize: UsageStorageOptimize;
+}
+
+const count = (value: unknown) => Math.max(0, Math.trunc(num(value)));
+
+export const normalizeUsageStorage = (data: unknown): UsageStorageStatus => {
+  const d = rec(data);
+  const o = rec(d.optimize);
+  return {
+    path: str(d.path),
+    fileBytes: count(d.file_bytes),
+    walBytes: count(d.wal_bytes),
+    freeBytes: count(d.free_bytes),
+    events: count(d.events),
+    oldestEvent: count(d.oldest_event),
+    eventsPerDay: Math.max(0, num(d.events_per_day)),
+    growthBytesPerDay: count(d.growth_bytes_per_day),
+    retentionDays: Math.trunc(num(d.retention_days)),
+    optimize: {
+      running: o.running === true,
+      keepDays: count(o.keep_days),
+      startedAt: count(o.started_at),
+      finishedAt: count(o.finished_at),
+      beforeBytes: count(o.before_bytes),
+      afterBytes: count(o.after_bytes),
+      deletedEvents: count(o.deleted_events),
+      error: str(o.error),
+    },
+  };
+};
+
+/** Upper bound the core accepts for `keep_days`. */
+export const MAX_OPTIMIZE_KEEP_DAYS = 3650;
+
 export interface UsageStoreSettingsMutation {
+  /** Merged into `observability.usage.store`. */
   patch: Record<string, unknown>;
+  /** Full config paths to set, outside the store subtree. */
+  puts: Record<string, unknown>;
   deletions: string[];
 }
 
-export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings => {
+/** `data` is the `observability.usage.store` subtree; `excludeEmbeddings` its sibling flag. */
+export const normalizeUsageStoreSettings = (
+  data: unknown,
+  excludeEmbeddings: unknown = false
+): UsageStoreSettings => {
   const d = rec(data);
   const geoip = rec(d.geoip);
   const riskPrompts = rec(d['risk-prompts']);
@@ -785,6 +857,7 @@ export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings =
     retentionDays,
     disableGeoip: geoip.disable === true,
     disableRiskPrompts: riskPrompts.disable === true,
+    excludeEmbeddings: excludeEmbeddings === true,
   };
 };
 
@@ -802,6 +875,7 @@ export const serializeUsageStoreSettings = (
   }
   const path = next.path.trim();
   const patch: Record<string, unknown> = {};
+  const puts: Record<string, unknown> = {};
   const deletions: string[] = [];
 
   if (!previous || previous.enable !== next.enable) {
@@ -838,7 +912,13 @@ export const serializeUsageStoreSettings = (
     deletions.push(DISABLE_RISK_PROMPTS_PATH);
   }
 
-  return { patch, deletions };
+  if (next.excludeEmbeddings) {
+    if (!previous || !previous.excludeEmbeddings) puts[EXCLUDE_EMBEDDINGS_PATH] = true;
+  } else if (!previous || previous.excludeEmbeddings) {
+    deletions.push(EXCLUDE_EMBEDDINGS_PATH);
+  }
+
+  return { patch, puts, deletions };
 };
 
 const deleteOptionalConfig = async (path: string) => {
@@ -976,15 +1056,38 @@ export const usageStoreApi = {
       throw error;
     }
   },
-  getSettings: async () =>
-    normalizeUsageStoreSettings(await getConfigValue<unknown>(STORE_PATH, {})),
+  /** Null when the core predates the storage endpoint. */
+  getStorage: async (): Promise<UsageStorageStatus | null> => {
+    try {
+      return normalizeUsageStorage(await apiClient.get('/observability/usage/storage'));
+    } catch (error) {
+      if (isRecord(error) && error.status === 404) return null;
+      throw error;
+    }
+  },
+  /** Starts an optimize in the background; poll getStorage until `optimize.running` clears. */
+  optimizeStorage: async (keepDays: number) =>
+    normalizeUsageStorage(
+      await apiClient.post('/observability/usage/storage/optimize', { keep_days: keepDays })
+    ),
+  getSettings: async () => {
+    const usage = rec(await getConfigValue<unknown>(USAGE_PATH, {}));
+    return normalizeUsageStoreSettings(usage.store, usage['exclude-embeddings']);
+  },
   saveSettings: async (next: UsageStoreSettings, previous?: UsageStoreSettings) => {
     const assertConnection = guardConfigConnection();
-    const { patch, deletions } = serializeUsageStoreSettings(next, previous);
+    const { patch, puts, deletions } = serializeUsageStoreSettings(next, previous);
     const runPatch = async () => {
-      if (Object.keys(patch).length === 0) return;
-      assertConnection();
-      await apiClient.patch(STORE_PATH, patch);
+      if (Object.keys(patch).length > 0) {
+        assertConnection();
+        await apiClient.patch(STORE_PATH, patch);
+      }
+      // Last: a core without the embeddings patch rejects this path (400), and the store
+      // settings above must still be saved.
+      for (const [path, value] of Object.entries(puts)) {
+        assertConnection();
+        await apiClient.put(path, value);
+      }
     };
     const runDeletions = async () => {
       for (const path of deletions) {
