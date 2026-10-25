@@ -15,7 +15,6 @@ describe('v8 visual config contract', () => {
     expect(config.visualValues).toMatchObject({
       host: 'localhost',
       port: '8317',
-      apiKeysText: 'fixture-client',
       commercialMode: false,
       wsAuth: false,
       requestRetry: '0',
@@ -36,14 +35,11 @@ describe('v8 visual config contract', () => {
     expect(parseYaml(config.applyVisualChangesToYaml(fixture))).toEqual(parseYaml(fixture));
   });
 
-  test('client key writes and deletion never replace upstream provider groups', () => {
-    for (const apiKeysText of ['new-fixture-client', '']) {
-      const config = runVisualConfig(fixture, [{ apiKeysText }]);
-      const output = parseYaml(config.applyVisualChangesToYaml(fixture));
-      expect(output['api-keys']).toEqual(parseYaml(fixture)['api-keys']);
-      expect(output.access?.['api-keys']).toEqual(apiKeysText ? [apiKeysText] : undefined);
-    }
-    expect(runVisualConfig('api-keys:\n  codex: []\n').visualValues.apiKeysText).toBe('');
+  test('visual edits never touch client keys or upstream provider groups', () => {
+    const config = runVisualConfig(fixture, [{ host: 'fixture-host' }]);
+    const output = parseYaml(config.applyVisualChangesToYaml(fixture));
+    expect(output['api-keys']).toEqual(parseYaml(fixture)['api-keys']);
+    expect(output.access?.['api-keys']).toEqual(parseYaml(fixture).access?.['api-keys']);
   });
 
   test('OAuth edits stay OAuth-only and preserve unmoved routing and plugin fields', () => {
@@ -206,8 +202,7 @@ describe('v8 scalar read/write path parity', () => {
       const path = [...entry.yamlKeys!];
       if (field === 'tlsEnable') path.push('enable');
       if (field === 'pluginsEnabled') path.push('enabled');
-      const expected =
-        field === 'apiKeysText' ? [value] : numericFields.has(field) ? Number(value) : value;
+      const expected = numericFields.has(field) ? Number(value) : value;
       expect(
         path.reduce<unknown>(
           (node, key) => (node as Record<string, unknown>)[key],
