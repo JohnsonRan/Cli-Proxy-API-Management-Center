@@ -555,15 +555,16 @@ export function OverviewTab({
     { key: 'model', label: t('usage_stats.col_model'), text: true, value: (m) => m.model },
     { key: 'requests', label: t('usage_stats.col_requests'), value: (m) => m.requests },
     { key: 'success', label: t('usage_stats.col_success_rate'), value: successRate },
+    // Cost sits next to the model so a wide screen does not push it across the row.
+    { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
+    { key: 'avgCost', label: t('usage_stats.col_avg_cost'), value: costPerRequest },
+    { key: 'unitCost', label: t('usage_stats.col_cost_per_m'), value: costPerMillionTokens },
     { key: 'input', label: t('usage_stats.col_input'), value: inputTokens },
     { key: 'cached', label: t('usage_stats.col_cached'), value: (m) => m.tokens.cacheRead },
     { key: 'output', label: t('usage_stats.col_output'), value: (m) => m.tokens.output },
     { key: 'avgTokens', label: t('usage_stats.col_avg_tokens'), value: tokensPerRequest },
     { key: 'latency', label: t('usage_stats.col_latency'), value: (m) => positive(m.avgLatencyMs) },
     { key: 'speed', label: t('usage_stats.col_speed'), value: (m) => positive(m.outputTps) },
-    { key: 'cost', label: t('usage_stats.col_cost'), value: priced },
-    { key: 'avgCost', label: t('usage_stats.col_avg_cost'), value: costPerRequest },
-    { key: 'unitCost', label: t('usage_stats.col_cost_per_m'), value: costPerMillionTokens },
   ];
   const keyName = (k: UsageApiKeyStat) =>
     labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none');
@@ -920,76 +921,74 @@ export function OverviewTab({
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
-          <div className={styles.tableFit}>
-            <Table className={styles.table}>
-              <TableHeader>
-                <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedModels.map(({ row: m, color }, index) => (
-                  <TableRow
-                    key={`${m.provider}:${m.model}`}
-                    {...rowProps({ model: m.model, provider: m.provider }, m.model)}
-                  >
-                    <TableCell>
-                      <RankName
-                        rank={index + 1}
-                        color={color}
-                        name={
-                          <>
-                            <span>{m.model}</span>
-                            {m.substituted > 0 && (
-                              <span
-                                className={styles.substitutedBadge}
-                                title={t('usage_stats.model_substituted_count', {
-                                  count: m.substituted,
-                                })}
-                                aria-label={t('usage_stats.model_substituted_count', {
-                                  count: m.substituted,
-                                })}
-                              >
-                                {m.substituted}
-                              </span>
-                            )}
-                          </>
-                        }
-                        sub={<ProviderBadge provider={m.provider} />}
-                        mono
-                      />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Share value={m.requests} total={totals.requests} color={color} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Rate value={successRate(m)} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Compact value={inputTokens(m)} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Compact value={m.tokens.cacheRead} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Compact value={m.tokens.output} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Compact value={tokensPerRequest(m)} />
-                    </TableCell>
-                    <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
-                    <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
-                    <TableCell alignRight>{costCell(m)}</TableCell>
-                    <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
-                    <TableCell alignRight>
-                      {unitCostCell(
-                        costPerMillionTokens(m),
-                        priced(m) === null ? t('usage_stats.unpriced') : '—'
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Table className={styles.table}>
+            <TableHeader>
+              <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedModels.map(({ row: m, color }, index) => (
+                <TableRow
+                  key={`${m.provider}:${m.model}`}
+                  {...rowProps({ model: m.model, provider: m.provider }, m.model)}
+                >
+                  <TableCell>
+                    <RankName
+                      rank={index + 1}
+                      color={color}
+                      name={
+                        <>
+                          <span>{m.model}</span>
+                          {m.substituted > 0 && (
+                            <span
+                              className={styles.substitutedBadge}
+                              title={t('usage_stats.model_substituted_count', {
+                                count: m.substituted,
+                              })}
+                              aria-label={t('usage_stats.model_substituted_count', {
+                                count: m.substituted,
+                              })}
+                            >
+                              {m.substituted}
+                            </span>
+                          )}
+                        </>
+                      }
+                      sub={<ProviderBadge provider={m.provider} />}
+                      mono
+                    />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Share value={m.requests} total={totals.requests} color={color} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Rate value={successRate(m)} />
+                  </TableCell>
+                  <TableCell alignRight>{costCell(m)}</TableCell>
+                  <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
+                  <TableCell alignRight>
+                    {unitCostCell(
+                      costPerMillionTokens(m),
+                      priced(m) === null ? t('usage_stats.unpriced') : '—'
+                    )}
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={inputTokens(m)} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={m.tokens.cacheRead} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={m.tokens.output} />
+                  </TableCell>
+                  <TableCell alignRight>
+                    <Compact value={tokensPerRequest(m)} />
+                  </TableCell>
+                  <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
+                  <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </section>
 
