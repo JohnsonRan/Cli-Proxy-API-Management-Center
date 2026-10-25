@@ -598,7 +598,6 @@ const STORE_PATH = '/config/observability/usage/store';
 const STORE_ENABLE_PATH = `${STORE_PATH}/enable`;
 const STORE_DB_PATH = `${STORE_PATH}/path`;
 const STORE_RETENTION_PATH = `${STORE_PATH}/retention-days`;
-const DISABLE_MODELS_DEV_PATH = `${STORE_PATH}/pricing/disable-models-dev`;
 const DISABLE_GEOIP_PATH = `${STORE_PATH}/geoip/disable`;
 const OVERRIDES_PATH = `${STORE_PATH}/pricing/overrides`;
 
@@ -611,8 +610,6 @@ export interface UsageStoreSettings {
   path: string;
   /** Event retention in days; 0 uses the 30-day default, negative keeps forever. */
   retentionDays: number;
-  /** Stops fetching prices from models.dev when true. */
-  disableModelsDev: boolean;
   /** Stops sending new public client IPs to the online lookup when true. */
   disableGeoip: boolean;
 }
@@ -648,7 +645,6 @@ export interface UsageStoreSettingsMutation {
 
 export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings => {
   const d = rec(data);
-  const pricing = rec(d.pricing);
   const geoip = rec(d.geoip);
   const rawRetention = d['retention-days'];
   const retentionDays =
@@ -659,7 +655,6 @@ export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings =
     enable: d.enable === true,
     path: str(d.path).trim(),
     retentionDays,
-    disableModelsDev: pricing['disable-models-dev'] === true,
     disableGeoip: geoip.disable === true,
   };
 };
@@ -667,7 +662,7 @@ export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings =
 /**
  * Builds the minimal PATCH + DELETE plan for `observability.usage.store` so unset optional
  * fields are removed with DELETE instead of persisted as empty defaults, while sibling
- * fields such as `pricing.overrides` remain untouched.
+ * fields such as `pricing.overrides` and `pricing.disable-models-dev` (YAML-only) remain untouched.
  */
 export const serializeUsageStoreSettings = (
   next: UsageStoreSettings,
@@ -696,14 +691,6 @@ export const serializeUsageStoreSettings = (
     }
   } else if (!previous || previous.retentionDays !== 0) {
     deletions.push(STORE_RETENTION_PATH);
-  }
-
-  if (next.disableModelsDev) {
-    if (!previous || !previous.disableModelsDev) {
-      patch.pricing = { 'disable-models-dev': true };
-    }
-  } else if (!previous || previous.disableModelsDev) {
-    deletions.push(DISABLE_MODELS_DEV_PATH);
   }
 
   if (next.disableGeoip) {
@@ -839,8 +826,6 @@ export const usageStoreApi = {
       throw error;
     }
   },
-  refreshGeoip: async (): Promise<UsageGeoipStatus> =>
-    normalizeUsageGeoipStatus(await apiClient.post('/observability/usage/geoip/refresh')),
   getSettings: async () =>
     normalizeUsageStoreSettings(await getConfigValue<unknown>(STORE_PATH, {})),
   saveSettings: async (next: UsageStoreSettings, previous?: UsageStoreSettings) => {
