@@ -1009,6 +1009,7 @@
     "tab_quota_value": "할당량 가치",
     "tab_events": "요청 내역",
     "tab_pricing": "가격",
+    "tab_settings": "설정",
     "disabled_title": "사용량 저장소가 꺼져 있습니다",
     "disabled_desc": "observability.usage.store를 켜면 모든 요청이 로컬 SQLite 데이터베이스에 기록됩니다. 켠 이후의 요청만 집계됩니다.",
     "enable": "사용량 저장소 켜기",

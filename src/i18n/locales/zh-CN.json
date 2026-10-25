@@ -1007,6 +1007,7 @@
     "tab_quota_value": "额度价值",
     "tab_events": "请求明细",
     "tab_pricing": "价格",
+    "tab_settings": "设置",
     "disabled_title": "用量存储未开启",
     "disabled_desc": "开启 observability.usage.store 后，每个请求都会记录到本地 SQLite 数据库。只统计开启之后的请求。",
     "enable": "开启用量存储",

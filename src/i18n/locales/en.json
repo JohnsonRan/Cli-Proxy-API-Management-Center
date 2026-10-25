@@ -1009,6 +1009,7 @@
     "tab_quota_value": "Quota value",
     "tab_events": "Request events",
     "tab_pricing": "Pricing",
+    "tab_settings": "Settings",
     "disabled_title": "Usage store is off",
     "disabled_desc": "Turn on observability.usage.store to record every request in a local SQLite database. Only requests made after it is enabled are counted.",
     "enable": "Enable usage store",

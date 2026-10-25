@@ -907,6 +907,13 @@ describe('usage auto-refresh', () => {
     expect(page).toContain('void load(!pricingLoadedRef.current);');
     expect(page).toContain('useHeaderRefresh(load);');
   });
+
+  test('keeps store settings on their own tab, not the pricing tab', () => {
+    const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
+    const pricing = readFileSync('src/features/usage/tabs/PricingTab.tsx', 'utf8');
+    expect(page).toContain("{tab === 'settings' && <StoreSettingsCard onSaved={load} />}");
+    expect(pricing).not.toContain('StoreSettingsCard');
+  });
 });
 
 describe('usage preferences', () => {
@@ -939,6 +946,7 @@ describe('usage preferences', () => {
         })
       )
     ).toEqual({});
+    expect(parseUsagePrefs(JSON.stringify({ tab: 'settings' }))).toEqual({ tab: 'settings' });
     expect(parseUsagePrefs(JSON.stringify({ metric: 'combined' }))).toEqual({
       metric: 'combined',
     });

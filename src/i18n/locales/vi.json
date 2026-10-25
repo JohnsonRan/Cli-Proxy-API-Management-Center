@@ -965,6 +965,7 @@
     "tab_quota_value": "Giá trị hạn mức",
     "tab_events": "Yêu cầu",
     "tab_pricing": "Giá",
+    "tab_settings": "Cài đặt",
     "disabled_title": "Kho mức sử dụng đang tắt",
     "disabled_desc": "Bật observability.usage.store để ghi mọi yêu cầu vào cơ sở dữ liệu SQLite cục bộ. Chỉ tính các yêu cầu sau khi bật.",
     "enable": "Bật kho mức sử dụng",

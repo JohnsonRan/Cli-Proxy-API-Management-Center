@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  isUsageStoreDisabled,
   usageStoreApi,
   type UsagePriceOverride,
   type UsagePricing,
@@ -17,7 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/Table';
 import { useConfigStore, useNotificationStore } from '@/stores';
-import { StoreSettingsCard } from '../components/StoreSettingsCard';
 import {
   PRICE_FIELDS,
   emptyRow,
@@ -182,157 +180,143 @@ export function PricingTab({
 
   const adding = editing !== null && editing.model === '';
 
-  const handleSettingsSaved = async () => {
-    try {
-      onPricingChange(await usageStoreApi.getPricing());
-    } catch (err: unknown) {
-      if (!isUsageStoreDisabled(err)) throw err;
-    }
-    await onReload();
-  };
-
   return (
-    <>
-      <StoreSettingsCard onSaved={handleSettingsSaved} />
-      <section className={styles.panel} data-reveal="">
-        <div className={styles.panelHeader}>
-          <div>
-            <h2 className={styles.panelTitle}>{t('usage_stats.pricing_title')}</h2>
-            <p className={styles.panelDesc}>
-              {!md.enabled
-                ? t('usage_stats.pricing_models_dev_off')
-                : md.updatedAt
-                  ? t('usage_stats.pricing_models_dev_status', {
-                      count: md.count,
-                      time: new Date(md.updatedAt).toLocaleString(i18n.language),
-                    })
-                  : t('usage_stats.pricing_models_dev_pending')}
-            </p>
-            <p className={styles.panelDesc}>{t('usage_stats.overrides_hint')}</p>
-            {md.lastError && <p className={styles.errorText}>{md.lastError}</p>}
-          </div>
-          <div className={styles.toolbarActions}>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy || adding}
-              onClick={() => setEditing({ model: '', draft: emptyRow(), invalid: false })}
-            >
-              <span className={styles.iconLabel}>
-                <IconPlus size={14} />
-                {t('usage_stats.override_add')}
-              </span>
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={refreshing}
-              disabled={!md.enabled}
-              onClick={() => void refreshModelsDev()}
-            >
-              {t('usage_stats.pricing_refresh')}
-            </Button>
-          </div>
+    <section className={styles.panel} data-reveal="">
+      <div className={styles.panelHeader}>
+        <div>
+          <h2 className={styles.panelTitle}>{t('usage_stats.pricing_title')}</h2>
+          <p className={styles.panelDesc}>
+            {!md.enabled
+              ? t('usage_stats.pricing_models_dev_off')
+              : md.updatedAt
+                ? t('usage_stats.pricing_models_dev_status', {
+                    count: md.count,
+                    time: new Date(md.updatedAt).toLocaleString(i18n.language),
+                  })
+                : t('usage_stats.pricing_models_dev_pending')}
+          </p>
+          <p className={styles.panelDesc}>{t('usage_stats.overrides_hint')}</p>
+          {md.lastError && <p className={styles.errorText}>{md.lastError}</p>}
         </div>
-        {rows.length === 0 && !adding ? (
-          <p className={styles.muted}>{t('usage_stats.no_data')}</p>
-        ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead>{t('usage_stats.col_source')}</TableHead>
-                {PRICE_FIELDS.map((field) => (
-                  <TableHead key={field} alignRight>
-                    {t(priceLabelKey(field))}
-                  </TableHead>
-                ))}
-                <TableHead />
+        <div className={styles.toolbarActions}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || adding}
+            onClick={() => setEditing({ model: '', draft: emptyRow(), invalid: false })}
+          >
+            <span className={styles.iconLabel}>
+              <IconPlus size={14} />
+              {t('usage_stats.override_add')}
+            </span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={refreshing}
+            disabled={!md.enabled}
+            onClick={() => void refreshModelsDev()}
+          >
+            {t('usage_stats.pricing_refresh')}
+          </Button>
+        </div>
+      </div>
+      {rows.length === 0 && !adding ? (
+        <p className={styles.muted}>{t('usage_stats.no_data')}</p>
+      ) : (
+        <Table className={styles.table}>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('usage_stats.col_model')}</TableHead>
+              <TableHead>{t('usage_stats.col_source')}</TableHead>
+              {PRICE_FIELDS.map((field) => (
+                <TableHead key={field} alignRight>
+                  {t(priceLabelKey(field))}
+                </TableHead>
+              ))}
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {adding && editing && (
+              <TableRow className={editing.invalid ? styles.invalidRow : undefined}>
+                <TableCell>
+                  <input
+                    className={styles.cellInput}
+                    value={editing.draft.model}
+                    placeholder="gpt-5"
+                    aria-label={t('usage_stats.col_model')}
+                    autoFocus
+                    onChange={(ev) => updateDraft({ model: ev.target.value })}
+                    onKeyDown={onEditKey}
+                  />
+                </TableCell>
+                <TableCell>{t('usage_stats.source_override')}</TableCell>
+                {editCells(editing)}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {adding && editing && (
-                <TableRow className={editing.invalid ? styles.invalidRow : undefined}>
+            )}
+            {rows.map((row) => {
+              const isEditing = editing !== null && editing.model === row.model;
+              return (
+                <TableRow
+                  key={row.model}
+                  className={isEditing && editing.invalid ? styles.invalidRow : undefined}
+                >
+                  <TableCell className={styles.mono}>{row.model}</TableCell>
                   <TableCell>
-                    <input
-                      className={styles.cellInput}
-                      value={editing.draft.model}
-                      placeholder="gpt-5"
-                      aria-label={t('usage_stats.col_model')}
-                      autoFocus
-                      onChange={(ev) => updateDraft({ model: ev.target.value })}
-                      onKeyDown={onEditKey}
-                    />
-                  </TableCell>
-                  <TableCell>{t('usage_stats.source_override')}</TableCell>
-                  {editCells(editing)}
-                </TableRow>
-              )}
-              {rows.map((row) => {
-                const isEditing = editing !== null && editing.model === row.model;
-                return (
-                  <TableRow
-                    key={row.model}
-                    className={isEditing && editing.invalid ? styles.invalidRow : undefined}
-                  >
-                    <TableCell className={styles.mono}>{row.model}</TableCell>
-                    <TableCell>
-                      {row.override ? (
-                        <span className={styles.overrideTag}>
-                          {t('usage_stats.source_override')}
-                        </span>
-                      ) : row.source ? (
-                        'models.dev'
-                      ) : (
-                        <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
-                      )}
-                    </TableCell>
-                    {isEditing ? (
-                      editCells(editing)
+                    {row.override ? (
+                      <span className={styles.overrideTag}>{t('usage_stats.source_override')}</span>
+                    ) : row.source ? (
+                      'models.dev'
                     ) : (
-                      <>
-                        <TableCell alignRight>{price(row.price?.input)}</TableCell>
-                        <TableCell alignRight>{price(row.price?.output)}</TableCell>
-                        <TableCell alignRight>{price(row.price?.cacheRead)}</TableCell>
-                        <TableCell alignRight>{price(row.price?.cacheWrite)}</TableCell>
-                        <TableCell alignRight>
-                          <span className={styles.iconActions}>
+                      <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
+                    )}
+                  </TableCell>
+                  {isEditing ? (
+                    editCells(editing)
+                  ) : (
+                    <>
+                      <TableCell alignRight>{price(row.price?.input)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.output)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.cacheRead)}</TableCell>
+                      <TableCell alignRight>{price(row.price?.cacheWrite)}</TableCell>
+                      <TableCell alignRight>
+                        <span className={styles.iconActions}>
+                          <IconButton
+                            label={t(
+                              row.override
+                                ? 'usage_stats.override_edit'
+                                : 'usage_stats.override_this',
+                              { model: row.model }
+                            )}
+                            onClick={() => startEdit(row)}
+                            disabled={busy || editing !== null}
+                          >
+                            <IconPencil size={14} />
+                          </IconButton>
+                          {row.override && (
                             <IconButton
-                              label={t(
-                                row.override
-                                  ? 'usage_stats.override_edit'
-                                  : 'usage_stats.override_this',
-                                { model: row.model }
-                              )}
-                              onClick={() => startEdit(row)}
+                              label={t('usage_stats.override_remove', { model: row.model })}
+                              onClick={() =>
+                                overrides &&
+                                void persist(replaceOverride(overrides, row.model, null))
+                              }
                               disabled={busy || editing !== null}
                             >
-                              <IconPencil size={14} />
+                              <IconTrash2 size={14} />
                             </IconButton>
-                            {row.override && (
-                              <IconButton
-                                label={t('usage_stats.override_remove', { model: row.model })}
-                                onClick={() =>
-                                  overrides &&
-                                  void persist(replaceOverride(overrides, row.model, null))
-                                }
-                                disabled={busy || editing !== null}
-                              >
-                                <IconTrash2 size={14} />
-                              </IconButton>
-                            )}
-                          </span>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-    </>
+                          )}
+                        </span>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
+    </section>
   );
 }
 

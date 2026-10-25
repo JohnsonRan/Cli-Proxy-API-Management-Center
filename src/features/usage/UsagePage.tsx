@@ -1,6 +1,7 @@
 /**
  * Usage statistics backed by the core's built-in SQLite usage store, split into
- * overview / analysis / quota value / request events / pricing tabs (selected with ?tab=).
+ * overview / analysis / quota value / request events / pricing / settings tabs
+ * (selected with ?tab=).
  * Requests carry a request id so a slow response for an older range never wins.
  */
 
@@ -516,7 +517,7 @@ export function UsagePage() {
         </div>
       )}
 
-      {!disabled && (
+      {!disabled && tab !== 'settings' && (
         <div className={styles.filterBar}>
           <div className={styles.filterControls}>
             <Select
@@ -726,6 +727,7 @@ export function UsagePage() {
           {tab === 'pricing' && pricing && (
             <PricingTab pricing={pricing} onPricingChange={setPricing} onReload={load} />
           )}
+          {tab === 'settings' && <StoreSettingsCard onSaved={load} />}
         </RevealGroup>
       ) : null}
     </div>

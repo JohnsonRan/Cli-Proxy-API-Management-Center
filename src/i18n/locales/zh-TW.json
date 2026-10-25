@@ -1035,6 +1035,7 @@
     "tab_quota_value": "額度價值",
     "tab_events": "請求明細",
     "tab_pricing": "價格",
+    "tab_settings": "設定",
     "disabled_title": "用量儲存未開啟",
     "disabled_desc": "開啟 observability.usage.store 後，每個請求都會記錄到本機 SQLite 資料庫。只統計開啟之後的請求。",
     "enable": "開啟用量儲存",
