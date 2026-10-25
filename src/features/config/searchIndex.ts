@@ -518,6 +518,13 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     hintKey: L('sections.system.usage_statistics_enabled_desc'),
     yamlKeys: ['observability', 'usage', 'usage-statistics-enabled'],
   },
+  {
+    fieldId: 'usageExcludeEmbeddings',
+    sectionId: 'logging',
+    labelKey: L('sections.system.usage_exclude_embeddings'),
+    hintKey: L('sections.system.usage_exclude_embeddings_desc'),
+    yamlKeys: ['observability', 'usage', 'exclude-embeddings'],
+  },
   // ── streaming ─────────────────────────────────────────────────────────────
   {
     fieldId: 'streamingKeepaliveSeconds',
