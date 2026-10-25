@@ -1,6 +1,6 @@
 /**
  * Usage statistics backed by the core's built-in SQLite usage store, split into
- * overview / analysis / request events / pricing tabs (selected with ?tab=).
+ * overview / analysis / quota value / request events / pricing tabs (selected with ?tab=).
  * Requests carry a request id so a slow response for an older range never wins.
  */
 
@@ -42,6 +42,7 @@ import { OverviewTab } from './tabs/OverviewTab';
 import { AnalysisTab } from './tabs/AnalysisTab';
 import { RealtimeTab } from './tabs/RealtimeTab';
 import { EventsTab } from './tabs/EventsTab';
+import { QuotaValueTab } from './tabs/QuotaValueTab';
 import {
   AUTO_REFRESH_SECONDS,
   emptyGlobalFilter,
@@ -194,10 +195,10 @@ export function UsagePage() {
 
   useHeaderRefresh(load);
 
-  // Only the overview and analysis follow the auto-refresh; the realtime tab polls on its own
+  // Only the overview, analysis and quota value follow the auto-refresh; the realtime tab polls on its own
   // and reloading the events or pricing tabs would drop loaded pages and edits.
   const [autoRefresh, setAutoRefresh] = useState(() => readUsagePrefs().autoRefresh ?? 0);
-  const autoRefreshTab = tab === 'overview' || tab === 'analysis';
+  const autoRefreshTab = tab === 'overview' || tab === 'analysis' || tab === 'quota_value';
   const autoRefreshActive = autoRefresh > 0 && autoRefreshTab && connected && !disabled;
   useInterval(
     () => {
@@ -697,6 +698,18 @@ export function UsagePage() {
               usageWindow={usageWindow}
               stats={stats}
               dimensionFilter={dimensionFilter}
+            />
+          )}
+          {tab === 'quota_value' && (
+            <QuotaValueTab
+              usageWindow={usageWindow}
+              stats={stats}
+              authIndexes={dimensionFilter.authIndex}
+              providers={dimensionFilter.provider}
+              hasIgnoredFilters={
+                globalFilter.models.length > 0 || globalFilter.apiKeyIds.length > 0
+              }
+              labels={labels}
             />
           )}
           {tab === 'events' && (
