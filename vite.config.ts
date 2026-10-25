@@ -12,7 +12,30 @@ function getVersion(): string {
     return process.env.VERSION;
   }
 
-  // 2. Try git tag
+  // 2. Downstream fork naming format: v<upstream_tag>+<patch_count>-<sha>
+  try {
+    const commitSha = execSync('git rev-parse --short=7 HEAD 2>/dev/null || echo ""', { encoding: 'utf8' }).trim();
+    const upstreamTag = execSync(
+      'git tag -l "v*" --merged upstream/main --sort=-v:refname 2>/dev/null | head -n 1 || git describe --tags --abbrev=0 2>/dev/null || echo "v1.26.2"',
+      { encoding: 'utf8' }
+    ).trim();
+    let patchCount = '0';
+    try {
+      patchCount = execSync('git rev-list --count upstream/main..HEAD 2>/dev/null || echo "0"', { encoding: 'utf8' }).trim();
+    } catch {
+      // ignore
+    }
+    if (commitSha && upstreamTag) {
+      if (patchCount && patchCount !== '0') {
+        return `${upstreamTag}+${patchCount}-${commitSha}`;
+      }
+      return `${upstreamTag}-${commitSha}`;
+    }
+  } catch {
+    // Git not available or error
+  }
+
+  // 3. Try git tag
   try {
     const gitTag = execSync('git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null || echo ""', { encoding: 'utf8' }).trim();
     if (gitTag) {
@@ -22,7 +45,7 @@ function getVersion(): string {
     // Git not available or no tags
   }
 
-  // 3. Fall back to package.json version
+  // 4. Fall back to package.json version
   try {
     const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
     if (pkg.version && pkg.version !== '0.0.0') {
