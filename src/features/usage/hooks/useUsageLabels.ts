@@ -9,10 +9,10 @@ import type { QuotaFileEntry } from '@/features/quota/logic';
 import { useAuthStore, useQuotaStore } from '@/stores';
 import { normalizeRecentRequestAuthIndex } from '@/utils/recentRequests';
 import { clientKeyEntries, clientKeyId } from '../logic';
-import { indexQuotaEntriesByAuthIndex } from '../quota';
+import { credentialNamesByAuthIndex, indexQuotaEntriesByAuthIndex } from '../quota';
 
 export interface UsageLabels {
-  /** Auth-file email or name for an auth index, else the masked source, else the raw index. */
+  /** Auth-file email (file name when the email is shared) for an auth index, else the masked source, else the raw index. */
   credential: (authIndex: string, source?: string) => string;
   /** The client key's name from the config (`access.api-keys[].name`) or its local note. */
   keyName: (apiKeyId: string) => string | null;
@@ -45,14 +45,7 @@ export function useUsageLabels(connected: boolean): UsageLabels {
       .then((data) => {
         if (!active || cacheGeneration !== useQuotaStore.getState().cacheGeneration) return;
         const files = data?.files || [];
-        const names = new Map<string, string>();
-        files.forEach((file) => {
-          const authIndex = normalizeRecentRequestAuthIndex(file['auth_index'] ?? file.authIndex);
-          if (authIndex) {
-            names.set(authIndex, file.email || file.name);
-          }
-        });
-        setCredentialNames(names);
+        setCredentialNames(credentialNamesByAuthIndex(files));
         setQuotaEntries(indexQuotaEntriesByAuthIndex(files));
       })
       .catch(() => undefined);
