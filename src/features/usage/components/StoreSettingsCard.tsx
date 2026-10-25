@@ -30,11 +30,13 @@ const EMPTY_DRAFT: StoreSettingsDraft = {
 
 export function StoreSettingsCard({
   onSaved,
+  onSavingChange,
   disabled: externalDisabled = false,
   initialSettings,
   initialGeoipStatus,
 }: {
   onSaved: () => Promise<void>;
+  onSavingChange?: (saving: boolean) => void;
   disabled?: boolean;
   initialSettings?: UsageStoreSettings;
   initialGeoipStatus?: UsageGeoipStatus;
@@ -96,6 +98,7 @@ export function StoreSettingsCard({
 
   const performSave = async (next: UsageStoreSettings, previous: UsageStoreSettings) => {
     if (mountedRef.current) setSaving(true);
+    onSavingChange?.(true);
     try {
       await usageStoreApi.saveSettings(next, previous);
       useConfigStore.getState().clearCache();
@@ -114,6 +117,7 @@ export function StoreSettingsCard({
       );
     } finally {
       if (mountedRef.current) setSaving(false);
+      onSavingChange?.(false);
     }
   };
 
