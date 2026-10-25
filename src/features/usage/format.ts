@@ -13,6 +13,9 @@ export const isUsageTab = (value: string | null): value is UsageTab =>
 
 export const USAGE_METRICS = ['requests', 'tokens', 'cost'] as const;
 export type UsageMetric = (typeof USAGE_METRICS)[number];
+/** The trend chart can also draw all three metrics at once, each on its own axis. */
+export const TREND_METRICS = [...USAGE_METRICS, 'combined'] as const;
+export type TrendMetric = (typeof TREND_METRICS)[number];
 
 const RANGE_SECONDS: Record<Extract<UsageRange, '24h' | '7d' | '30d' | '90d'>, number> = {
   '24h': 24 * 3600,

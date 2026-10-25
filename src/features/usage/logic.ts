@@ -8,10 +8,10 @@ import {
   type UsageStoreSettings,
 } from '@/services/api/usageStore';
 import {
-  USAGE_METRICS,
+  TREND_METRICS,
   isUsageRange,
   isUsageTab,
-  type UsageMetric,
+  type TrendMetric,
   type UsageRange,
   type UsageTab,
 } from './format';
@@ -468,7 +468,7 @@ export interface UsagePrefs {
   tab?: UsageTab;
   /** Never 'custom': a fixed past window would be stale on the next visit. */
   range?: Exclude<UsageRange, 'custom'>;
-  metric?: UsageMetric;
+  metric?: TrendMetric;
   autoRefresh?: number;
   comparePrevious?: boolean;
 }
@@ -490,8 +490,8 @@ export const parseUsagePrefs = (raw: string | null): UsagePrefs => {
   if (typeof v.range === 'string' && isUsageRange(v.range) && v.range !== 'custom') {
     prefs.range = v.range;
   }
-  if ((USAGE_METRICS as readonly unknown[]).includes(v.metric)) {
-    prefs.metric = v.metric as UsageMetric;
+  if ((TREND_METRICS as readonly unknown[]).includes(v.metric)) {
+    prefs.metric = v.metric as TrendMetric;
   }
   if ((AUTO_REFRESH_SECONDS as readonly unknown[]).includes(v.autoRefresh)) {
     prefs.autoRefresh = v.autoRefresh as number;

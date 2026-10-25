@@ -873,6 +873,9 @@ describe('usage preferences', () => {
         })
       )
     ).toEqual({});
+    expect(parseUsagePrefs(JSON.stringify({ metric: 'combined' }))).toEqual({
+      metric: 'combined',
+    });
     expect(parseUsagePrefs('{broken')).toEqual({});
     expect(parseUsagePrefs(null)).toEqual({});
     expect(parseUsagePrefs('42')).toEqual({});
