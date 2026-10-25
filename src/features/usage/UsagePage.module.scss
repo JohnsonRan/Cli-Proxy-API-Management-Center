@@ -741,6 +741,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+// A wide table packs its columns at their natural width instead of spreading them across a
+// large screen, so a row's name stays close to its numbers; narrow screens still scroll.
+.tableFit {
+  width: fit-content;
+  max-width: 100%;
+
+  th:not(:first-child),
+  td:not(:first-child) {
+    padding-left: 22px;
+  }
+}
+
 /* ---------- Provider and key labels ---------- */
 
 .providerBadge {
