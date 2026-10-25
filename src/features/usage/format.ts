@@ -10,6 +10,7 @@ export const USAGE_TABS = [
   'quota_value',
   'events',
   'pricing',
+  'settings',
 ] as const;
 export type UsageTab = (typeof USAGE_TABS)[number];
 export const isUsageRange = (value: string | null): value is UsageRange =>
