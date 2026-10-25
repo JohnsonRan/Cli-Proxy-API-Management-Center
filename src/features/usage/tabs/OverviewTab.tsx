@@ -920,74 +920,76 @@ export function OverviewTab({
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedModels.map(({ row: m, color }, index) => (
-                <TableRow
-                  key={`${m.provider}:${m.model}`}
-                  {...rowProps({ model: m.model, provider: m.provider }, m.model)}
-                >
-                  <TableCell>
-                    <RankName
-                      rank={index + 1}
-                      color={color}
-                      name={
-                        <>
-                          <span>{m.model}</span>
-                          {m.substituted > 0 && (
-                            <span
-                              className={styles.substitutedBadge}
-                              title={t('usage_stats.model_substituted_count', {
-                                count: m.substituted,
-                              })}
-                              aria-label={t('usage_stats.model_substituted_count', {
-                                count: m.substituted,
-                              })}
-                            >
-                              {m.substituted}
-                            </span>
-                          )}
-                        </>
-                      }
-                      sub={<ProviderBadge provider={m.provider} />}
-                      mono
-                    />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Share value={m.requests} total={totals.requests} color={color} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Rate value={successRate(m)} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={inputTokens(m)} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={m.tokens.cacheRead} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={m.tokens.output} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={tokensPerRequest(m)} />
-                  </TableCell>
-                  <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
-                  <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
-                  <TableCell alignRight>{costCell(m)}</TableCell>
-                  <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
-                  <TableCell alignRight>
-                    {unitCostCell(
-                      costPerMillionTokens(m),
-                      priced(m) === null ? t('usage_stats.unpriced') : '—'
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className={styles.tableFit}>
+            <Table className={styles.table}>
+              <TableHeader>
+                <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedModels.map(({ row: m, color }, index) => (
+                  <TableRow
+                    key={`${m.provider}:${m.model}`}
+                    {...rowProps({ model: m.model, provider: m.provider }, m.model)}
+                  >
+                    <TableCell>
+                      <RankName
+                        rank={index + 1}
+                        color={color}
+                        name={
+                          <>
+                            <span>{m.model}</span>
+                            {m.substituted > 0 && (
+                              <span
+                                className={styles.substitutedBadge}
+                                title={t('usage_stats.model_substituted_count', {
+                                  count: m.substituted,
+                                })}
+                                aria-label={t('usage_stats.model_substituted_count', {
+                                  count: m.substituted,
+                                })}
+                              >
+                                {m.substituted}
+                              </span>
+                            )}
+                          </>
+                        }
+                        sub={<ProviderBadge provider={m.provider} />}
+                        mono
+                      />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Share value={m.requests} total={totals.requests} color={color} />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Rate value={successRate(m)} />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Compact value={inputTokens(m)} />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Compact value={m.tokens.cacheRead} />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Compact value={m.tokens.output} />
+                    </TableCell>
+                    <TableCell alignRight>
+                      <Compact value={tokensPerRequest(m)} />
+                    </TableCell>
+                    <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
+                    <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
+                    <TableCell alignRight>{costCell(m)}</TableCell>
+                    <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
+                    <TableCell alignRight>
+                      {unitCostCell(
+                        costPerMillionTokens(m),
+                        priced(m) === null ? t('usage_stats.unpriced') : '—'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
 
