@@ -9,7 +9,7 @@ import type { UsageLabels } from '../hooks/useUsageLabels';
 import { RiskBadge } from './EventCells';
 import { ProviderBadge } from './Labels';
 import { RequestLogSection } from './RequestLogSection';
-import { eventTransport, formatDetailIsp, formatDetailLocation } from '../logic';
+import { eventTransport, formatDetailIsp, formatDetailLocation, riskHint } from '../logic';
 import styles from '../UsagePage.module.scss';
 
 export function EventDetailModal({
@@ -67,13 +67,7 @@ export function EventDetailModal({
     ...(event.risk
       ? ([
           [t('usage_stats.detail_risk'), <RiskBadge key="risk" risk={event.risk} />],
-          [
-            t('usage_stats.detail_risk_reason'),
-            event.riskReason ||
-              t(`usage_stats.risk_hint_${event.risk}`, {
-                defaultValue: t('usage_stats.risk_hint'),
-              }),
-          ],
+          [t('usage_stats.detail_risk_reason'), event.riskReason || riskHint(t, event.risk)],
         ] as [string, ReactNode][])
       : []),
     [t('usage_stats.col_provider'), <ProviderBadge provider={event.provider} />],
