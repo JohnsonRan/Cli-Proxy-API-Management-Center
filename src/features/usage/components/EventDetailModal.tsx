@@ -65,10 +65,16 @@ export function EventDetailModal({
         ]
       : []),
     ...(event.risk
-      ? ([[t('usage_stats.detail_risk'), <RiskBadge key="risk" risk={event.risk} />]] as [
-          string,
-          ReactNode,
-        ][])
+      ? ([
+          [t('usage_stats.detail_risk'), <RiskBadge key="risk" risk={event.risk} />],
+          [
+            t('usage_stats.detail_risk_reason'),
+            event.riskReason ||
+              t(`usage_stats.risk_hint_${event.risk}`, {
+                defaultValue: t('usage_stats.risk_hint'),
+              }),
+          ],
+        ] as [string, ReactNode][])
       : []),
     [t('usage_stats.col_provider'), <ProviderBadge provider={event.provider} />],
     [t('usage_stats.col_credential'), labels.credential(event.authIndex, event.source)],

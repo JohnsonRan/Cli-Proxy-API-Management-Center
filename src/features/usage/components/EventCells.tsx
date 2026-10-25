@@ -23,12 +23,14 @@ import styles from '../UsagePage.module.scss';
 type AddFilter = (dimension: EventDimension, value: string) => void;
 
 /** Upstream safety action on a request (cyber_policy, model_reroute, ...). */
-export function RiskBadge({ risk }: { risk: string }) {
+export function RiskBadge({ risk, reason }: { risk: string; reason?: string }) {
   const { t } = useTranslation();
   return (
     <span
       className={styles.riskBadge}
-      title={t(`usage_stats.risk_hint_${risk}`, { defaultValue: t('usage_stats.risk_hint') })}
+      title={
+        reason || t(`usage_stats.risk_hint_${risk}`, { defaultValue: t('usage_stats.risk_hint') })
+      }
     >
       {t(`usage_stats.risk_type_${risk}`, { defaultValue: risk })}
     </span>
@@ -162,7 +164,7 @@ export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?:
             </span>
           </>
         )}
-        {e.risk && <RiskBadge risk={e.risk} />}
+        {e.risk && <RiskBadge risk={e.risk} reason={e.riskReason} />}
       </span>
       <span className={`${styles.cellSub} ${styles.cellLine}`}>
         <FilterText

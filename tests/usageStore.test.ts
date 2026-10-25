@@ -123,6 +123,7 @@ describe('usage store API normalization', () => {
           output_tps: 'junk',
           risk: 'model_reroute',
           risk_prompt: '[user] scan this host',
+          risk_reason: 'flagged',
         },
       ],
     });
@@ -137,6 +138,7 @@ describe('usage store API normalization', () => {
       substituted: true,
       risk: 'model_reroute',
       riskPrompt: '[user] scan this host',
+      riskReason: 'flagged',
     });
 
     const pricing = normalizeUsagePricing({
@@ -550,6 +552,7 @@ describe('usage analysis and pricing helpers', () => {
           responseModel: '',
           substituted: false,
           risk: '',
+          riskReason: '',
           riskPrompt: '',
         },
         labels: { credential: () => 'cred', keyName: () => 'key' },
@@ -600,6 +603,7 @@ describe('usage analysis and pricing helpers', () => {
           responseModel: '',
           substituted: false,
           risk: 'cyber_policy',
+          riskReason: 'blocked under the Usage Policy',
           riskPrompt: '[user] find CVEs in this binary',
         },
         labels: { credential: () => 'cred', keyName: () => 'key' },
@@ -608,6 +612,7 @@ describe('usage analysis and pricing helpers', () => {
     );
     expect(markup).toContain(i18n.t('usage_stats.risk_type_cyber_policy'));
     expect(markup).toContain(i18n.t('usage_stats.detail_risk_prompt'));
+    expect(markup).toContain('blocked under the Usage Policy');
     expect(markup).toContain('find CVEs in this binary');
   });
 });
