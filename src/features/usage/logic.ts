@@ -707,3 +707,26 @@ export const formatDetailIsp = (geo: ClientGeo | undefined): string => {
   if (names && asn) return `${names} (${asn})`;
   return names || asn || '';
 };
+
+type RiskT = (key: string, options?: Record<string, unknown>) => string;
+
+/** Gemini safety blocks carry the upstream reason in the risk: prompt_blocked_<reason>. */
+const geminiBlock = (risk: string) => /^(prompt|output)_blocked_(.+)$/.exec(risk);
+
+/** Short label for an event's upstream risk (cyber_policy, refusal_cyber, prompt_blocked_safety, ...). */
+export const riskLabel = (t: RiskT, risk: string): string => {
+  const block = geminiBlock(risk);
+  if (block) {
+    return t(`usage_stats.risk_type_${block[1]}_blocked`, { reason: block[2].toUpperCase() });
+  }
+  return t(`usage_stats.risk_type_${risk}`, { defaultValue: risk });
+};
+
+/** What a risk type means, shown when the upstream gave no reason of its own. */
+export const riskHint = (t: RiskT, risk: string): string => {
+  const block = geminiBlock(risk);
+  if (block) {
+    return t(`usage_stats.risk_hint_${block[1]}_blocked`, { reason: block[2].toUpperCase() });
+  }
+  return t(`usage_stats.risk_hint_${risk}`, { defaultValue: t('usage_stats.risk_hint') });
+};

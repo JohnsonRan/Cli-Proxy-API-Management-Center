@@ -10,6 +10,8 @@ import {
   eventErrorSummary,
   eventTransport,
   formatClientGeoLine,
+  riskHint,
+  riskLabel,
   type EventDimension,
 } from '../logic';
 import { ProviderBadge } from './Labels';
@@ -26,13 +28,8 @@ type AddFilter = (dimension: EventDimension, value: string) => void;
 export function RiskBadge({ risk, reason }: { risk: string; reason?: string }) {
   const { t } = useTranslation();
   return (
-    <span
-      className={styles.riskBadge}
-      title={
-        reason || t(`usage_stats.risk_hint_${risk}`, { defaultValue: t('usage_stats.risk_hint') })
-      }
-    >
-      {t(`usage_stats.risk_type_${risk}`, { defaultValue: risk })}
+    <span className={styles.riskBadge} title={reason || riskHint(t, risk)}>
+      {riskLabel(t, risk)}
     </span>
   );
 }

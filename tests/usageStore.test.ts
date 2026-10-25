@@ -1448,3 +1448,19 @@ describe('usage store settings', () => {
     expect(markup).toContain('title="Claude-Code/1.0.0"');
   });
 });
+
+describe('usage risk labels', () => {
+  test('labels Gemini safety blocks with their reason and falls back for unknown risks', async () => {
+    const i18n = (await import('@/i18n')).default;
+    const { riskHint, riskLabel } = await import('@/features/usage/logic');
+    const t = i18n.t.bind(i18n) as (key: string, options?: Record<string, unknown>) => string;
+    expect(riskLabel(t, 'prompt_blocked_prohibited_content')).toBe(
+      i18n.t('usage_stats.risk_type_prompt_blocked', { reason: 'PROHIBITED_CONTENT' })
+    );
+    expect(riskLabel(t, 'prompt_blocked_prohibited_content')).toContain('PROHIBITED_CONTENT');
+    expect(riskHint(t, 'output_blocked_safety')).toContain('SAFETY');
+    expect(riskLabel(t, 'refusal_cyber')).toBe(i18n.t('usage_stats.risk_type_refusal_cyber'));
+    expect(riskLabel(t, 'refusal_unknown')).toBe('refusal_unknown');
+    expect(riskHint(t, 'refusal_unknown')).toBe(i18n.t('usage_stats.risk_hint'));
+  });
+});
