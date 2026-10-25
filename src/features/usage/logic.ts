@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  MAX_OPTIMIZE_KEEP_DAYS,
   MAX_RETENTION_DAYS,
   type ClientGeo,
   type UsageEventsQuery,
@@ -554,6 +555,7 @@ export interface StoreSettingsDraft {
   retentionDays: string;
   disableGeoip: boolean;
   disableRiskPrompts: boolean;
+  excludeEmbeddings: boolean;
 }
 
 export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSettingsDraft => ({
@@ -562,6 +564,7 @@ export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSetting
   retentionDays: settings.retentionDays === 0 ? '' : String(settings.retentionDays),
   disableGeoip: settings.disableGeoip,
   disableRiskPrompts: settings.disableRiskPrompts,
+  excludeEmbeddings: settings.excludeEmbeddings,
 });
 
 export const parseRetentionDays = (raw: string): number | null => {
@@ -571,6 +574,15 @@ export const parseRetentionDays = (raw: string): number | null => {
   const n = Number(trimmed);
   if (!Number.isSafeInteger(n) || Math.abs(n) > MAX_RETENTION_DAYS) return null;
   return n;
+};
+
+/** Empty keeps the retention setting (0); otherwise whole days within the core's bound. */
+export const parseKeepDays = (raw: string): number | null => {
+  const trimmed = raw.trim();
+  if (trimmed === '') return 0;
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return n >= 1 && n <= MAX_OPTIMIZE_KEEP_DAYS ? n : null;
 };
 
 export const parseStoreSettingsDraft = (
@@ -585,6 +597,7 @@ export const parseStoreSettingsDraft = (
       retentionDays,
       disableGeoip: draft.disableGeoip,
       disableRiskPrompts: draft.disableRiskPrompts,
+      excludeEmbeddings: draft.excludeEmbeddings,
     },
   };
 };
@@ -600,7 +613,8 @@ export const isStoreSettingsDirty = (
     draft.path.trim() !== saved.path ||
     retentionDays !== saved.retentionDays ||
     draft.disableGeoip !== saved.disableGeoip ||
-    draft.disableRiskPrompts !== saved.disableRiskPrompts
+    draft.disableRiskPrompts !== saved.disableRiskPrompts ||
+    draft.excludeEmbeddings !== saved.excludeEmbeddings
   );
 };
 

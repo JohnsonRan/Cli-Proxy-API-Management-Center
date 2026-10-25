@@ -63,6 +63,7 @@ import { RevealGroup } from './components/Motion';
 import { MultiSelectFilter } from './components/MultiSelectFilter';
 import { KeyLabel, ProviderBadge } from './components/Labels';
 import { StoreSettingsCard } from './components/StoreSettingsCard';
+import { StorageCard } from './components/StorageCard';
 import styles from './UsagePage.module.scss';
 
 const ENABLE_RETRY_MS = 1500;
@@ -728,6 +729,7 @@ export function UsagePage() {
             <PricingTab pricing={pricing} onPricingChange={setPricing} onReload={load} />
           )}
           {tab === 'settings' && <StoreSettingsCard onSaved={load} />}
+          {tab === 'settings' && <StorageCard />}
         </RevealGroup>
       ) : null}
     </div>

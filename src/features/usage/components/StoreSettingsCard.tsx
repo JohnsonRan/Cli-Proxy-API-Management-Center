@@ -25,6 +25,7 @@ const EMPTY_DRAFT: StoreSettingsDraft = {
   retentionDays: '',
   disableGeoip: false,
   disableRiskPrompts: false,
+  excludeEmbeddings: false,
 };
 
 export function StoreSettingsCard({
@@ -44,6 +45,7 @@ export function StoreSettingsCard({
   const enableHintId = useId();
   const geoipHintId = useId();
   const riskPromptsHintId = useId();
+  const excludeEmbeddingsHintId = useId();
 
   const [saved, setSaved] = useState<UsageStoreSettings | null>(initialSettings ?? null);
   const [draft, setDraft] = useState<StoreSettingsDraft>(() =>
@@ -245,6 +247,19 @@ export function StoreSettingsCard({
           />
           <p id={riskPromptsHintId} className={styles.settingHint}>
             {t('usage_stats.store_disable_risk_prompts_hint')}
+          </p>
+        </div>
+
+        <div className={styles.settingToggleBox}>
+          <ToggleSwitch
+            checked={draft.excludeEmbeddings}
+            onChange={(excludeEmbeddings) => setDraft((prev) => ({ ...prev, excludeEmbeddings }))}
+            label={t('usage_stats.store_exclude_embeddings')}
+            ariaDescribedBy={excludeEmbeddingsHintId}
+            disabled={controlsDisabled}
+          />
+          <p id={excludeEmbeddingsHintId} className={styles.settingHint}>
+            {t('usage_stats.store_exclude_embeddings_hint')}
           </p>
         </div>
 

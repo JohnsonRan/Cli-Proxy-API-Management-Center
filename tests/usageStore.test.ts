@@ -980,22 +980,30 @@ describe('usage store settings', () => {
       retentionDays: 0,
       disableGeoip: false,
       disableRiskPrompts: false,
+      excludeEmbeddings: false,
     });
 
-    const loaded = normalizeUsageStoreSettings({
-      enable: true,
-      path: '  /data/usage.db  ',
-      'retention-days': 14,
-      pricing: { 'disable-models-dev': true, overrides: [{ model: 'gpt-5', input: 1, output: 2 }] },
-      geoip: { disable: true },
-      'risk-prompts': { disable: true },
-    });
+    const loaded = normalizeUsageStoreSettings(
+      {
+        enable: true,
+        path: '  /data/usage.db  ',
+        'retention-days': 14,
+        pricing: {
+          'disable-models-dev': true,
+          overrides: [{ model: 'gpt-5', input: 1, output: 2 }],
+        },
+        geoip: { disable: true },
+        'risk-prompts': { disable: true },
+      },
+      true
+    );
     expect(loaded).toEqual({
       enable: true,
       path: '/data/usage.db',
       retentionDays: 14,
       disableGeoip: true,
       disableRiskPrompts: true,
+      excludeEmbeddings: true,
     });
     expect(normalizeUsageStoreSettings({ 'retention-days': -1 }).retentionDays).toBe(-1);
 
@@ -1008,6 +1016,8 @@ describe('usage store settings', () => {
         geoip: { disable: true },
         'risk-prompts': { disable: true },
       },
+      // exclude-embeddings sits beside the store subtree, so it is set by its own path.
+      puts: { '/config/observability/usage/exclude-embeddings': true },
       deletions: [],
     });
 
@@ -1020,16 +1030,19 @@ describe('usage store settings', () => {
           retentionDays: 0,
           disableGeoip: false,
           disableRiskPrompts: false,
+          excludeEmbeddings: false,
         },
         loaded
       )
     ).toEqual({
       patch: {},
+      puts: {},
       deletions: [
         '/config/observability/usage/store/path',
         '/config/observability/usage/store/retention-days',
         '/config/observability/usage/store/geoip/disable',
         '/config/observability/usage/store/risk-prompts/disable',
+        '/config/observability/usage/exclude-embeddings',
       ],
     });
 
@@ -1043,6 +1056,7 @@ describe('usage store settings', () => {
         retentionDays: 0,
         disableGeoip: false,
         disableRiskPrompts: false,
+        excludeEmbeddings: false,
       },
     ]) {
       for (const previous of [loaded, defaults, undefined]) {
@@ -1055,6 +1069,7 @@ describe('usage store settings', () => {
     // Disabling keeps path, retention-days and pricing intact on disk.
     expect(serializeUsageStoreSettings({ ...loaded, enable: false }, loaded)).toEqual({
       patch: { enable: false },
+      puts: {},
       deletions: [],
     });
 
@@ -1163,14 +1178,15 @@ describe('usage store settings', () => {
           retentionDays: 90,
           disableGeoip: true,
           disableRiskPrompts: false,
+          excludeEmbeddings: true,
         },
         onSaved: async () => {},
       })
     );
     expect(markup).toContain('value="/var/lib/usage.db"');
     expect(markup).toContain('value="90"');
-    expect(markup.match(/<input type="checkbox"/g)?.length).toBe(3);
-    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(2);
+    expect(markup.match(/<input type="checkbox"/g)?.length).toBe(4);
+    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(3);
     expect(markup).not.toContain('models.dev');
     expect(markup).toContain('https://ip.sb/api/');
     expect(markup).not.toContain('db-ip');
@@ -1584,5 +1600,112 @@ describe('usage risk labels', () => {
     expect(firstLineMatch![1]).toContain('gpt-4');
     expect(firstLineMatch![1]).not.toContain(substitutedTag);
     expect(firstLineMatch![1]).not.toContain(cyberTag);
+  });
+});
+
+describe('usage store database', () => {
+  test('normalizes the storage status and validates keep days', async () => {
+    const { normalizeUsageStorage } = await import('@/services/api/usageStore');
+    const { parseKeepDays } = await import('@/features/usage/logic');
+
+    const empty = normalizeUsageStorage(null);
+    expect(empty).toMatchObject({ fileBytes: 0, events: 0, oldestEvent: 0, eventsPerDay: 0 });
+    expect(empty.optimize).toMatchObject({ running: false, finishedAt: 0, error: '' });
+    expect(
+      normalizeUsageStorage({
+        path: '/d/usage.db',
+        file_bytes: 2048.9,
+        free_bytes: -1,
+        events_per_day: 12.5,
+        retention_days: -1,
+        optimize: { running: true, keep_days: 7, deleted_events: 3 },
+      })
+    ).toMatchObject({
+      path: '/d/usage.db',
+      fileBytes: 2048,
+      freeBytes: 0,
+      eventsPerDay: 12.5,
+      retentionDays: -1,
+      optimize: { running: true, keepDays: 7, deletedEvents: 3 },
+    });
+
+    expect(parseKeepDays('')).toBe(0);
+    expect(parseKeepDays(' 7 ')).toBe(7);
+    expect(parseKeepDays('3650')).toBe(3650);
+    for (const bad of ['0', '-1', '1.5', '3651', 'x']) expect(parseKeepDays(bad)).toBeNull();
+  });
+
+  test('renders size, growth and the last optimize result', async () => {
+    const { normalizeUsageStorage } = await import('@/services/api/usageStore');
+    const { StorageCard } = await import('@/features/usage/components/StorageCard');
+    const status = normalizeUsageStorage({
+      path: '/d/usage.db',
+      file_bytes: 3 * 1024 * 1024,
+      wal_bytes: 1024 * 1024,
+      free_bytes: 512 * 1024,
+      events: 12000,
+      oldest_event: Date.UTC(2026, 9, 1),
+      events_per_day: 400,
+      growth_bytes_per_day: 100 * 1024,
+      retention_days: 30,
+      optimize: { finished_at: Date.UTC(2026, 9, 20), before_bytes: 8 << 20, after_bytes: 4 << 20 },
+    });
+    const markup = renderToStaticMarkup(createElement(StorageCard, { initialStatus: status }));
+    expect(markup).toContain('4.00 MB');
+    expect(markup).toContain('512.00 KB');
+    expect(markup).toContain('100.00 KB');
+    expect(markup).toContain('/d/usage.db');
+    expect(markup).toContain('placeholder="30"');
+    expect(markup).toContain('8.00 MB');
+    expect(markup).toContain('role="status"');
+
+    const running = renderToStaticMarkup(
+      createElement(StorageCard, {
+        initialStatus: { ...status, optimize: { ...status.optimize, running: true } },
+      })
+    );
+    expect(running).not.toContain('role="status"');
+    expect(running).toMatch(/<button[^>]*disabled=""/);
+  });
+
+  test('sets exclude-embeddings by its own path when saving', async () => {
+    const { apiClient } = await import('@/services/api/client');
+    const { usageStoreApi } = await import('@/services/api/usageStore');
+    const origPut = apiClient.put.bind(apiClient);
+    const origPatch = apiClient.patch.bind(apiClient);
+    const calls: string[] = [];
+    apiClient.put = (async (url: string, data?: unknown) => {
+      calls.push(`PUT ${url} ${JSON.stringify(data)}`);
+      return {} as never;
+    }) as typeof apiClient.put;
+    apiClient.patch = (async (url: string) => {
+      calls.push(`PATCH ${url}`);
+      return {} as never;
+    }) as typeof apiClient.patch;
+    const base = {
+      enable: true,
+      path: '',
+      retentionDays: 0,
+      disableGeoip: false,
+      disableRiskPrompts: false,
+      excludeEmbeddings: false,
+    };
+    try {
+      await usageStoreApi.saveSettings({ ...base, excludeEmbeddings: true }, base);
+      expect(calls).toEqual(['PUT /config/observability/usage/exclude-embeddings true']);
+      // The store PATCH goes first, so a core that rejects the flag still saves it.
+      calls.length = 0;
+      await usageStoreApi.saveSettings(
+        { ...base, retentionDays: 7, excludeEmbeddings: true },
+        base
+      );
+      expect(calls).toEqual([
+        'PATCH /config/observability/usage/store',
+        'PUT /config/observability/usage/exclude-embeddings true',
+      ]);
+    } finally {
+      apiClient.put = origPut;
+      apiClient.patch = origPatch;
+    }
   });
 });
