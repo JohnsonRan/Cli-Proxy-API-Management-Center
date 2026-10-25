@@ -1460,6 +1460,18 @@ describe('usage risk labels', () => {
     expect(riskLabel(t, 'prompt_blocked_prohibited_content')).toContain('PROHIBITED_CONTENT');
     expect(riskHint(t, 'output_blocked_safety')).toContain('SAFETY');
     expect(riskLabel(t, 'refusal_cyber')).toBe(i18n.t('usage_stats.risk_type_refusal_cyber'));
+    expect(riskLabel(t, 'model_reroute')).toBe(i18n.t('usage_stats.risk_type_model_reroute'));
+    expect(riskHint(t, 'model_reroute')).toBe(i18n.t('usage_stats.risk_hint_model_reroute'));
+    expect(riskLabel(t, 'refusal_refusal')).toBe(i18n.t('usage_stats.risk_type_refusal_refusal'));
+    expect(riskHint(t, 'refusal_refusal')).toBe(i18n.t('usage_stats.risk_hint_refusal_refusal'));
+    expect(riskLabel(t, 'refusal_reasoning_extraction')).toBe(
+      i18n.t('usage_stats.risk_type_refusal_reasoning_extraction')
+    );
+    expect(riskLabel(t, 'refusal_frontier_llm')).toBe(
+      i18n.t('usage_stats.risk_type_refusal_frontier_llm')
+    );
+    expect(riskLabel(t, 'refusal_fallback')).toBe(i18n.t('usage_stats.risk_type_refusal_fallback'));
+    expect(riskHint(t, 'refusal_fallback')).toBe(i18n.t('usage_stats.risk_hint_refusal_fallback'));
     expect(riskLabel(t, 'refusal_unknown')).toBe('refusal_unknown');
     expect(riskHint(t, 'refusal_unknown')).toBe(i18n.t('usage_stats.risk_hint'));
   });
