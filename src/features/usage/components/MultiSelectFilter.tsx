@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { IconChevronDown, IconSearch, IconX } from '@/components/ui/icons';
@@ -26,6 +26,18 @@ export function MultiSelectFilter({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [alignRight, setAlignRight] = useState(false);
+
+  // The popover grows with its widest row, so open it leftwards when it would leave the viewport.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const wrap = wrapRef.current;
+    const popover = popoverRef.current;
+    if (!wrap || !popover) return;
+    const left = wrap.getBoundingClientRect().left;
+    setAlignRight(left + popover.offsetWidth > document.documentElement.clientWidth - 8);
+  }, [isOpen, options]);
 
   // Close popover on outside click.
   useEffect(() => {
@@ -102,7 +114,12 @@ export function MultiSelectFilter({
       </button>
 
       {isOpen && (
-        <div className={styles.multiSelectPopover} role="dialog" aria-label={label}>
+        <div
+          ref={popoverRef}
+          className={`${styles.multiSelectPopover} ${alignRight ? styles.multiSelectPopoverRight : ''}`}
+          role="dialog"
+          aria-label={label}
+        >
           <div className={styles.multiSelectSearch}>
             <IconSearch size={14} className={styles.searchIcon} aria-hidden="true" />
             <input
@@ -150,6 +167,9 @@ export function MultiSelectFilter({
                 return (
                   <div key={opt.value} className={styles.multiSelectOption}>
                     <SelectionCheckbox
+                      className={styles.multiSelectCheck}
+                      labelClassName={styles.multiSelectCheckLabel}
+                      title={opt.label}
                       checked={isChecked}
                       onChange={(checked) => handleToggle(opt.value, checked)}
                       label={

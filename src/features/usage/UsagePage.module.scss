@@ -1105,8 +1105,10 @@
   top: calc(100% + 4px);
   left: 0;
   z-index: 40;
-  width: 280px;
-  max-width: 90vw;
+  // Fit the widest row, never narrower than the trigger; longer rows ellipsize at the cap.
+  width: max-content;
+  min-width: max(100%, 260px);
+  max-width: min(460px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -1114,6 +1116,11 @@
   border-radius: 12px;
   background: var(--bg-primary);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.multiSelectPopoverRight {
+  left: auto;
+  right: 0;
 }
 
 .multiSelectSearch {
@@ -1136,6 +1143,13 @@
     outline: 2px solid var(--primary-color);
     outline-offset: 0;
   }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-tertiary);
+  pointer-events: none;
 }
 
 .clearSearchBtn {
@@ -1185,8 +1199,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 220px;
-  overflow-y: auto;
+  max-height: 260px;
+  overflow: hidden auto;
   padding-right: 2px;
 }
 
@@ -1199,6 +1213,16 @@
   &:hover {
     background: var(--bg-hover);
   }
+}
+
+.multiSelectCheck {
+  flex: 1;
+  min-width: 0;
+}
+
+.multiSelectCheckLabel {
+  flex: 1;
+  min-width: 0;
 }
 
 .multiSelectOptionContent {
@@ -1226,6 +1250,22 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+
+  // Both parts ellipsize when the row hits the popover cap; the provider gives way faster.
+  > *,
+  .providerBadge > span:not(.compatTag) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  > :not(:first-child) {
+    flex-shrink: 3;
+  }
+
+  .compatTag {
+    flex: none;
+  }
 }
 
 .multiSelectOptionRequests {
