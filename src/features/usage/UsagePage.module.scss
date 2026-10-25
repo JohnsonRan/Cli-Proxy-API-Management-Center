@@ -101,6 +101,8 @@
 
   @media (max-width: $breakpoint-mobile) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    // Subs wrap on phones; equal rows would pad every row to the tallest one.
+    grid-auto-rows: auto;
   }
 }
 
@@ -567,16 +569,12 @@
   color: var(--text-primary);
 }
 
+// Wraps instead of clipping: narrow phone cards cannot fit the hint, and touch has no tooltip.
 .statSub {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   min-height: 16px;
   font-size: 12px;
+  line-height: 1.35;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .legendDot {
@@ -584,7 +582,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  margin-left: 6px;
+  margin: 0 4px 0 6px;
+  vertical-align: 1px;
 
   &:first-child {
     margin-left: 0;
@@ -593,7 +592,8 @@
 
 .statSpark {
   height: 34px;
-  margin: 2px -4px 0;
+  // auto top keeps sparklines aligned across a row when subs wrap to different heights
+  margin: auto -4px 0;
 
   svg {
     display: block;
