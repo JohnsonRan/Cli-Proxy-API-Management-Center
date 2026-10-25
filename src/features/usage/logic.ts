@@ -170,6 +170,7 @@ export const toEventsQuery = (
   authIndex: globalFilter.authIndexes.length ? globalFilter.authIndexes : undefined,
   failed: resultFilter === 'failed' ? true : resultFilter === 'success' ? false : undefined,
   substituted: resultFilter === 'substituted' ? true : undefined,
+  risk: resultFilter === 'risk' ? true : undefined,
 });
 
 /** Editable row: prices stay strings while typing so "0." and "" are not coerced away. */
@@ -552,6 +553,7 @@ export interface StoreSettingsDraft {
   path: string;
   retentionDays: string;
   disableGeoip: boolean;
+  disableRiskPrompts: boolean;
 }
 
 export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSettingsDraft => ({
@@ -559,6 +561,7 @@ export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSetting
   path: settings.path,
   retentionDays: settings.retentionDays === 0 ? '' : String(settings.retentionDays),
   disableGeoip: settings.disableGeoip,
+  disableRiskPrompts: settings.disableRiskPrompts,
 });
 
 export const parseRetentionDays = (raw: string): number | null => {
@@ -581,6 +584,7 @@ export const parseStoreSettingsDraft = (
       path: draft.path.trim(),
       retentionDays,
       disableGeoip: draft.disableGeoip,
+      disableRiskPrompts: draft.disableRiskPrompts,
     },
   };
 };
@@ -595,7 +599,8 @@ export const isStoreSettingsDirty = (
     draft.enable !== saved.enable ||
     draft.path.trim() !== saved.path ||
     retentionDays !== saved.retentionDays ||
-    draft.disableGeoip !== saved.disableGeoip
+    draft.disableGeoip !== saved.disableGeoip ||
+    draft.disableRiskPrompts !== saved.disableRiskPrompts
   );
 };
 

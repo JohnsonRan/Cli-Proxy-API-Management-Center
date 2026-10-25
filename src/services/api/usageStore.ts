@@ -112,6 +112,10 @@ export interface UsageEvent {
   userAgent: string;
   responseModel: string;
   substituted: boolean;
+  /** Upstream safety action (cyber_policy, model_reroute, ...); "" when none. */
+  risk: string;
+  /** Flagged turn as plain text, kept only for risk events. */
+  riskPrompt: string;
 }
 
 export interface UsageEventsPage {
@@ -163,6 +167,7 @@ export interface UsageDimensionFilter {
 export interface UsageStatsFilter extends UsageDimensionFilter {
   failed?: boolean;
   substituted?: boolean;
+  risk?: boolean;
 }
 
 export interface UsagePrice {
@@ -188,6 +193,7 @@ export interface UsageEventsQuery extends UsageDimensionFilter {
   to?: number;
   failed?: boolean;
   substituted?: boolean;
+  risk?: boolean;
   before?: number;
   after?: number;
   limit?: number;
@@ -369,6 +375,8 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       userAgent: str(e.user_agent),
       responseModel: str(e.response_model),
       substituted: e.substituted === true,
+      risk: str(e.risk),
+      riskPrompt: str(e.risk_prompt),
     })),
   };
 };
@@ -712,6 +720,7 @@ const STORE_ENABLE_PATH = `${STORE_PATH}/enable`;
 const STORE_DB_PATH = `${STORE_PATH}/path`;
 const STORE_RETENTION_PATH = `${STORE_PATH}/retention-days`;
 const DISABLE_GEOIP_PATH = `${STORE_PATH}/geoip/disable`;
+const DISABLE_RISK_PROMPTS_PATH = `${STORE_PATH}/risk-prompts/disable`;
 const OVERRIDES_PATH = `${STORE_PATH}/pricing/overrides`;
 
 /** Max magnitude accepted so Go `time.Duration(days) * 24h` cannot overflow int64. */
@@ -725,6 +734,8 @@ export interface UsageStoreSettings {
   retentionDays: number;
   /** Stops sending new public client IPs to the online lookup when true. */
   disableGeoip: boolean;
+  /** Stops storing the prompt of requests the upstream flagged when true. */
+  disableRiskPrompts: boolean;
 }
 
 export interface UsageGeoipStatus {
@@ -759,6 +770,7 @@ export interface UsageStoreSettingsMutation {
 export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings => {
   const d = rec(data);
   const geoip = rec(d.geoip);
+  const riskPrompts = rec(d['risk-prompts']);
   const rawRetention = d['retention-days'];
   const retentionDays =
     typeof rawRetention === 'number' && Number.isFinite(rawRetention)
@@ -769,6 +781,7 @@ export const normalizeUsageStoreSettings = (data: unknown): UsageStoreSettings =
     path: str(d.path).trim(),
     retentionDays,
     disableGeoip: geoip.disable === true,
+    disableRiskPrompts: riskPrompts.disable === true,
   };
 };
 
@@ -814,6 +827,14 @@ export const serializeUsageStoreSettings = (
     deletions.push(DISABLE_GEOIP_PATH);
   }
 
+  if (next.disableRiskPrompts) {
+    if (!previous || !previous.disableRiskPrompts) {
+      patch['risk-prompts'] = { disable: true };
+    }
+  } else if (!previous || previous.disableRiskPrompts) {
+    deletions.push(DISABLE_RISK_PROMPTS_PATH);
+  }
+
   return { patch, deletions };
 };
 
@@ -848,6 +869,7 @@ export const usageStoreApi = {
           auth_index: filter.authIndex,
           failed: filter.failed,
           substituted: filter.substituted,
+          risk: filter.risk,
         }),
       })
     ),
@@ -891,6 +913,7 @@ export const usageStoreApi = {
           auth_index: query.authIndex,
           failed: query.failed,
           substituted: query.substituted,
+          risk: query.risk,
           before: query.before,
           after: query.after,
           limit: query.limit,
@@ -908,6 +931,7 @@ export const usageStoreApi = {
         auth_index: query.authIndex,
         failed: query.failed,
         substituted: query.substituted,
+        risk: query.risk,
         format,
       }),
       responseType: 'blob',

@@ -121,6 +121,8 @@ describe('usage store API normalization', () => {
           response_model: 'm-sub',
           substituted: true,
           output_tps: 'junk',
+          risk: 'model_reroute',
+          risk_prompt: '[user] scan this host',
         },
       ],
     });
@@ -133,6 +135,8 @@ describe('usage store API normalization', () => {
       priced: false,
       responseModel: 'm-sub',
       substituted: true,
+      risk: 'model_reroute',
+      riskPrompt: '[user] scan this host',
     });
 
     const pricing = normalizeUsagePricing({
@@ -370,6 +374,10 @@ describe('usage analysis and pricing helpers', () => {
       substituted: true,
       failed: undefined,
     });
+    expect(toEventsQuery(window, globalFilter, 'risk')).toMatchObject({
+      risk: true,
+      failed: undefined,
+    });
     expect(toEventsQuery(window, emptyGlobalFilter()).failed).toBeUndefined();
   });
 
@@ -541,6 +549,8 @@ describe('usage analysis and pricing helpers', () => {
           userAgent: 'curl',
           responseModel: '',
           substituted: false,
+          risk: '',
+          riskPrompt: '',
         },
         labels: { credential: () => 'cred', keyName: () => 'key' },
         onClose: () => {},
@@ -548,6 +558,57 @@ describe('usage analysis and pricing helpers', () => {
     );
     expect(markup).toContain('modal-overlay');
     expect(markup).toContain('gpt-5');
+  });
+
+  test('EventDetailModal shows the risk type and flagged prompt', async () => {
+    const i18n = (await import('@/i18n')).default;
+    const markup = renderToStaticMarkup(
+      createElement(EventDetailModal, {
+        event: {
+          id: 1,
+          timestamp: 1000,
+          requestId: 'req-1',
+          provider: 'codex',
+          model: 'gpt-5',
+          alias: '',
+          endpoint: 'POST /v1/chat/completions',
+          authIndex: 'a1',
+          source: 'user@test',
+          apiKeyId: 'k1',
+          apiKey: 'sk-1234',
+          serviceTier: 'default',
+          reasoningEffort: '',
+          stream: false,
+          failed: false,
+          statusCode: 200,
+          error: '',
+          latencyMs: 100,
+          ttftMs: 50,
+          tokens: {
+            inputUncached: 10,
+            cacheRead: 0,
+            cacheWrite: 0,
+            output: 5,
+            reasoning: 0,
+            unclassified: 0,
+            total: 15,
+          },
+          cost: 0.001,
+          priced: true,
+          clientIp: '127.0.0.1',
+          userAgent: 'curl',
+          responseModel: '',
+          substituted: false,
+          risk: 'cyber_policy',
+          riskPrompt: '[user] find CVEs in this binary',
+        },
+        labels: { credential: () => 'cred', keyName: () => 'key' },
+        onClose: () => {},
+      })
+    );
+    expect(markup).toContain(i18n.t('usage_stats.risk_type_cyber_policy'));
+    expect(markup).toContain(i18n.t('usage_stats.detail_risk_prompt'));
+    expect(markup).toContain('find CVEs in this binary');
   });
 });
 
@@ -905,6 +966,7 @@ describe('usage store settings', () => {
       path: '',
       retentionDays: 0,
       disableGeoip: false,
+      disableRiskPrompts: false,
     });
 
     const loaded = normalizeUsageStoreSettings({
@@ -913,12 +975,14 @@ describe('usage store settings', () => {
       'retention-days': 14,
       pricing: { 'disable-models-dev': true, overrides: [{ model: 'gpt-5', input: 1, output: 2 }] },
       geoip: { disable: true },
+      'risk-prompts': { disable: true },
     });
     expect(loaded).toEqual({
       enable: true,
       path: '/data/usage.db',
       retentionDays: 14,
       disableGeoip: true,
+      disableRiskPrompts: true,
     });
     expect(normalizeUsageStoreSettings({ 'retention-days': -1 }).retentionDays).toBe(-1);
 
@@ -929,6 +993,7 @@ describe('usage store settings', () => {
         path: '/data/usage.db',
         'retention-days': 14,
         geoip: { disable: true },
+        'risk-prompts': { disable: true },
       },
       deletions: [],
     });
@@ -936,7 +1001,13 @@ describe('usage store settings', () => {
     // Clearing optional fields deletes them cleanly without touching overrides or enable.
     expect(
       serializeUsageStoreSettings(
-        { enable: true, path: '', retentionDays: 0, disableGeoip: false },
+        {
+          enable: true,
+          path: '',
+          retentionDays: 0,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+        },
         loaded
       )
     ).toEqual({
@@ -945,6 +1016,7 @@ describe('usage store settings', () => {
         '/config/observability/usage/store/path',
         '/config/observability/usage/store/retention-days',
         '/config/observability/usage/store/geoip/disable',
+        '/config/observability/usage/store/risk-prompts/disable',
       ],
     });
 
@@ -952,7 +1024,13 @@ describe('usage store settings', () => {
     for (const next of [
       { ...loaded, retentionDays: 7 },
       { ...loaded, path: '' },
-      { enable: false, path: '', retentionDays: 0, disableGeoip: false },
+      {
+        enable: false,
+        path: '',
+        retentionDays: 0,
+        disableGeoip: false,
+        disableRiskPrompts: false,
+      },
     ]) {
       for (const previous of [loaded, defaults, undefined]) {
         const mutation = serializeUsageStoreSettings(next, previous);
@@ -1071,13 +1149,14 @@ describe('usage store settings', () => {
           path: '/var/lib/usage.db',
           retentionDays: 90,
           disableGeoip: true,
+          disableRiskPrompts: false,
         },
         onSaved: async () => {},
       })
     );
     expect(markup).toContain('value="/var/lib/usage.db"');
     expect(markup).toContain('value="90"');
-    expect(markup.match(/<input type="checkbox"/g)?.length).toBe(2);
+    expect(markup.match(/<input type="checkbox"/g)?.length).toBe(3);
     expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(2);
     expect(markup).not.toContain('models.dev');
     expect(markup).toContain('https://ip.sb/api/');
@@ -1119,7 +1198,13 @@ describe('usage store settings', () => {
     });
     expect(usageStoreApi).not.toHaveProperty('refreshGeoip');
 
-    const settings = { enable: true, path: '', retentionDays: 0, disableGeoip: false };
+    const settings = {
+      enable: true,
+      path: '',
+      retentionDays: 0,
+      disableGeoip: false,
+      disableRiskPrompts: false,
+    };
     const status = (pending: number, enabled = true) => ({
       enabled,
       provider: 'ip.sb',

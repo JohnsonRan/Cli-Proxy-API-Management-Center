@@ -221,6 +221,7 @@ export function EventsTab({
         authIndex: globalFilter.authIndexes,
         failed: query.failed,
         substituted: query.substituted,
+        risk: query.risk,
       })
       .then((next) => {
         if (summaryId === summaryRef.current) setSummary(next);
@@ -256,6 +257,7 @@ export function EventsTab({
       { value: 'success', label: t('usage_stats.result_success') },
       { value: 'failed', label: t('usage_stats.result_failed') },
       { value: 'substituted', label: t('usage_stats.result_substituted') },
+      { value: 'risk', label: t('usage_stats.result_risk') },
     ],
     [t]
   );

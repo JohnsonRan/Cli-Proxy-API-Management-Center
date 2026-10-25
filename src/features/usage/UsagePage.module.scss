@@ -337,6 +337,20 @@
   border: 1px solid var(--border-color);
 }
 
+.riskBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #dc2626;
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  border: 1px solid color-mix(in srgb, #dc2626 25%, transparent);
+}
+
 .substitutedBadge {
   display: inline-flex;
   align-items: center;
