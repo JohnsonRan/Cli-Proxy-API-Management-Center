@@ -29,7 +29,7 @@ import {
 import { Compact, PanelHeading, Rate } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import {
-  USAGE_METRICS,
+  TREND_METRICS,
   cacheHitRate,
   changePercent,
   costPerMillionTokens,
@@ -45,7 +45,7 @@ import {
   inputTokens,
   successRate,
   tokensPerRequest,
-  type UsageMetric,
+  type TrendMetric,
 } from '../format';
 import {
   alignPrevious,
@@ -190,10 +190,10 @@ export function OverviewTab({
     source: string;
     provider: string;
   } | null>(null);
-  const [metric, setMetricState] = useState<UsageMetric>(
+  const [metric, setMetricState] = useState<TrendMetric>(
     () => readUsagePrefs().metric ?? 'requests'
   );
-  const setMetric = (next: UsageMetric) => {
+  const setMetric = (next: TrendMetric) => {
     setMetricState(next);
     saveUsagePrefs({ metric: next });
   };
@@ -225,8 +225,9 @@ export function OverviewTab({
         : metric === 'tokens'
           ? (p: UsageAggregate) => p.tokens.total
           : (p: UsageAggregate) => p.cost;
+    // Three dashed previous lines would bury the combined view, so it skips the comparison.
     const previous =
-      comparePrevious && prevStats
+      comparePrevious && prevStats && metric !== 'combined'
         ? [
             {
               type: 'line' as const,
@@ -250,7 +251,7 @@ export function OverviewTab({
     const options = {
       ...baseCartesianOptions(
         theme,
-        metric !== 'cost',
+        metric === 'requests' || metric === 'tokens',
         metric === 'cost' ? formatCost : formatCompact
       ),
       // Clicking a bucket narrows the range to it and opens its requests.
@@ -310,6 +311,102 @@ export function OverviewTab({
               order: 1,
             })),
             ...previous,
+          ],
+        },
+      };
+    }
+    if (metric === 'combined') {
+      // Each metric keeps its own scale; the axis ticks take the series colour to tell them apart.
+      const axis = (
+        color: string,
+        format: (value: number) => string,
+        position: 'left' | 'right',
+        grid: boolean
+      ) => ({
+        position,
+        beginAtZero: true,
+        ticks: {
+          color,
+          maxTicksLimit: 6,
+          ...(format === formatCompact ? { precision: 0 } : {}),
+          callback: (value: number | string) => format(Number(value)),
+        },
+        grid: grid ? { color: theme.grid } : { display: false },
+        border: { display: false },
+      });
+      const line = (key: 'tokens' | 'cost', data: number[], order: number) => ({
+        type: 'line' as const,
+        label: t(`usage_stats.metric_${key}`),
+        data,
+        yAxisID: key,
+        borderColor: METRIC_ACCENTS[key],
+        backgroundColor: METRIC_ACCENTS[key],
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        tension: 0.3,
+        fill: false,
+        order,
+      });
+      return {
+        kind: 'bar' as const,
+        options: {
+          ...options,
+          plugins: {
+            ...options.plugins,
+            // Draw order puts lines over bars; keep the legend and tooltip in metric order.
+            legend: {
+              ...options.plugins.legend,
+              labels: {
+                ...options.plugins.legend.labels,
+                sort: (a: { datasetIndex?: number }, b: { datasetIndex?: number }) =>
+                  (a.datasetIndex ?? 0) - (b.datasetIndex ?? 0),
+              },
+            },
+            tooltip: {
+              ...options.plugins.tooltip,
+              itemSort: (a: { datasetIndex: number }, b: { datasetIndex: number }) =>
+                a.datasetIndex - b.datasetIndex,
+              callbacks: {
+                label: (ctx: {
+                  dataset: { label?: string; yAxisID?: string };
+                  parsed: { y: number | null };
+                }) => {
+                  const format = ctx.dataset.yAxisID === 'cost' ? formatCost : formatCompact;
+                  return `${ctx.dataset.label}: ${format(ctx.parsed.y ?? 0)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: options.scales.x,
+            y: axis(METRIC_ACCENTS.requests, formatCompact, 'left', true),
+            tokens: axis(METRIC_ACCENTS.tokens, formatCompact, 'right', false),
+            cost: axis(METRIC_ACCENTS.cost, formatCost, 'right', false),
+          },
+        },
+        data: {
+          labels: bucketLabels,
+          datasets: [
+            {
+              type: 'bar' as const,
+              label: t('usage_stats.metric_requests'),
+              data: stats.series.map((p) => p.requests),
+              yAxisID: 'y',
+              backgroundColor: `${METRIC_ACCENTS.requests}99`,
+              borderRadius: 3,
+              order: 2,
+            },
+            line(
+              'tokens',
+              stats.series.map((p) => p.tokens.total),
+              1
+            ),
+            line(
+              'cost',
+              stats.series.map((p) => p.cost),
+              0
+            ),
           ],
         },
       };
@@ -727,6 +824,7 @@ export function OverviewTab({
                 type="button"
                 className={comparePrevious ? styles.segmentActive : styles.segment}
                 aria-pressed={comparePrevious}
+                disabled={metric === 'combined'}
                 title={t('usage_stats.compare_previous_hint')}
                 onClick={toggleComparePrevious}
               >
@@ -738,7 +836,7 @@ export function OverviewTab({
               role="group"
               aria-label={t('usage_stats.metric_label')}
             >
-              {USAGE_METRICS.map((value) => (
+              {TREND_METRICS.map((value) => (
                 <button
                   key={value}
                   type="button"

@@ -1002,6 +1002,7 @@
     "metric_requests": "Yêu cầu",
     "metric_tokens": "Token",
     "metric_cost": "Chi phí",
+    "metric_combined": "Kết hợp",
     "chart_label": "{{metric}} theo thời gian",
     "series_success": "Thành công",
     "series_failed": "Thất bại",

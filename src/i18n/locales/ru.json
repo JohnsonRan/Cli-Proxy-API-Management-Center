@@ -1049,6 +1049,7 @@
     "metric_requests": "Запросы",
     "metric_tokens": "Токены",
     "metric_cost": "Стоимость",
+    "metric_combined": "Вместе",
     "chart_label": "{{metric}} во времени",
     "series_success": "Успешно",
     "series_failed": "Ошибка",

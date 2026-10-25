@@ -1046,6 +1046,7 @@
     "metric_requests": "요청",
     "metric_tokens": "토큰",
     "metric_cost": "비용",
+    "metric_combined": "종합",
     "chart_label": "시간별 {{metric}}",
     "series_success": "성공",
     "series_failed": "실패",

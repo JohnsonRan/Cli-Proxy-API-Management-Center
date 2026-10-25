@@ -1046,6 +1046,7 @@
     "metric_requests": "Requests",
     "metric_tokens": "Tokens",
     "metric_cost": "Cost",
+    "metric_combined": "Combined",
     "chart_label": "{{metric}} over time",
     "series_success": "Succeeded",
     "series_failed": "Failed",

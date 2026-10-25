@@ -1044,6 +1044,7 @@
     "metric_requests": "请求数",
     "metric_tokens": "Token",
     "metric_cost": "费用",
+    "metric_combined": "综合",
     "chart_label": "{{metric}}随时间变化",
     "series_success": "成功",
     "series_failed": "失败",

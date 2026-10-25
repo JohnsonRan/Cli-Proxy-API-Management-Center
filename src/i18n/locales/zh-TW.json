@@ -1072,6 +1072,7 @@
     "metric_requests": "請求數",
     "metric_tokens": "Token",
     "metric_cost": "費用",
+    "metric_combined": "綜合",
     "chart_label": "{{metric}}隨時間變化",
     "series_success": "成功",
     "series_failed": "失敗",
