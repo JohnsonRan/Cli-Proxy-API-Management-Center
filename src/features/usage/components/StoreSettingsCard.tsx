@@ -24,6 +24,7 @@ const EMPTY_DRAFT: StoreSettingsDraft = {
   path: '',
   retentionDays: '',
   disableGeoip: false,
+  disableRiskPrompts: false,
 };
 
 export function StoreSettingsCard({
@@ -42,6 +43,7 @@ export function StoreSettingsCard({
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
   const enableHintId = useId();
   const geoipHintId = useId();
+  const riskPromptsHintId = useId();
 
   const [saved, setSaved] = useState<UsageStoreSettings | null>(initialSettings ?? null);
   const [draft, setDraft] = useState<StoreSettingsDraft>(() =>
@@ -231,6 +233,19 @@ export function StoreSettingsCard({
           {geoipStatus?.lastError && (
             <span className={styles.errorText}>{geoipStatus.lastError}</span>
           )}
+        </div>
+
+        <div className={styles.settingToggleBox}>
+          <ToggleSwitch
+            checked={draft.disableRiskPrompts}
+            onChange={(disableRiskPrompts) => setDraft((prev) => ({ ...prev, disableRiskPrompts }))}
+            label={t('usage_stats.store_disable_risk_prompts')}
+            ariaDescribedBy={riskPromptsHintId}
+            disabled={controlsDisabled}
+          />
+          <p id={riskPromptsHintId} className={styles.settingHint}>
+            {t('usage_stats.store_disable_risk_prompts_hint')}
+          </p>
         </div>
 
         <Input

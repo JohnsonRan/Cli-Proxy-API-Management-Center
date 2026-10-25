@@ -22,6 +22,19 @@ import styles from '../UsagePage.module.scss';
 
 type AddFilter = (dimension: EventDimension, value: string) => void;
 
+/** Upstream safety action on a request (cyber_policy, model_reroute, ...). */
+export function RiskBadge({ risk }: { risk: string }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={styles.riskBadge}
+      title={t(`usage_stats.risk_hint_${risk}`, { defaultValue: t('usage_stats.risk_hint') })}
+    >
+      {t(`usage_stats.risk_type_${risk}`, { defaultValue: risk })}
+    </span>
+  );
+}
+
 /** Text that adds itself to the global filter when a handler is given, plain text otherwise. */
 function FilterText({
   onClick,
@@ -149,6 +162,7 @@ export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?:
             </span>
           </>
         )}
+        {e.risk && <RiskBadge risk={e.risk} />}
       </span>
       <span className={`${styles.cellSub} ${styles.cellLine}`}>
         <FilterText

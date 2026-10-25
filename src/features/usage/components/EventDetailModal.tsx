@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useNotificationStore } from '@/stores';
 import { formatCompact, formatCost, formatMs, formatTps } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
+import { RiskBadge } from './EventCells';
 import { ProviderBadge } from './Labels';
 import { RequestLogSection } from './RequestLogSection';
 import { eventTransport, formatDetailIsp, formatDetailLocation } from '../logic';
@@ -62,6 +63,12 @@ export function EventDetailModal({
             </span>,
           ] as [string, ReactNode],
         ]
+      : []),
+    ...(event.risk
+      ? ([[t('usage_stats.detail_risk'), <RiskBadge key="risk" risk={event.risk} />]] as [
+          string,
+          ReactNode,
+        ][])
       : []),
     [t('usage_stats.col_provider'), <ProviderBadge provider={event.provider} />],
     [t('usage_stats.col_credential'), labels.credential(event.authIndex, event.source)],
@@ -142,6 +149,19 @@ export function EventDetailModal({
             </Button>
           </div>
           <pre>{event.error}</pre>
+        </div>
+      )}
+      {event.risk && (
+        <div className={styles.detailError}>
+          <div className={styles.panelHeader}>
+            <span className={styles.statLabel}>{t('usage_stats.detail_risk_prompt')}</span>
+            {event.riskPrompt && (
+              <Button variant="ghost" size="sm" onClick={() => copy(event.riskPrompt)}>
+                {t('usage_stats.copy')}
+              </Button>
+            )}
+          </div>
+          <pre>{event.riskPrompt || t('usage_stats.risk_prompt_empty')}</pre>
         </div>
       )}
       <RequestLogSection key={event.id} requestId={event.requestId} />
