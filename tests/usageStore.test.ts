@@ -1462,6 +1462,16 @@ describe('usage risk labels', () => {
     expect(riskLabel(t, 'refusal_cyber')).toBe(i18n.t('usage_stats.risk_type_refusal_cyber'));
     expect(riskLabel(t, 'model_reroute')).toBe(i18n.t('usage_stats.risk_type_model_reroute'));
     expect(riskHint(t, 'model_reroute')).toBe(i18n.t('usage_stats.risk_hint_model_reroute'));
+
+    const enJSON = (await Bun.file('src/i18n/locales/en.json').json()) as {
+      usage_stats: Record<string, string>;
+    };
+    const zhJSON = (await Bun.file('src/i18n/locales/zh-CN.json').json()) as {
+      usage_stats: Record<string, string>;
+    };
+    expect(enJSON.usage_stats.risk_type_model_reroute).toBe('Model reroute');
+    expect(zhJSON.usage_stats.risk_type_model_reroute).toBe('模型改道');
+
     expect(riskLabel(t, 'refusal_refusal')).toBe(i18n.t('usage_stats.risk_type_refusal_refusal'));
     expect(riskHint(t, 'refusal_refusal')).toBe(i18n.t('usage_stats.risk_hint_refusal_refusal'));
     expect(riskLabel(t, 'refusal_reasoning_extraction')).toBe(
@@ -1474,5 +1484,97 @@ describe('usage risk labels', () => {
     expect(riskHint(t, 'refusal_fallback')).toBe(i18n.t('usage_stats.risk_hint_refusal_fallback'));
     expect(riskLabel(t, 'refusal_unknown')).toBe('refusal_unknown');
     expect(riskHint(t, 'refusal_unknown')).toBe(i18n.t('usage_stats.risk_hint'));
+  });
+
+  test('EventModelCell renders badges on a third line and plain events with two lines', async () => {
+    const i18n = (await import('@/i18n')).default;
+    const { riskLabel } = await import('@/features/usage/logic');
+    const { EventModelCell } = await import('@/features/usage/components/EventCells');
+    const t = i18n.t.bind(i18n) as (key: string, options?: Record<string, unknown>) => string;
+    const substitutedTag = i18n.t('usage_stats.substituted_tag');
+    const cyberTag = riskLabel(t, 'cyber_policy');
+
+    const baseEvent: UsageEvent = {
+      id: 1,
+      timestamp: 1000,
+      requestId: 'req-1',
+      provider: 'codex',
+      model: 'gpt-5',
+      alias: '',
+      endpoint: 'POST /v1/chat/completions',
+      authIndex: 'a1',
+      source: 'user@test',
+      apiKeyId: 'k1',
+      apiKey: 'sk-1234',
+      serviceTier: 'default',
+      reasoningEffort: 'high',
+      stream: false,
+      failed: false,
+      statusCode: 200,
+      error: '',
+      latencyMs: 100,
+      ttftMs: 50,
+      outputTps: 0,
+      tokens: {
+        inputUncached: 10,
+        cacheRead: 0,
+        cacheWrite: 0,
+        output: 5,
+        reasoning: 0,
+        unclassified: 0,
+        total: 15,
+      },
+      cost: 0.001,
+      priced: true,
+      clientIp: '127.0.0.1',
+      userAgent: 'curl',
+      responseModel: '',
+      substituted: false,
+      risk: '',
+      riskReason: '',
+      riskPrompt: '',
+      transport: 'http',
+    };
+
+    // Plain event: renders exactly two lines, no badges.
+    const plainMarkup = renderToStaticMarkup(createElement(EventModelCell, { event: baseEvent }));
+    expect(plainMarkup).toContain('gpt-5');
+    expect(plainMarkup).toContain('Codex');
+    expect(plainMarkup).not.toContain(substitutedTag);
+    expect(plainMarkup).not.toContain(cyberTag);
+    // Root container has 2 lines (1 model line, 1 provider line).
+    const plainSubLines = plainMarkup.match(/<span class="undefined undefined">/g);
+    expect(plainSubLines?.length).toBe(1);
+
+    // Substituted and risk event: line 1 has model arrow, line 3 has badges, line 1 has NO badges.
+    const flaggedEvent: UsageEvent = {
+      ...baseEvent,
+      responseModel: 'gpt-4',
+      substituted: true,
+      risk: 'cyber_policy',
+      riskReason: 'flagged',
+    };
+    const flaggedMarkup = renderToStaticMarkup(
+      createElement(EventModelCell, { event: flaggedEvent })
+    );
+    expect(flaggedMarkup).toContain('gpt-5');
+    expect(flaggedMarkup).toContain('gpt-4');
+    expect(flaggedMarkup).toContain('→');
+    expect(flaggedMarkup).toContain(substitutedTag);
+    expect(flaggedMarkup).toContain(cyberTag);
+
+    // Root container has 3 lines (1 model line, 1 provider line, 1 badge line).
+    const flaggedSubLines = flaggedMarkup.match(/<span class="undefined undefined">/g);
+    expect(flaggedSubLines?.length).toBe(2);
+
+    // Line 1 contains model and responseModel, but does NOT contain badges.
+    const firstLineMatch = flaggedMarkup.match(
+      /<span class="undefined undefined undefined">(.*?)<\/span><span class="undefined undefined">/
+    );
+    expect(firstLineMatch).toBeTruthy();
+    expect(firstLineMatch![1]).toContain('gpt-5');
+    expect(firstLineMatch![1]).toContain('gpt-4');
+    expect(firstLineMatch![1]).not.toContain(substitutedTag);
+    expect(firstLineMatch![1]).not.toContain(cyberTag);
   });
 });
