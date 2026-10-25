@@ -16,7 +16,13 @@ const POLL_MS = 2000;
 const errorText = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
 
-export function StorageCard({ initialStatus }: { initialStatus?: UsageStorageStatus }) {
+export function StorageCard({
+  initialStatus,
+  disabled: externalDisabled = false,
+}: {
+  initialStatus?: UsageStorageStatus;
+  disabled?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
@@ -66,6 +72,7 @@ export function StorageCard({ initialStatus }: { initialStatus?: UsageStorageSta
   }, [initialStatus, load]);
 
   const running = status?.optimize.running ?? false;
+  const controlsDisabled = externalDisabled || running || starting;
   useInterval(() => void load(), running ? POLL_MS : null);
 
   if (!status) return null;
@@ -85,6 +92,7 @@ export function StorageCard({ initialStatus }: { initialStatus?: UsageStorageSta
   };
 
   const handleOptimize = () => {
+    if (controlsDisabled) return;
     const days = parseKeepDays(keepDays);
     if (days === null) {
       setKeepInvalid(true);
@@ -166,7 +174,7 @@ export function StorageCard({ initialStatus }: { initialStatus?: UsageStorageSta
           placeholder={status.retentionDays > 0 ? String(status.retentionDays) : ''}
           hint={t('usage_stats.storage_keep_days_hint')}
           error={keepInvalid ? t('usage_stats.storage_keep_days_invalid') : undefined}
-          disabled={running || starting}
+          disabled={controlsDisabled}
           onChange={(ev) => {
             setKeepInvalid(false);
             setKeepDays(ev.target.value);
@@ -178,7 +186,7 @@ export function StorageCard({ initialStatus }: { initialStatus?: UsageStorageSta
             variant="secondary"
             onClick={handleOptimize}
             loading={running || starting}
-            disabled={running || starting}
+            disabled={controlsDisabled}
           >
             {running ? t('usage_stats.storage_optimizing') : t('usage_stats.storage_optimize')}
           </Button>

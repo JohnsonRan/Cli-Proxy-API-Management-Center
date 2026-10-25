@@ -117,8 +117,16 @@ export function UsagePage() {
 
   const requestRef = useRef(0);
   const labels = useUsageLabels(connected);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [storageRev, setStorageRev] = useState(0);
   const bumpStorageRev = useCallback(() => setStorageRev((v) => v + 1), []);
+  const handleSavingChange = useCallback(
+    (saving: boolean) => {
+      setSettingsSaving(saving);
+      if (!saving) bumpStorageRev();
+    },
+    [bumpStorageRev]
+  );
   // A link's own tab and range are not the user's choice: save only once they change them.
   // Compared by value rather than a run-once flag so StrictMode's double effect cannot save.
   const linkView = useRef(
@@ -249,8 +257,7 @@ export function UsagePage() {
 
   const handleSettingsSaved = useCallback(async () => {
     await load();
-    bumpStorageRev();
-  }, [bumpStorageRev, load]);
+  }, [load]);
 
   const selectTab = useCallback((next: UsageTab) => {
     setTab(next);
@@ -679,7 +686,13 @@ export function UsagePage() {
               </Button>
             }
           />
-          {connected && <StoreSettingsCard onSaved={handleSettingsSaved} disabled={enabling} />}
+          {connected && (
+            <StoreSettingsCard
+              onSaved={handleSettingsSaved}
+              onSavingChange={handleSavingChange}
+              disabled={enabling}
+            />
+          )}
         </div>
       ) : loading && !stats ? (
         <div className={styles.cards} aria-hidden="true">
@@ -740,8 +753,10 @@ export function UsagePage() {
           {tab === 'pricing' && pricing && (
             <PricingTab pricing={pricing} onPricingChange={setPricing} onReload={load} />
           )}
-          {tab === 'settings' && <StoreSettingsCard onSaved={handleSettingsSaved} />}
-          {tab === 'settings' && <StorageCard key={storageRev} />}
+          {tab === 'settings' && (
+            <StoreSettingsCard onSaved={handleSettingsSaved} onSavingChange={handleSavingChange} />
+          )}
+          {tab === 'settings' && <StorageCard key={storageRev} disabled={settingsSaving} />}
         </RevealGroup>
       ) : null}
     </div>

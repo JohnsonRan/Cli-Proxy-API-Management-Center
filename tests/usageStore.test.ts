@@ -911,19 +911,22 @@ describe('usage auto-refresh', () => {
   test('keeps store settings on their own tab, not the pricing tab', () => {
     const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
     const pricing = readFileSync('src/features/usage/tabs/PricingTab.tsx', 'utf8');
-    expect(page).toContain(
-      "{tab === 'settings' && <StoreSettingsCard onSaved={handleSettingsSaved} />}"
-    );
+    expect(page).toContain("tab === 'settings' && (");
+    expect(page).toContain('<StoreSettingsCard');
     expect(pricing).not.toContain('StoreSettingsCard');
   });
 
-  test('keys StorageCard by revision and bumps it after settings save and header refresh', () => {
+  test('keys StorageCard by revision, disables it while settings save, and bumps revision on finish', () => {
     const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
-    expect(page).toContain('<StorageCard key={storageRev} />');
-    expect(page).toContain('const handleSettingsSaved = useCallback(async () => {');
+    const storeCard = readFileSync('src/features/usage/components/StoreSettingsCard.tsx', 'utf8');
+    expect(page).toContain('<StorageCard key={storageRev} disabled={settingsSaving} />');
+    expect(page).toContain('const [settingsSaving, setSettingsSaving] = useState(false);');
+    expect(page).toContain('if (!saving) bumpStorageRev();');
     expect(page).toContain('const handleHeaderRefresh = useCallback(async () => {');
     expect(page).toContain('bumpStorageRev();');
     expect(page).toContain('useHeaderRefresh(handleHeaderRefresh);');
+    expect(storeCard).toContain('onSavingChange?.(true);');
+    expect(storeCard).toContain('onSavingChange?.(false);');
   });
 });
 
@@ -1738,6 +1741,15 @@ describe('usage store database', () => {
     );
     expect(running).not.toContain('role="status"');
     expect(running).toMatch(/<button[^>]*disabled=""/);
+
+    const disabledCard = renderToStaticMarkup(
+      createElement(StorageCard, {
+        initialStatus: status,
+        disabled: true,
+      })
+    );
+    expect(disabledCard).toMatch(/<input[^>]*disabled=""/);
+    expect(disabledCard).toMatch(/<button[^>]*disabled=""/);
   });
 
   test('sets exclude-embeddings by its own path when saving', async () => {
