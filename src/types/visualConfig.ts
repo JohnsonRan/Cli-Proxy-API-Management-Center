@@ -178,6 +178,7 @@ export type VisualConfigValues = {
   logsMaxTotalSizeMb: string;
   errorLogsMaxFiles: string;
   usageStatisticsEnabled: boolean;
+  usageExcludeEmbeddings: boolean;
   redisUsageQueueRetentionSeconds: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
@@ -282,6 +283,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   logsMaxTotalSizeMb: '',
   errorLogsMaxFiles: '',
   usageStatisticsEnabled: false,
+  usageExcludeEmbeddings: false,
   redisUsageQueueRetentionSeconds: '',
   proxyUrl: '',
   forceModelPrefix: false,
