@@ -470,6 +470,119 @@ export const normalizeUsageAnalysis = (data: unknown): UsageAnalysis => {
 const optionalNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
+/** One quota window instance of a credential with the API-equivalent usage it took. */
+export interface UsageQuotaWindow {
+  authIndex: string;
+  provider: string;
+  /** Provider window name (`primary`/`secondary`, `5h`/`7d`); pair windows by `periodSeconds`. */
+  window: string;
+  periodSeconds: number;
+  /** Nominal window start (resetAt - periodSeconds) in unix seconds. */
+  startAt: number;
+  resetAt: number;
+  /** Highest percentage seen in the window, first seen at `observedAt` (unix ms). */
+  usedPercent: number;
+  ownPercent: number;
+  observedAt: number;
+  samples: number;
+  /** The credential's usage in the adjusted accounting bounds (from startAt - 30m, not before previous reset, to highest % observedAt, exclusive of resetAt). */
+  usage: UsageAggregate;
+  /** Usage extrapolated to 100% of the window; null at 0%. */
+  fullCost: number | null;
+  fullTokens: number | null;
+  partial: boolean;
+  externalPercent: number;
+  externalChecked: boolean;
+}
+
+export interface UsageQuotaModelFeature {
+  model: string;
+  kind: string;
+  multiplier: number;
+  share: number;
+}
+
+export interface UsageQuotaModelValue {
+  model: string;
+  fullCost: number;
+}
+
+export interface UsageQuotaModel {
+  authIndex: string;
+  provider: string;
+  periodSeconds: number;
+  status: 'fitted' | 'insufficient';
+  windows: number;
+  segments: number;
+  externalSegments: number;
+  costUsed: number;
+  pctPerUsd: number | null;
+  fullCost: number | null;
+  fullCostLow: number | null;
+  fullCostHigh: number | null;
+  ciPercent: number | null;
+  features: UsageQuotaModelFeature[];
+  modelValues: UsageQuotaModelValue[];
+}
+
+export interface UsageQuotaValueResponse {
+  windows: UsageQuotaWindow[];
+  models: UsageQuotaModel[];
+}
+
+export const normalizeUsageQuotaValue = (data: unknown): UsageQuotaValueResponse => {
+  const r = rec(data);
+  const windows = list(r.windows).map((w) => {
+    const usedPercent = num(w.used_percent);
+    const externalPercent = num(w.external_percent);
+    const ownPercent = optionalNumber(w.own_percent) ?? usedPercent;
+    return {
+      authIndex: str(w.auth_index),
+      provider: str(w.provider),
+      window: str(w.window),
+      periodSeconds: num(w.period_seconds),
+      startAt: num(w.start_at),
+      resetAt: num(w.reset_at),
+      usedPercent,
+      ownPercent,
+      observedAt: num(w.observed_at),
+      samples: num(w.samples),
+      usage: normalizeAggregate(w.usage),
+      fullCost: optionalNumber(w.full_cost) ?? null,
+      fullTokens: optionalNumber(w.full_tokens) ?? null,
+      partial: w.partial === true,
+      externalPercent,
+      externalChecked: w.external_checked === true,
+    };
+  });
+  const models = list(r.models).map((m) => ({
+    authIndex: str(m.auth_index),
+    provider: str(m.provider),
+    periodSeconds: num(m.period_seconds),
+    status: m.status === 'fitted' ? ('fitted' as const) : ('insufficient' as const),
+    windows: num(m.windows),
+    segments: num(m.segments),
+    externalSegments: num(m.external_segments),
+    costUsed: num(m.cost_used),
+    pctPerUsd: optionalNumber(m.pct_per_usd) ?? null,
+    fullCost: optionalNumber(m.full_cost) ?? null,
+    fullCostLow: optionalNumber(m.full_cost_low) ?? null,
+    fullCostHigh: optionalNumber(m.full_cost_high) ?? null,
+    ciPercent: optionalNumber(m.ci_percent) ?? null,
+    features: list(m.features).map((f) => ({
+      model: str(f.model),
+      kind: str(f.kind),
+      multiplier: num(f.multiplier),
+      share: num(f.share),
+    })),
+    modelValues: list(m.model_values).map((mv) => ({
+      model: str(mv.model),
+      fullCost: num(mv.full_cost),
+    })),
+  }));
+  return { windows, models };
+};
+
 export const normalizePriceOverrides = (data: unknown): UsagePriceOverride[] =>
   list(data)
     .filter((o) => str(o.model).trim())
@@ -748,6 +861,16 @@ export const usageStoreApi = {
           api_key_id: filter.apiKeyId,
           auth_index: filter.authIndex,
         }),
+      })
+    ),
+  getQuotaValue: async (
+    from: number,
+    to: number,
+    authIndex?: string[]
+  ): Promise<UsageQuotaValueResponse> =>
+    normalizeUsageQuotaValue(
+      await apiClient.get('/observability/usage/quota-value', {
+        params: buildUsageParams({ from, to, auth_index: authIndex }),
       })
     ),
   getOptions: async (from: number, to: number) =>
