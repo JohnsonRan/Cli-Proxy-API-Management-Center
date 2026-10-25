@@ -80,6 +80,15 @@ export const buildRerankEndpoint = (baseUrl: string): string => {
   return `${trimmed}/rerank`;
 };
 
+export const buildSystemOneEndpoint = (baseUrl: string): string => {
+  const trimmed = normalizeUpstreamBaseUrl(baseUrl);
+  if (!trimmed) return '';
+  if (trimmed.endsWith('/systemone')) {
+    return trimmed;
+  }
+  return `${trimmed}/systemone`;
+};
+
 export const buildCodexResponsesEndpoint = (baseUrl: string): string => {
   const trimmed = normalizeUpstreamBaseUrl(baseUrl);
   if (!trimmed) return '';
