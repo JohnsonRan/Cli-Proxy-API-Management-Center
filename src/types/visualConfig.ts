@@ -165,8 +165,6 @@ export type VisualConfigValues = {
   rmDisableAutoUpdatePanel: boolean;
   rmPanelRepo: string;
   authDir: string;
-  /** Client authentication keys at access.api-keys (never the upstream api-keys map). */
-  apiKeysText: string;
   pluginsEnabled: boolean;
   pluginStoreSources: string[];
   pluginStoreAuth: PluginStoreAuthRule[];
@@ -268,7 +266,6 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   rmDisableAutoUpdatePanel: false,
   rmPanelRepo: '',
   authDir: '',
-  apiKeysText: '',
   pluginsEnabled: false,
   pluginStoreSources: [],
   pluginStoreAuth: [],
