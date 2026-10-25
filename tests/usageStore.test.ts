@@ -905,14 +905,25 @@ describe('usage auto-refresh', () => {
     expect(page).toContain('refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null)');
     // Filter changes fetch prices only until they have loaded once.
     expect(page).toContain('void load(!pricingLoadedRef.current);');
-    expect(page).toContain('useHeaderRefresh(load);');
+    expect(page).toContain('useHeaderRefresh(handleHeaderRefresh);');
   });
 
   test('keeps store settings on their own tab, not the pricing tab', () => {
     const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
     const pricing = readFileSync('src/features/usage/tabs/PricingTab.tsx', 'utf8');
-    expect(page).toContain("{tab === 'settings' && <StoreSettingsCard onSaved={load} />}");
+    expect(page).toContain(
+      "{tab === 'settings' && <StoreSettingsCard onSaved={handleSettingsSaved} />}"
+    );
     expect(pricing).not.toContain('StoreSettingsCard');
+  });
+
+  test('keys StorageCard by revision and bumps it after settings save and header refresh', () => {
+    const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
+    expect(page).toContain('<StorageCard key={storageRev} />');
+    expect(page).toContain('const handleSettingsSaved = useCallback(async () => {');
+    expect(page).toContain('const handleHeaderRefresh = useCallback(async () => {');
+    expect(page).toContain('bumpStorageRev();');
+    expect(page).toContain('useHeaderRefresh(handleHeaderRefresh);');
   });
 });
 
@@ -1087,6 +1098,7 @@ describe('usage store settings', () => {
 
     const origPatch = apiClient.patch.bind(apiClient);
     const origDelete = apiClient.delete.bind(apiClient);
+    const origPut = apiClient.put.bind(apiClient);
     const calls: string[] = [];
 
     apiClient.patch = (async (url: string, data?: unknown) => {
@@ -1097,12 +1109,30 @@ describe('usage store settings', () => {
       calls.push(`DELETE ${url}`);
       throw { status: 404, apiCode: 'not_found' };
     }) as typeof apiClient.delete;
+    apiClient.put = (async (url: string, data?: unknown) => {
+      calls.push(`PUT ${url} ${JSON.stringify(data)}`);
+      return { status: 'ok' } as never;
+    }) as typeof apiClient.put;
 
     try {
       // Enabling while clearing path: DELETE runs before PATCH enable=true, 404 ignored.
       await usageStoreApi.saveSettings(
-        { enable: true, path: '', retentionDays: 30, disableGeoip: false },
-        { enable: false, path: '/old.db', retentionDays: 30, disableGeoip: false }
+        {
+          enable: true,
+          path: '',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: false,
+        },
+        {
+          enable: false,
+          path: '/old.db',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: false,
+        }
       );
       expect(calls).toEqual([
         'DELETE /config/observability/usage/store/path',
@@ -1112,16 +1142,58 @@ describe('usage store settings', () => {
       // Disabling while clearing path: PATCH enable=false runs before DELETE.
       calls.length = 0;
       await usageStoreApi.saveSettings(
-        { enable: false, path: '', retentionDays: 30, disableGeoip: false },
-        { enable: true, path: '/old.db', retentionDays: 30, disableGeoip: false }
+        {
+          enable: false,
+          path: '',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: false,
+        },
+        {
+          enable: true,
+          path: '/old.db',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: false,
+        }
       );
       expect(calls).toEqual([
         'PATCH /config/observability/usage/store {"enable":false}',
         'DELETE /config/observability/usage/store/path',
       ]);
+
+      // Disabling while clearing path and setting exclude-embeddings:
+      // PATCH enable:false, then DELETE path, then PUT exclude-embeddings.
+      calls.length = 0;
+      await usageStoreApi.saveSettings(
+        {
+          enable: false,
+          path: '',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: true,
+        },
+        {
+          enable: true,
+          path: '/old.db',
+          retentionDays: 30,
+          disableGeoip: false,
+          disableRiskPrompts: false,
+          excludeEmbeddings: false,
+        }
+      );
+      expect(calls).toEqual([
+        'PATCH /config/observability/usage/store {"enable":false}',
+        'DELETE /config/observability/usage/store/path',
+        'PUT /config/observability/usage/exclude-embeddings true',
+      ]);
     } finally {
       apiClient.patch = origPatch;
       apiClient.delete = origDelete;
+      apiClient.put = origPut;
     }
   });
 
