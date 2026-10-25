@@ -117,6 +117,8 @@ export function UsagePage() {
 
   const requestRef = useRef(0);
   const labels = useUsageLabels(connected);
+  const [storageRev, setStorageRev] = useState(0);
+  const bumpStorageRev = useCallback(() => setStorageRev((v) => v + 1), []);
   // A link's own tab and range are not the user's choice: save only once they change them.
   // Compared by value rather than a run-once flag so StrictMode's double effect cannot save.
   const linkView = useRef(
@@ -195,7 +197,12 @@ export function UsagePage() {
     [connected, globalFilter, t]
   );
 
-  useHeaderRefresh(load);
+  const handleHeaderRefresh = useCallback(async () => {
+    bumpStorageRev();
+    await load();
+  }, [bumpStorageRev, load]);
+
+  useHeaderRefresh(handleHeaderRefresh);
 
   // Only the overview, analysis and quota value follow the auto-refresh; the realtime tab polls on its own
   // and reloading the events or pricing tabs would drop loaded pages and edits.
@@ -239,6 +246,11 @@ export function UsagePage() {
       setEnabling(false);
     }
   }, [load, t]);
+
+  const handleSettingsSaved = useCallback(async () => {
+    await load();
+    bumpStorageRev();
+  }, [bumpStorageRev, load]);
 
   const selectTab = useCallback((next: UsageTab) => {
     setTab(next);
@@ -667,7 +679,7 @@ export function UsagePage() {
               </Button>
             }
           />
-          {connected && <StoreSettingsCard onSaved={load} disabled={enabling} />}
+          {connected && <StoreSettingsCard onSaved={handleSettingsSaved} disabled={enabling} />}
         </div>
       ) : loading && !stats ? (
         <div className={styles.cards} aria-hidden="true">
@@ -728,8 +740,8 @@ export function UsagePage() {
           {tab === 'pricing' && pricing && (
             <PricingTab pricing={pricing} onPricingChange={setPricing} onReload={load} />
           )}
-          {tab === 'settings' && <StoreSettingsCard onSaved={load} />}
-          {tab === 'settings' && <StorageCard />}
+          {tab === 'settings' && <StoreSettingsCard onSaved={handleSettingsSaved} />}
+          {tab === 'settings' && <StorageCard key={storageRev} />}
         </RevealGroup>
       ) : null}
     </div>

@@ -1290,7 +1290,7 @@
     "storage_free_sub": "清理后空出，优化后归还磁盘",
     "storage_events": "请求明细",
     "storage_oldest": "最早 {{time}}",
-    "storage_growth": "每日增长",
+    "storage_growth": "预估每日增长",
     "storage_per_day": "{{size}}/天",
     "storage_growth_sub": "约每天 {{count}} 次请求（近 7 天）",
     "storage_keep_days": "只保留最近天数",

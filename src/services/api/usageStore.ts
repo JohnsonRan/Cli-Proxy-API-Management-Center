@@ -1077,17 +1077,10 @@ export const usageStoreApi = {
   saveSettings: async (next: UsageStoreSettings, previous?: UsageStoreSettings) => {
     const assertConnection = guardConfigConnection();
     const { patch, puts, deletions } = serializeUsageStoreSettings(next, previous);
-    const runPatch = async () => {
-      if (Object.keys(patch).length > 0) {
-        assertConnection();
-        await apiClient.patch(STORE_PATH, patch);
-      }
-      // Last: a core without the embeddings patch rejects this path (400), and the store
-      // settings above must still be saved.
-      for (const [path, value] of Object.entries(puts)) {
-        assertConnection();
-        await apiClient.put(path, value);
-      }
+    const runStorePatch = async () => {
+      if (Object.keys(patch).length === 0) return;
+      assertConnection();
+      await apiClient.patch(STORE_PATH, patch);
     };
     const runDeletions = async () => {
       for (const path of deletions) {
@@ -1095,15 +1088,24 @@ export const usageStoreApi = {
         await deleteOptionalConfig(path);
       }
     };
+    const runPuts = async () => {
+      // Last: a core without the embeddings patch rejects this path (400), and the store
+      // settings above must still be saved.
+      for (const [path, value] of Object.entries(puts)) {
+        assertConnection();
+        await apiClient.put(path, value);
+      }
+    };
     // Close first when disabling so deleting `path` cannot briefly open default `usage.db`;
     // otherwise delete stale fields before patching `enable: true`.
     if (patch.enable === false) {
-      await runPatch();
+      await runStorePatch();
       await runDeletions();
     } else {
       await runDeletions();
-      await runPatch();
+      await runStorePatch();
     }
+    await runPuts();
   },
   setEnabled: (enabled: boolean) => apiClient.put(STORE_ENABLE_PATH, enabled),
   enable: () => apiClient.put(STORE_ENABLE_PATH, true),

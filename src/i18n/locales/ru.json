@@ -1295,7 +1295,7 @@
     "storage_free_sub": "Освобождено очисткой; вернётся на диск после оптимизации",
     "storage_events": "Записи запросов",
     "storage_oldest": "Самая ранняя {{time}}",
-    "storage_growth": "Рост в день",
+    "storage_growth": "Рост в день (оценка)",
     "storage_per_day": "{{size}}/день",
     "storage_growth_sub": "Около {{count}} запросов в день (за 7 дней)",
     "storage_keep_days": "Хранить записи (дней)",

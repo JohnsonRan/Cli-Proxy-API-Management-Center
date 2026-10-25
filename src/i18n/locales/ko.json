@@ -1292,7 +1292,7 @@
     "storage_free_sub": "정리로 비워진 공간, 최적화하면 디스크로 반환",
     "storage_events": "요청 기록",
     "storage_oldest": "가장 오래된 기록 {{time}}",
-    "storage_growth": "일일 증가량",
+    "storage_growth": "예상 일일 증가량",
     "storage_per_day": "{{size}}/일",
     "storage_growth_sub": "하루 약 {{count}}건 요청(최근 7일)",
     "storage_keep_days": "요청 기록 보관 일수",

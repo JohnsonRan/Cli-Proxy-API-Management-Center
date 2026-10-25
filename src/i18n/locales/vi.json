@@ -1248,7 +1248,7 @@
     "storage_free_sub": "Giải phóng khi dọn; trả lại ổ đĩa sau khi tối ưu",
     "storage_events": "Bản ghi yêu cầu",
     "storage_oldest": "Cũ nhất {{time}}",
-    "storage_growth": "Tăng mỗi ngày",
+    "storage_growth": "Tăng mỗi ngày (ước tính)",
     "storage_per_day": "{{size}}/ngày",
     "storage_growth_sub": "Khoảng {{count}} yêu cầu mỗi ngày (7 ngày qua)",
     "storage_keep_days": "Chỉ giữ bản ghi (ngày)",

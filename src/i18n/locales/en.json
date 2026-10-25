@@ -1292,7 +1292,7 @@
     "storage_free_sub": "Freed by pruning; returned to disk by optimizing",
     "storage_events": "Request events",
     "storage_oldest": "Oldest {{time}}",
-    "storage_growth": "Daily growth",
+    "storage_growth": "Est. daily growth",
     "storage_per_day": "{{size}}/day",
     "storage_growth_sub": "About {{count}} requests a day (last 7 days)",
     "storage_keep_days": "Keep request events for (days)",
