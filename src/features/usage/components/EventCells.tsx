@@ -143,6 +143,7 @@ export function EventCostCell({ event: e }: { event: UsageEvent }) {
 export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?: AddFilter }) {
   const { t } = useTranslation();
   const tier = e.serviceTier && !['default', 'auto'].includes(e.serviceTier) ? e.serviceTier : '';
+  const hasBadges = e.substituted || Boolean(e.risk);
   return (
     <span className={styles.rankText}>
       <span className={`${styles.cellStrong} ${styles.mono} ${styles.cellLine}`}>
@@ -156,12 +157,8 @@ export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?:
           <>
             <span className={styles.subArrow}>→</span>
             <span>{e.responseModel}</span>
-            <span className={styles.substitutedBadge} title={t('usage_stats.substituted_hint')}>
-              {t('usage_stats.substituted_tag')}
-            </span>
           </>
         )}
-        {e.risk && <RiskBadge risk={e.risk} reason={e.riskReason} />}
       </span>
       <span className={`${styles.cellSub} ${styles.cellLine}`}>
         <FilterText
@@ -181,6 +178,16 @@ export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?:
           </span>
         )}
       </span>
+      {hasBadges && (
+        <span className={`${styles.cellSub} ${styles.cellLine}`}>
+          {e.substituted && (
+            <span className={styles.substitutedBadge} title={t('usage_stats.substituted_hint')}>
+              {t('usage_stats.substituted_tag')}
+            </span>
+          )}
+          {e.risk && <RiskBadge risk={e.risk} reason={e.riskReason} />}
+        </span>
+      )}
     </span>
   );
 }

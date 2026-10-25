@@ -936,7 +936,7 @@ export function OverviewTab({
                       rank={index + 1}
                       color={color}
                       name={
-                        <>
+                        <span className={styles.cellLine}>
                           <span>{m.model}</span>
                           {m.substituted > 0 && (
                             <span
@@ -951,7 +951,7 @@ export function OverviewTab({
                               {m.substituted}
                             </span>
                           )}
-                        </>
+                        </span>
                       }
                       sub={<ProviderBadge provider={m.provider} />}
                       mono

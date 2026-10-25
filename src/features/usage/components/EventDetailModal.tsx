@@ -53,7 +53,7 @@ export function EventDetailModal({
       ? [
           [
             t('usage_stats.detail_served_model'),
-            <span key="served" className={styles.mono}>
+            <span key="served" className={`${styles.mono} ${styles.cellLine}`}>
               {event.responseModel}
               {event.substituted && (
                 <span className={styles.substitutedBadge} title={t('usage_stats.substituted_hint')}>
