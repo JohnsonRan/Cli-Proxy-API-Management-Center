@@ -1546,6 +1546,8 @@
   border-radius: 10px;
   background: var(--bg-secondary);
   min-width: 0;
+  // The grid aligns inputs to the top; the two switch boxes share a row and match its height.
+  align-self: stretch;
 }
 
 .settingHint {
@@ -1555,13 +1557,17 @@
   color: var(--text-tertiary);
 }
 
+// IP lookup progress and source: one muted line under the switches, across both columns.
 .geoipStatusRow {
+  grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: -6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
 }
 
 .attributionLink {

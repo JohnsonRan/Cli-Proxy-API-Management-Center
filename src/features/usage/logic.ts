@@ -551,7 +551,6 @@ export interface StoreSettingsDraft {
   enable: boolean;
   path: string;
   retentionDays: string;
-  disableModelsDev: boolean;
   disableGeoip: boolean;
 }
 
@@ -559,7 +558,6 @@ export const toStoreSettingsDraft = (settings: UsageStoreSettings): StoreSetting
   enable: settings.enable,
   path: settings.path,
   retentionDays: settings.retentionDays === 0 ? '' : String(settings.retentionDays),
-  disableModelsDev: settings.disableModelsDev,
   disableGeoip: settings.disableGeoip,
 });
 
@@ -582,7 +580,6 @@ export const parseStoreSettingsDraft = (
       enable: draft.enable,
       path: draft.path.trim(),
       retentionDays,
-      disableModelsDev: draft.disableModelsDev,
       disableGeoip: draft.disableGeoip,
     },
   };
@@ -598,7 +595,6 @@ export const isStoreSettingsDirty = (
     draft.enable !== saved.enable ||
     draft.path.trim() !== saved.path ||
     retentionDays !== saved.retentionDays ||
-    draft.disableModelsDev !== saved.disableModelsDev ||
     draft.disableGeoip !== saved.disableGeoip
   );
 };

@@ -888,7 +888,6 @@ describe('usage store settings', () => {
       enable: false,
       path: '',
       retentionDays: 0,
-      disableModelsDev: false,
       disableGeoip: false,
     });
 
@@ -903,7 +902,6 @@ describe('usage store settings', () => {
       enable: true,
       path: '/data/usage.db',
       retentionDays: 14,
-      disableModelsDev: true,
       disableGeoip: true,
     });
     expect(normalizeUsageStoreSettings({ 'retention-days': -1 }).retentionDays).toBe(-1);
@@ -914,7 +912,6 @@ describe('usage store settings', () => {
         enable: true,
         path: '/data/usage.db',
         'retention-days': 14,
-        pricing: { 'disable-models-dev': true },
         geoip: { disable: true },
       },
       deletions: [],
@@ -923,7 +920,7 @@ describe('usage store settings', () => {
     // Clearing optional fields deletes them cleanly without touching overrides or enable.
     expect(
       serializeUsageStoreSettings(
-        { enable: true, path: '', retentionDays: 0, disableModelsDev: false, disableGeoip: false },
+        { enable: true, path: '', retentionDays: 0, disableGeoip: false },
         loaded
       )
     ).toEqual({
@@ -931,10 +928,22 @@ describe('usage store settings', () => {
       deletions: [
         '/config/observability/usage/store/path',
         '/config/observability/usage/store/retention-days',
-        '/config/observability/usage/store/pricing/disable-models-dev',
         '/config/observability/usage/store/geoip/disable',
       ],
     });
+
+    // pricing.disable-models-dev is YAML-only now: no save ever writes or deletes it.
+    for (const next of [
+      { ...loaded, retentionDays: 7 },
+      { ...loaded, path: '' },
+      { enable: false, path: '', retentionDays: 0, disableGeoip: false },
+    ]) {
+      for (const previous of [loaded, defaults, undefined]) {
+        const mutation = serializeUsageStoreSettings(next, previous);
+        expect(mutation.patch).not.toHaveProperty('pricing');
+        expect(mutation.deletions.some((p) => p.includes('pricing'))).toBe(false);
+      }
+    }
 
     // Disabling keeps path, retention-days and pricing intact on disk.
     expect(serializeUsageStoreSettings({ ...loaded, enable: false }, loaded)).toEqual({
@@ -970,8 +979,8 @@ describe('usage store settings', () => {
     try {
       // Enabling while clearing path: DELETE runs before PATCH enable=true, 404 ignored.
       await usageStoreApi.saveSettings(
-        { enable: true, path: '', retentionDays: 30, disableModelsDev: false },
-        { enable: false, path: '/old.db', retentionDays: 30, disableModelsDev: false }
+        { enable: true, path: '', retentionDays: 30, disableGeoip: false },
+        { enable: false, path: '/old.db', retentionDays: 30, disableGeoip: false }
       );
       expect(calls).toEqual([
         'DELETE /config/observability/usage/store/path',
@@ -981,8 +990,8 @@ describe('usage store settings', () => {
       // Disabling while clearing path: PATCH enable=false runs before DELETE.
       calls.length = 0;
       await usageStoreApi.saveSettings(
-        { enable: false, path: '', retentionDays: 30, disableModelsDev: false },
-        { enable: true, path: '/old.db', retentionDays: 30, disableModelsDev: false }
+        { enable: false, path: '', retentionDays: 30, disableGeoip: false },
+        { enable: true, path: '/old.db', retentionDays: 30, disableGeoip: false }
       );
       expect(calls).toEqual([
         'PATCH /config/observability/usage/store {"enable":false}',
@@ -1015,16 +1024,17 @@ describe('usage store settings', () => {
       enable: true,
       path: '/data/usage.db',
       retentionDays: 0,
-      disableModelsDev: false,
+      disableGeoip: false,
     };
     const draft = toStoreSettingsDraft(saved);
     expect(draft).toEqual({
       enable: true,
       path: '/data/usage.db',
       retentionDays: '',
-      disableModelsDev: false,
+      disableGeoip: false,
     });
     expect(isStoreSettingsDirty(draft, saved)).toBe(false);
+    expect(isStoreSettingsDirty({ ...draft, disableGeoip: true }, saved)).toBe(true);
     expect(isStoreSettingsDirty({ ...draft, retentionDays: '0' }, saved)).toBe(false);
     expect(isStoreSettingsDirty({ ...draft, retentionDays: '30' }, saved)).toBe(true);
     expect(isStoreSettingsDirty({ ...draft, retentionDays: 'bad' }, saved)).toBe(true);
@@ -1032,7 +1042,7 @@ describe('usage store settings', () => {
       error: 'retentionDays',
     });
     expect(parseStoreSettingsDraft({ ...draft, path: ' /x.db ', retentionDays: '-1' })).toEqual({
-      settings: { enable: true, path: '/x.db', retentionDays: -1, disableModelsDev: false },
+      settings: { enable: true, path: '/x.db', retentionDays: -1, disableGeoip: false },
     });
   });
 
@@ -1044,7 +1054,6 @@ describe('usage store settings', () => {
           enable: true,
           path: '/var/lib/usage.db',
           retentionDays: 90,
-          disableModelsDev: true,
           disableGeoip: true,
         },
         onSaved: async () => {},
@@ -1052,7 +1061,9 @@ describe('usage store settings', () => {
     );
     expect(markup).toContain('value="/var/lib/usage.db"');
     expect(markup).toContain('value="90"');
-    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(3);
+    expect(markup.match(/<input type="checkbox"/g)?.length).toBe(2);
+    expect(markup.match(/<input type="checkbox"[^>]*checked=""/g)?.length).toBe(2);
+    expect(markup).not.toContain('models.dev');
     expect(markup).toContain('https://ip.sb/api/');
     expect(markup).not.toContain('db-ip');
     expect(markup).toContain('aria-describedby=');
@@ -1070,6 +1081,54 @@ describe('usage store settings', () => {
     for (const [, keys] of maps.slice(1)) {
       expect(keys).toEqual(baseline);
     }
+  });
+
+  test('normalizes the IP lookup status and shows background progress without a lookup button', async () => {
+    const { normalizeUsageGeoipStatus, usageStoreApi } = await import('@/services/api/usageStore');
+    const { StoreSettingsCard } = await import('@/features/usage/components/StoreSettingsCard');
+    const i18n = (await import('@/i18n')).default;
+    const background = i18n.t('usage_stats.store_geoip_background');
+
+    expect(normalizeUsageGeoipStatus(null)).toEqual({
+      enabled: true,
+      provider: '',
+      resolved: 0,
+      pending: 0,
+      lastLookupAt: null,
+      lastError: '',
+    });
+    expect(normalizeUsageGeoipStatus({ resolved: -3, pending: 2.7 })).toMatchObject({
+      resolved: 0,
+      pending: 2,
+    });
+    expect(usageStoreApi).not.toHaveProperty('refreshGeoip');
+
+    const settings = { enable: true, path: '', retentionDays: 0, disableGeoip: false };
+    const status = (pending: number, enabled = true) => ({
+      enabled,
+      provider: 'ip.sb',
+      resolved: 3,
+      pending,
+      lastLookupAt: null,
+      lastError: '',
+    });
+    const render = (pending: number, disableGeoip = false, enabled = true) =>
+      renderToStaticMarkup(
+        createElement(StoreSettingsCard, {
+          initialSettings: { ...settings, disableGeoip },
+          initialGeoipStatus: status(pending, enabled),
+          onSaved: async () => {},
+        })
+      );
+
+    const busy = render(5);
+    expect(busy).toContain(background);
+    // Only the save button remains in the card; no manual lookup action.
+    expect(busy.match(/<button/g)?.length).toBe(1);
+    expect(render(0)).not.toContain(background);
+    // The note follows the backend-reported status, not the unsaved switch.
+    expect(render(5, true, true)).toContain(background);
+    expect(render(5, false, false)).not.toContain(background);
   });
 
   test('renders StatCard on the shared Card surface without inline accent or gradient styles', async () => {
@@ -1248,7 +1307,6 @@ describe('usage store settings', () => {
 
   test('renders client cell with three lines: IP, location · ISP, and user agent', async () => {
     const { EventClientCell } = await import('@/features/usage/components/EventCells');
-    const { UsageEvent } = await import('@/services/api/usageStore');
 
     const event = {
       clientIp: '153.156.0.1',
@@ -1259,7 +1317,7 @@ describe('usage store settings', () => {
         city: 'Tokyo',
         isp: 'Open Computer Network',
       },
-    } as unknown as UsageEvent;
+    } as unknown as import('@/services/api/usageStore').UsageEvent;
 
     const markup = renderToStaticMarkup(createElement(EventClientCell, { event }));
 
