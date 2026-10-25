@@ -20,10 +20,12 @@ import { MetricIcon, type MetricIconName } from '../components/MetricIcon';
 import { CountUp } from '../components/Motion';
 import {
   EventClientCell,
+  EventCostCell,
   EventLatencyCell,
   EventModelCell,
   EventRouteCell,
   EventStatusCell,
+  EventTimeCell,
   EventTokensCell,
 } from '../components/EventCells';
 import { PanelHeading, Rate } from '../components/PanelBits';
@@ -261,12 +263,14 @@ export function EventsTab({
   const timeFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(i18n.language, {
-        month: 'numeric',
-        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
       }),
+    [i18n.language]
+  );
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(i18n.language, { month: 'numeric', day: 'numeric' }),
     [i18n.language]
   );
 
@@ -277,8 +281,12 @@ export function EventsTab({
     switch (column) {
       case 'time':
         return (
-          <TableCell className={styles.mono}>
-            {timeFormatter.format(new Date(e.timestamp))}
+          <TableCell>
+            <EventTimeCell
+              timestamp={e.timestamp}
+              timeFormatter={timeFormatter}
+              dateFormatter={dateFormatter}
+            />
           </TableCell>
         );
       case 'status':
@@ -314,11 +322,7 @@ export function EventsTab({
       case 'cost':
         return (
           <TableCell alignRight>
-            {e.priced ? (
-              <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
-            ) : (
-              <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
-            )}
+            <EventCostCell event={e} />
           </TableCell>
         );
       case 'client':
