@@ -13,6 +13,7 @@ import {
   riskHint,
   riskLabel,
   type EventDimension,
+  type UsageEventGroup,
 } from '../logic';
 import { ProviderBadge } from './Labels';
 import styles from '../UsagePage.module.scss';
@@ -98,6 +99,60 @@ export function EventStatusCell({
       {errorLine && (
         <span className={styles.errorSub} title={e.error}>
           {errorLine}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Status of a WebSocket connection folded into one row: the newest turn's status, or the in-flight
+ * pill while the connection is open, then the turn count, which toggles the turn rows.
+ */
+export function EventGroupStatusCell({
+  group,
+  live,
+  expanded,
+}: {
+  group: UsageEventGroup;
+  live: boolean;
+  expanded: boolean;
+}) {
+  const { t } = useTranslation();
+  const e = group.summary;
+  return (
+    <span className={styles.rankText}>
+      <span className={styles.cellLine}>
+        {live ? (
+          <span className={styles.pillPending} title={t('usage_stats.ws_group_live_hint')}>
+            {t('usage_stats.realtime_in_flight')}
+          </span>
+        ) : (
+          <span className={e.failed ? styles.pillFailed : styles.pillOk}>
+            {e.statusCode || (e.failed ? t('usage_stats.failed') : 'OK')}
+          </span>
+        )}
+        <span
+          className={`${styles.transportTag} ${styles.transport_ws}`}
+          title={t('usage_stats.transport_ws_hint')}
+        >
+          {t('usage_stats.transport_ws')}
+        </span>
+        <span
+          className={`${styles.groupCount} ${expanded ? styles.groupCountOpen : ''}`}
+          title={t('usage_stats.ws_group_hint', { count: group.events.length })}
+        >
+          ×{group.events.length}
+        </span>
+      </span>
+      {e.endpoint && (
+        <span className={styles.endpointSub} title={e.endpoint}>
+          {e.endpoint}
+        </span>
+      )}
+      {group.failed > 0 && (
+        <span className={styles.errorSub}>
+          {t('usage_stats.ws_group_failed', { count: group.failed })}
         </span>
       )}
     </span>

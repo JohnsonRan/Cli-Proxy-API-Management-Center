@@ -21,6 +21,7 @@ import { CountUp } from '../components/Motion';
 import {
   EventClientCell,
   EventCostCell,
+  EventGroupStatusCell,
   EventLatencyCell,
   EventModelCell,
   EventRouteCell,
@@ -39,7 +40,14 @@ import {
   successRate,
 } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import { EVENT_COLUMNS, toEventsQuery, type EventColumn, type UsageGlobalFilter } from '../logic';
+import {
+  EVENT_COLUMNS,
+  groupWebsocketEvents,
+  toEventsQuery,
+  toggleInSet,
+  type EventColumn,
+  type UsageGlobalFilter,
+} from '../logic';
 import type { UsageWindow } from '../UsagePage';
 import styles from '../UsagePage.module.scss';
 
@@ -180,6 +188,8 @@ export function EventsTab({
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<'' | 'csv' | 'json'>('');
   const [selected, setSelected] = useState<UsageEvent | null>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const items = useMemo(() => groupWebsocketEvents(events), [events]);
   const requestRef = useRef(0);
   const summaryRef = useRef(0);
   const query = useMemo(
@@ -336,6 +346,32 @@ export function EventsTab({
     }
   };
 
+  const eventRow = (e: UsageEvent, child = false) => (
+    <TableRow
+      key={e.id}
+      className={[
+        styles.clickableRow,
+        e.failed ? styles.failedRow : '',
+        child ? styles.groupChildRow : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      tabIndex={0}
+      aria-label={t('usage_stats.open_detail')}
+      onClick={() => setSelected(e)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          setSelected(e);
+        }
+      }}
+    >
+      {EVENT_COLUMNS.map((column) => (
+        <Fragment key={column}>{cell(column, e)}</Fragment>
+      ))}
+    </TableRow>
+  );
+
   return (
     <section className={styles.panel} data-reveal="">
       <div className={styles.panelHeader}>
@@ -398,27 +434,46 @@ export function EventsTab({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {events.map((e) => (
-              <TableRow
-                key={e.id}
-                className={
-                  e.failed ? `${styles.clickableRow} ${styles.failedRow}` : styles.clickableRow
-                }
-                tabIndex={0}
-                aria-label={t('usage_stats.open_detail')}
-                onClick={() => setSelected(e)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setSelected(e);
-                  }
-                }}
-              >
-                {EVENT_COLUMNS.map((column) => (
-                  <Fragment key={column}>{cell(column, e)}</Fragment>
-                ))}
-              </TableRow>
-            ))}
+            {items.map((item) => {
+              if (item.kind === 'event') return eventRow(item.event);
+              const { group } = item;
+              const open = expanded.has(group.requestId);
+              const toggle = () => setExpanded((prev) => toggleInSet(prev, group.requestId));
+              return (
+                <Fragment key={`ws-${group.requestId}`}>
+                  <TableRow
+                    className={
+                      group.summary.failed
+                        ? `${styles.clickableRow} ${styles.failedRow}`
+                        : styles.clickableRow
+                    }
+                    tabIndex={0}
+                    aria-expanded={open}
+                    aria-label={t('usage_stats.ws_group_toggle')}
+                    onClick={toggle}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggle();
+                      }
+                    }}
+                  >
+                    {EVENT_COLUMNS.map((column) => (
+                      <Fragment key={column}>
+                        {column === 'status' ? (
+                          <TableCell>
+                            <EventGroupStatusCell group={group} live={false} expanded={open} />
+                          </TableCell>
+                        ) : (
+                          cell(column, group.summary)
+                        )}
+                      </Fragment>
+                    ))}
+                  </TableRow>
+                  {open && group.events.map((e) => eventRow(e, true))}
+                </Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       )}

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bar, Line } from 'react-chartjs-2';
 import {
@@ -22,6 +30,7 @@ import {
 import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
 import {
+  EventGroupStatusCell,
   EventLatencyCell,
   EventModelCell,
   EventRouteCell,
@@ -33,7 +42,15 @@ import { PanelHeading } from '../components/PanelBits';
 import { StatCard } from '../components/StatCard';
 import { formatCompact, formatCost, formatMs } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
-import { REALTIME_FEED_LIMIT, eventTransport, mergeRealtimeFeed, visibleInFlight } from '../logic';
+import {
+  REALTIME_FEED_LIMIT,
+  eventTransport,
+  groupWebsocketEvents,
+  mergeRealtimeFeed,
+  toggleInSet,
+  visibleInFlight,
+  type UsageEventGroup,
+} from '../logic';
 import styles from '../UsagePage.module.scss';
 
 const POLL_MS = 5000;
@@ -63,6 +80,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
   const [error, setError] = useState('');
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [selected, setSelected] = useState<UsageEvent | null>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   // Bumped on every filter/window change; responses from an older generation are dropped.
   const generationRef = useRef(0);
   const cursorRef = useRef(0);
@@ -232,13 +250,27 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
     second: '2-digit',
   });
   const live = !paused && !hidden;
-  const inFlightRows = useMemo(
-    () => visibleInFlight(data?.inFlightRequests ?? [], feed),
-    [data?.inFlightRequests, feed]
-  );
+  // WebSocket turns fold into one row per connection; an open connection keeps its row pinned on
+  // top in the in-flight style instead of showing a separate in-flight row.
+  const { inFlightRows, liveGroups, items, openSockets } = useMemo(() => {
+    const running = visibleInFlight(data?.inFlightRequests ?? [], feed);
+    const sockets = new Map(
+      running.filter((r) => r.transport === 'ws' && r.requestId).map((r) => [r.requestId, r])
+    );
+    const grouped = groupWebsocketEvents(feed, new Set(sockets.keys()));
+    const pinned = grouped.filter((i) => i.kind === 'group' && sockets.has(i.group.requestId));
+    return {
+      openSockets: sockets,
+      liveGroups: pinned,
+      items: grouped.filter((i) => !pinned.includes(i)),
+      inFlightRows: running.filter(
+        (r) => !pinned.some((i) => i.kind === 'group' && i.group.requestId === r.requestId)
+      ),
+    };
+  }, [data?.inFlightRequests, feed]);
   // Ticks once a second while calls are running so their elapsed time keeps counting between polls.
   const [clock, setClock] = useState(() => Date.now());
-  const ticking = live && inFlightRows.length > 0;
+  const ticking = live && inFlightRows.length + liveGroups.length > 0;
   useEffect(() => {
     if (!ticking) return;
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
@@ -246,6 +278,113 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
   }, [ticking]);
   // Paused or hidden, the clock stops, so elapsed times freeze instead of jumping back.
   const sincePoll = updatedAt ? Math.max(clock - updatedAt, 0) : 0;
+
+  const activate = (fn: () => void) => ({
+    tabIndex: 0,
+    onClick: fn,
+    onKeyDown: (event: KeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fn();
+      }
+    },
+  });
+
+  const eventRow = (e: UsageEvent, child = false) => {
+    const rowClass = [
+      styles.clickableRow,
+      e.failed ? styles.failedRow : '',
+      fresh.has(e.id) ? styles.freshRow : '',
+      child ? styles.groupChildRow : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return (
+      <TableRow
+        key={e.id}
+        className={rowClass}
+        aria-label={t('usage_stats.open_detail')}
+        {...activate(() => setSelected(e))}
+      >
+        <TableCell className={styles.mono}>{timeFormatter.format(new Date(e.timestamp))}</TableCell>
+        <TableCell>
+          <EventStatusCell event={e} />
+        </TableCell>
+        <TableCell>
+          <EventModelCell event={e} />
+        </TableCell>
+        <TableCell>
+          <EventRouteCell event={e} labels={labels} />
+        </TableCell>
+        <TableCell alignRight>
+          <EventTokensCell event={e} />
+        </TableCell>
+        <TableCell alignRight>
+          <EventLatencyCell event={e} />
+        </TableCell>
+        <TableCell alignRight>
+          <CostValue event={e} />
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const groupRows = (group: UsageEventGroup) => {
+    const socket = openSockets.get(group.requestId);
+    const open = expanded.has(group.requestId);
+    const e = group.summary;
+    const rowClass = [
+      styles.clickableRow,
+      socket ? styles.liveGroupRow : e.failed ? styles.failedRow : '',
+      group.events.some((x) => fresh.has(x.id)) ? styles.freshRow : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return (
+      <Fragment key={`ws-${group.requestId}`}>
+        <TableRow
+          className={rowClass}
+          aria-expanded={open}
+          aria-label={t('usage_stats.ws_group_toggle')}
+          {...activate(() => setExpanded((prev) => toggleInSet(prev, group.requestId)))}
+        >
+          <TableCell className={styles.mono}>
+            {timeFormatter.format(new Date(socket ? socket.startedAt : e.timestamp))}
+          </TableCell>
+          <TableCell>
+            <EventGroupStatusCell group={group} live={Boolean(socket)} expanded={open} />
+          </TableCell>
+          <TableCell>
+            <EventModelCell event={e} />
+          </TableCell>
+          <TableCell>
+            <EventRouteCell event={e} labels={labels} />
+          </TableCell>
+          <TableCell alignRight>
+            <EventTokensCell event={e} />
+          </TableCell>
+          <TableCell alignRight>
+            {socket ? (
+              <span className={styles.rankText}>
+                <span className={styles.cellStrong} title={t('usage_stats.ws_group_elapsed')}>
+                  {formatMs(socket.elapsedMs + sincePoll)}
+                </span>
+                <span className={styles.cellSub}>
+                  {t('usage_stats.ws_group_avg', { value: formatMs(e.latencyMs) })}
+                </span>
+              </span>
+            ) : (
+              <EventLatencyCell event={e} />
+            )}
+          </TableCell>
+          <TableCell alignRight>
+            <CostValue event={e} />
+          </TableCell>
+        </TableRow>
+        {open && group.events.map((x) => eventRow(x, true))}
+      </Fragment>
+    );
+  };
 
   return (
     <>
@@ -360,7 +499,7 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
           title={t('usage_stats.realtime_feed_title')}
           desc={t('usage_stats.realtime_feed_desc', { count: REALTIME_FEED_LIMIT })}
         />
-        {feed.length === 0 && inFlightRows.length === 0 ? (
+        {items.length + liveGroups.length + inFlightRows.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.realtime_feed_empty')}</p>
         ) : (
           <Table className={styles.table}>
@@ -385,62 +524,23 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
                   time={timeFormatter.format(new Date(r.startedAt))}
                 />
               ))}
-              {feed.map((e) => {
-                const rowClass = [
-                  styles.clickableRow,
-                  e.failed ? styles.failedRow : '',
-                  fresh.has(e.id) ? styles.freshRow : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ');
-                return (
-                  <TableRow
-                    key={e.id}
-                    className={rowClass}
-                    tabIndex={0}
-                    aria-label={t('usage_stats.open_detail')}
-                    onClick={() => setSelected(e)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelected(e);
-                      }
-                    }}
-                  >
-                    <TableCell className={styles.mono}>
-                      {timeFormatter.format(new Date(e.timestamp))}
-                    </TableCell>
-                    <TableCell>
-                      <EventStatusCell event={e} />
-                    </TableCell>
-                    <TableCell>
-                      <EventModelCell event={e} />
-                    </TableCell>
-                    <TableCell>
-                      <EventRouteCell event={e} labels={labels} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <EventTokensCell event={e} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <EventLatencyCell event={e} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      {e.priced ? (
-                        <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
-                      ) : (
-                        <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {liveGroups.map((i) => i.kind === 'group' && groupRows(i.group))}
+              {items.map((i) => (i.kind === 'group' ? groupRows(i.group) : eventRow(i.event)))}
             </TableBody>
           </Table>
         )}
       </section>
       <EventDetailModal event={selected} labels={labels} onClose={() => setSelected(null)} />
     </>
+  );
+}
+
+function CostValue({ event: e }: { event: UsageEvent }) {
+  const { t } = useTranslation();
+  return e.priced ? (
+    <span className={styles.cellStrong}>{formatCost(e.cost)}</span>
+  ) : (
+    <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
   );
 }
 

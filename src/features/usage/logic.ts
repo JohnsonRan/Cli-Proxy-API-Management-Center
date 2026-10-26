@@ -3,6 +3,7 @@ import {
   MAX_OPTIMIZE_KEEP_DAYS,
   MAX_RETENTION_DAYS,
   type ClientGeo,
+  type UsageEvent,
   type UsageEventsQuery,
   type UsageModelPrice,
   type UsagePriceOverride,
@@ -377,6 +378,87 @@ export const mergeRealtimeFeed = <T extends { id: number }>(
   const known = new Set(feed.map((e) => e.id));
   const fresh = ascendingPage.filter((e) => !known.has(e.id)).reverse();
   return { feed: [...fresh, ...feed].slice(0, limit), added: fresh.map((e) => e.id) };
+};
+
+/** Turns of one WebSocket connection: they share the connection's gin request id. */
+export interface UsageEventGroup {
+  requestId: string;
+  /** Newest first, in feed order. */
+  events: UsageEvent[];
+  failed: number;
+  /** Newest turn with summed tokens and cost and averaged latency, for the shared cells. */
+  summary: UsageEvent;
+}
+
+export type UsageFeedItem =
+  { kind: 'event'; event: UsageEvent } | { kind: 'group'; group: UsageEventGroup };
+
+const average = (values: number[]): number => {
+  const set = values.filter((v) => v > 0);
+  return set.length ? set.reduce((a, b) => a + b, 0) / set.length : 0;
+};
+
+export const summarizeEventGroup = (events: UsageEvent[]): UsageEvent => {
+  const head = events[0];
+  const tokens = { ...head.tokens };
+  for (const key of Object.keys(tokens) as (keyof typeof tokens)[]) {
+    tokens[key] = events.reduce((sum, e) => sum + e.tokens[key], 0);
+  }
+  return {
+    ...head,
+    tokens,
+    cost: events.reduce((sum, e) => sum + e.cost, 0),
+    priced: events.some((e) => e.priced),
+    latencyMs: average(events.map((e) => e.latencyMs)),
+    ttftMs: average(events.map((e) => e.ttftMs)),
+    outputTps: average(events.map((e) => e.outputTps)),
+    substituted: events.some((e) => e.substituted),
+    risk: events.find((e) => e.risk)?.risk ?? '',
+    riskReason: events.find((e) => e.risk)?.riskReason ?? '',
+  };
+};
+
+/**
+ * Folds the WebSocket turns of one connection (same request id) into one item placed where its
+ * newest turn is. A connection with a single turn stays a plain event unless `keepSingle` has
+ * its request id (a connection still open, so later turns join the same row).
+ */
+export const groupWebsocketEvents = (
+  events: UsageEvent[],
+  keepSingle: ReadonlySet<string> = new Set()
+): UsageFeedItem[] => {
+  const turns = new Map<string, UsageEvent[]>();
+  for (const e of events) {
+    if (!e.requestId || eventTransport(e.endpoint, e.stream, e.transport) !== 'ws') continue;
+    const list = turns.get(e.requestId);
+    if (list) list.push(e);
+    else turns.set(e.requestId, [e]);
+  }
+  const items: UsageFeedItem[] = [];
+  for (const e of events) {
+    const list = e.requestId ? turns.get(e.requestId) : undefined;
+    if (!list || (list.length < 2 && !keepSingle.has(e.requestId))) {
+      items.push({ kind: 'event', event: e });
+      continue;
+    }
+    if (list[0] !== e) continue;
+    items.push({
+      kind: 'group',
+      group: {
+        requestId: e.requestId,
+        events: list,
+        failed: list.filter((x) => x.failed).length,
+        summary: summarizeEventGroup(list),
+      },
+    });
+  }
+  return items;
+};
+
+export const toggleInSet = <T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> => {
+  const next = new Set(set);
+  if (!next.delete(value)) next.add(value);
+  return next;
 };
 
 export type EventDimension = 'model' | 'provider' | 'api_key_id' | 'auth_index';
