@@ -16,6 +16,8 @@ import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
+import iconCommandCode from '@/assets/icons/commandcode.svg';
+import iconCommandCodeDark from '@/assets/icons/commandcode-dark.svg';
 
 export type ThemedIcon = string | { light: string; dark: string };
 
@@ -127,6 +129,14 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
     icon: { light: iconDevin, dark: iconDevinDark },
     flow: 'browser',
   },
+  {
+    kind: 'builtin',
+    id: 'commandcode',
+    label: 'Command Code',
+    titleKey: 'auth_login.commandcode_oauth_title',
+    icon: { light: iconCommandCode, dark: iconCommandCodeDark },
+    flow: 'browser',
+  },
 ];
 
 const BUILTIN_PROVIDER_IDS = new Set<string>(OAUTH_PROVIDERS.map((provider) => provider.id));
@@ -138,6 +148,7 @@ export const CALLBACK_SUPPORTED = new Set<string>([
   'antigravity',
   'xai',
   'devin',
+  'commandcode',
 ]);
 
 export const supportsManualCallback = (provider: OAuthProviderCard): boolean =>
