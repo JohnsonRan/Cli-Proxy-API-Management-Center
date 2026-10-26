@@ -1,39 +1,117 @@
 .container {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
 }
 
 .pageTitle {
-  font-size: 28px;
-  font-weight: 700;
+  margin: 0;
   color: var(--text-primary);
-  margin: 0 0 $spacing-xl 0;
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.pageDescription {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: $spacing-lg;
 }
 
+// Model gets its own row; the three options share the next one.
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0 $spacing-md;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  // Match the Select trigger so text inputs and dropdowns line up in one row.
+  :global(.input) {
+    height: 40px;
+    padding-block: 0;
+    font-size: 13px;
+  }
+}
+
+.modelField {
+  grid-column: 1 / -1;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1px solid var(--border-color);
 }
 
 .actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: $spacing-md;
+  gap: $spacing-sm;
+  margin-left: auto;
 }
 
-.summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+.footnote {
+  margin: $spacing-md 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+// Clear the floating top-right toolbar when the result scrolls into view.
+.resultAnchor {
+  scroll-margin-top: 96px;
+}
+
+.decisionBadge {
+  margin-bottom: 0;
+}
+
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  padding: $spacing-md $spacing-lg;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.verdictMain,
+.verdictScore {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.verdictScore {
+  align-items: flex-end;
+  text-align: right;
 }
 
 .label {
@@ -41,35 +119,109 @@
   color: var(--text-secondary);
 }
 
-.value {
-  font-size: 18px;
-  font-weight: 600;
+.verdictName {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: $spacing-lg;
+.verdictFamily {
   font-size: 13px;
+  color: var(--text-secondary);
+}
 
-  th,
-  td {
-    padding: $spacing-sm;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: top;
-    overflow-wrap: anywhere;
-  }
+.verdictPercent {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
 
-  th {
-    color: var(--text-secondary);
-    font-weight: 500;
-  }
+.section {
+  margin-top: $spacing-lg;
+}
+
+.sectionTitle {
+  margin: 0 0 $spacing-sm;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.candidateName {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: $font-mono;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.indexCol {
+  width: 40px;
+}
+
+.probabilityHead {
+  width: 30%;
+}
+
+.probability {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.bar {
+  flex: 1;
+  min-width: 48px;
+  height: 6px;
+  border-radius: $radius-full;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-color);
+}
+
+.stateOk {
+  color: var(--success-color);
+  font-weight: 500;
+}
+
+.stateWarn {
+  color: var(--amber-color);
+  font-weight: 500;
+}
+
+.stateError {
+  color: var(--danger-color);
+  font-weight: 500;
+}
+
+.stateMuted {
+  color: var(--text-secondary);
 }
 
 .sampleError {
   margin-top: $spacing-xs;
   color: var(--danger-color);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
