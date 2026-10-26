@@ -218,6 +218,12 @@ Re-run on 2026-10-26 before the usage database card and moving the embeddings ex
     - **Note**: Upstream bug, independent of other patches; its position does not matter. Suitable for an upstream PR.
     - **Related Upstream Work**: None found (searched `modal close`, `modal not closing`, `弹窗 关闭`, `onClose modal` on 2026-10-24).
 
+24. **`patch/fingerprint-detector`** (downstream-only)
+    - **Goal**: Check which model really answers behind a model name the proxy serves, from the observe group of the sidebar.
+    - **Scope**: New `/fingerprint` route and sidebar entry after `/logs` (`MainRoutes.tsx`, `MainLayout.tsx`, shield icon imported on its own line to stay clear of other patches' import edits). `src/features/fingerprint/FingerprintPage.tsx` picks the model (from the cached `/v1/models` list or typed), API format (Responses, Chat Completions, Messages), client key (default: first key, chosen by the core), reasoning effort and streaming, calls `POST /observability/fingerprint/detect` (`src/services/api/fingerprint.ts`, 10-minute timeout, cancellable) and shows the decision, top model, family, confidence, the top five candidates and each challenge's state, valid numbers and response model, with the closed-set disclaimer and the reference data date. The probe requests go through the core like client traffic, so they appear on the `/usage` page under the chosen key. Locale keys `nav.fingerprint`, `nav_meta.fingerprint` and the `fingerprint` section (placed before `config_management`, away from the `usage_stats` block) in all 6 locales.
+    - **Related Upstream Work**: None found (searched `fingerprint`, `lm-detector`, `model detection`, `模型检测` in both repositories on 2026-10-26).
+    - **Cross-repo**: Needs the core patch `patch/fingerprint-detector` (`POST /v8/management/observability/fingerprint/detect`). Ship the core side first.
+
 ## Retired Patch Branches
 
 - **`patch/usage-exclude-embeddings`** (retired 2026-10-26): its config-page switch for `observability.usage.exclude-embeddings` moved into the usage settings tab of `patch/usage-store`, next to the other usage store switches. Removed from the sync; the branch is kept for history.
@@ -244,7 +250,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store patch/modal-close-race
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/quota-api patch/commandcode-oauth patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/fix-cooldown-test-i18n patch/auth-file-allowed-models patch/usage-store patch/modal-close-race patch/fingerprint-detector
 
 git checkout -B main upstream/main
 
@@ -337,6 +343,9 @@ git commit -m "merge patch/usage-store branch"
 
 git merge --squash origin/patch/modal-close-race
 git commit -m "merge patch/modal-close-race branch"
+
+git merge --squash origin/patch/fingerprint-detector
+git commit -m "merge patch/fingerprint-detector branch"
 
 bun install --frozen-lockfile
 bun run type-check
