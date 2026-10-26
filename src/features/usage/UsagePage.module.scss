@@ -926,6 +926,52 @@
   background: color-mix(in srgb, var(--usage-pending) 8%, transparent);
 }
 
+/* One WebSocket connection: an open one keeps the in-flight tint plus a pending edge. */
+.liveGroupRow td {
+  background: color-mix(in srgb, var(--usage-pending) 8%, transparent);
+}
+
+.liveGroupRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--usage-pending);
+}
+
+.groupCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-family: $font-mono;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 12%, transparent);
+
+  &::before {
+    content: '';
+    border-left: 4px solid currentColor;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    transition: transform var(--dur-hover) var(--ease-out-strong);
+  }
+}
+
+.groupCountOpen::before {
+  transform: rotate(90deg);
+}
+
+/* Turns of an expanded connection, hung under it on the WebSocket colour. */
+.groupChildRow td {
+  background: var(--bg-secondary);
+}
+
+.groupChildRow td:first-child {
+  padding-left: 22px;
+  box-shadow:
+    inset 12px 0 0 var(--bg-secondary),
+    inset 13px 0 0 color-mix(in srgb, #8b5cf6 45%, transparent);
+}
+
 .failedRow td {
   background: color-mix(in srgb, var(--viz-failure) 6%, transparent);
 }
@@ -1452,7 +1498,8 @@
   .statCard,
   .summaryItem,
   .quotaFill,
-  .quotaCellButton {
+  .quotaCellButton,
+  .groupCount::before {
     transition: none;
   }
 

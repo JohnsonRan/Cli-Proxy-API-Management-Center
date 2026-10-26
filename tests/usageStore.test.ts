@@ -701,6 +701,56 @@ describe('usage realtime', () => {
     expect(mergeRealtimeFeed(feed, []).feed.map((e) => e.id)).toEqual([5, 4]);
     expect(mergeRealtimeFeed(feed, []).added).toEqual([]);
   });
+
+  test('folds WebSocket turns of one connection into one row', async () => {
+    const { groupWebsocketEvents, toggleInSet } = await import('@/features/usage/logic');
+    const { events } = normalizeUsageEvents({
+      events: [
+        {
+          id: 6,
+          request_id: 'ws1',
+          transport: 'ws',
+          model: 'm2',
+          cost: 1,
+          priced: true,
+          latency_ms: 300,
+          tokens: { output: 5 },
+          failed: true,
+          status_code: 500,
+        },
+        { id: 5, request_id: 'h1', transport: 'sse' },
+        {
+          id: 4,
+          request_id: 'ws1',
+          transport: 'ws',
+          model: 'm1',
+          cost: 2,
+          priced: true,
+          latency_ms: 100,
+          tokens: { output: 7 },
+        },
+        { id: 3, request_id: 'ws2', transport: 'ws' },
+        { id: 2, request_id: 'h1', transport: 'sse' },
+        { id: 1, request_id: '', transport: 'ws' },
+      ],
+    });
+    const items = groupWebsocketEvents(events);
+    expect(items.map((i) => (i.kind === 'group' ? `g:${i.group.requestId}` : i.event.id))).toEqual([
+      'g:ws1',
+      5,
+      3,
+      2,
+      1,
+    ]);
+    const group = items[0].kind === 'group' ? items[0].group : null;
+    expect(group?.events.map((e) => e.id)).toEqual([6, 4]);
+    expect(group?.failed).toBe(1);
+    expect(group?.summary).toMatchObject({ id: 6, model: 'm2', cost: 3, latencyMs: 200 });
+    expect(group?.summary.tokens.output).toBe(12);
+    // An open connection with one turn still gets its own row.
+    expect(groupWebsocketEvents(events, new Set(['ws2']))[2].kind).toBe('group');
+    expect([...toggleInSet(toggleInSet(new Set<string>(), 'a'), 'a')]).toEqual([]);
+  });
 });
 
 describe('usage event cells', () => {
