@@ -49,13 +49,11 @@ export interface FingerprintDetectResult {
   error: string | null;
 }
 
-// A round waits for up to three full model replies of about 300 numbers each.
-const DETECT_TIMEOUT_MS = 10 * 60 * 1000;
-
+// Detection has no client timeout (model requests may take minutes); the caller can cancel via signal.
 export const fingerprintApi = {
   detect: (body: FingerprintDetectRequest, signal?: AbortSignal) =>
     apiClient.post<FingerprintDetectResult>('/observability/fingerprint/detect', body, {
-      timeout: DETECT_TIMEOUT_MS,
+      timeout: 0,
       signal,
     }),
 };

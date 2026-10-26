@@ -1107,6 +1107,10 @@
     "candidate": "후보 모델",
     "score": "순위 점수",
     "sample_state": "상태",
+    "state_complete": "완료",
+    "state_truncated": "잘림",
+    "state_failed": "실패",
+    "state_cancelled": "취소됨",
     "sample_numbers": "유효 숫자",
     "response_model": "응답 모델",
     "disclaimer": "참조 라이브러리({{builtAt}}) 안에서의 폐쇄 집합 순위일 뿐 신원 증명이 아닙니다. 라이브러리에 없는 모델도 가장 비슷한 후보를 받습니다. 설정을 고정해 여러 번 반복하고 다른 증거와 함께 판단하세요."

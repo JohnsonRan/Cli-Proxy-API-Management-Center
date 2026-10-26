@@ -116,6 +116,7 @@ export function FingerprintPage() {
           <p className="hint">{t('fingerprint.description')}</p>
           <div className={styles.formGrid}>
             <AutocompleteInput
+              id="fingerprint-model"
               label={t('fingerprint.model')}
               value={model}
               onChange={setModel}
@@ -124,8 +125,9 @@ export function FingerprintPage() {
               disabled={running}
             />
             <div className="form-group">
-              <label>{t('fingerprint.api_format')}</label>
+              <label htmlFor="fingerprint-api-format">{t('fingerprint.api_format')}</label>
               <Select
+                id="fingerprint-api-format"
                 value={apiFormat}
                 options={formatOptions}
                 onChange={(value) => setApiFormat(value as FingerprintApiFormat)}
@@ -135,8 +137,9 @@ export function FingerprintPage() {
               />
             </div>
             <div className="form-group">
-              <label>{t('fingerprint.api_key')}</label>
+              <label htmlFor="fingerprint-api-key">{t('fingerprint.api_key')}</label>
               <Select
+                id="fingerprint-api-key"
                 value={apiKey}
                 options={keyOptions}
                 onChange={setApiKey}
@@ -146,6 +149,7 @@ export function FingerprintPage() {
               />
             </div>
             <Input
+              id="fingerprint-effort"
               label={t('fingerprint.effort')}
               value={effort}
               onChange={(event) => setEffort(event.target.value)}
@@ -240,7 +244,7 @@ export function FingerprintPage() {
                   <tr key={index}>
                     <td>{index + 1}</td>
                     <td>
-                      {sample.state}
+                      {t(`fingerprint.state_${sample.state}`, { defaultValue: sample.state })}
                       {sample.error && <div className={styles.sampleError}>{sample.error}</div>}
                     </td>
                     <td>
