@@ -1147,6 +1147,9 @@
     "state_truncated": "已截斷",
     "state_failed": "失敗",
     "state_cancelled": "已取消",
+    "state_queued": "排隊中",
+    "state_waiting": "等待回應",
+    "state_streaming": "接收中",
     "sample_numbers": "有效數字",
     "response_model": "回應模型",
     "disclaimer": "結果是參考庫（{{builtAt}}）內的封閉集合排序，不是身分證明；不在庫中的模型也會得到一個最像的候選。請固定參數重複多輪，並結合其他證據判斷。"

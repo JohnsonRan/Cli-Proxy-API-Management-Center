@@ -1119,6 +1119,9 @@
     "state_truncated": "已截断",
     "state_failed": "失败",
     "state_cancelled": "已取消",
+    "state_queued": "排队中",
+    "state_waiting": "等待响应",
+    "state_streaming": "接收中",
     "sample_numbers": "有效数字",
     "response_model": "响应模型",
     "disclaimer": "结果是参考库（{{builtAt}}）内的封闭集合排序，不是身份证明；不在库里的模型也会得到一个最像的候选。请固定参数重复多轮，并结合其他证据判断。"

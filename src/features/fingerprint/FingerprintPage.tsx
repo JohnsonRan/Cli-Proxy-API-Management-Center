@@ -21,6 +21,7 @@ import {
   fingerprintApi,
   type FingerprintApiFormat,
   type FingerprintDetectResult,
+  type FingerprintSample,
 } from '@/services/api/fingerprint';
 import { maskApiKey } from '@/utils/format';
 import { getErrorMessage } from '@/utils/helpers';
@@ -41,12 +42,17 @@ const DECISION_TONE: Record<string, Tone> = {
   not_model: 'Bad',
 };
 
-const STATE_TONE: Record<string, Tone> = {
+const STATE_TONE: Record<string, Tone | 'Primary'> = {
   complete: 'Good',
   truncated: 'Warn',
   failed: 'Bad',
   cancelled: 'Muted',
+  waiting: 'Primary',
+  streaming: 'Primary',
 };
+
+const sampleProgress = (sample: FingerprintSample) =>
+  sample.expected_count > 0 ? Math.min(100, (sample.count / sample.expected_count) * 100) : 0;
 
 interface RunInfo {
   model: string;
@@ -108,6 +114,7 @@ export function FingerprintPage() {
   const [stream, setStream] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<FingerprintDetectResult | null>(null);
+  const [liveSamples, setLiveSamples] = useState<FingerprintSample[]>([]);
   const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const [error, setError] = useState('');
   const abortRef = useRef<AbortController | null>(null);
@@ -153,6 +160,7 @@ export function FingerprintPage() {
     setRunning(true);
     setError('');
     setResult(null);
+    setLiveSamples([]);
     setRunInfo({ model: name, api: apiFormat });
     try {
       const data = await fingerprintApi.detect(
@@ -163,7 +171,12 @@ export function FingerprintPage() {
           effort: effort.trim() || undefined,
           no_stream: !stream,
         },
-        controller.signal
+        {
+          signal: controller.signal,
+          onProgress: (next) => {
+            if (abortRef.current === controller) setLiveSamples(next);
+          },
+        }
       );
       setResult(data);
     } catch (err: unknown) {
@@ -178,7 +191,7 @@ export function FingerprintPage() {
 
   const analysis = result?.analysis ?? null;
   const candidates = analysis?.results.slice(0, TOP_CANDIDATES) ?? [];
-  const samples = result?.samples ?? [];
+  const samples = result?.samples ?? liveSamples;
   const completeSamples = samples.filter((sample) => sample.state === 'complete').length;
   const numberCount = samples.reduce((sum, sample) => sum + sample.count, 0);
   const numberExpected = samples.reduce((sum, sample) => sum + sample.expected_count, 0);
@@ -321,7 +334,7 @@ export function FingerprintPage() {
               : undefined
           }
           dot="Muted"
-          loading={running}
+          loading={running && samples.length === 0}
         />
       </div>
 
@@ -404,8 +417,25 @@ export function FingerprintPage() {
                       </span>
                       {sample.error && <span className={styles.errorText}>{sample.error}</span>}
                     </TableCell>
-                    <TableCell alignRight className={styles.numeric}>
-                      {sample.count} / {sample.expected_count}
+                    <TableCell alignRight>
+                      <span className={styles.share}>
+                        <span className={`${styles.shareText} ${styles.numeric}`}>
+                          {sample.count} / {sample.expected_count}
+                        </span>
+                        <span
+                          className={styles.shareTrack}
+                          role="progressbar"
+                          aria-label={t('fingerprint.sample_numbers')}
+                          aria-valuemin={0}
+                          aria-valuemax={sample.expected_count}
+                          aria-valuenow={Math.min(sample.count, sample.expected_count)}
+                        >
+                          <span
+                            className={styles.shareBar}
+                            style={{ width: `${sampleProgress(sample)}%` }}
+                          />
+                        </span>
+                      </span>
                     </TableCell>
                     <TableCell className={styles.mono}>{sample.response_model || '—'}</TableCell>
                   </TableRow>

@@ -1120,6 +1120,9 @@
     "state_truncated": "Truncated",
     "state_failed": "Failed",
     "state_cancelled": "Cancelled",
+    "state_queued": "Queued",
+    "state_waiting": "Waiting",
+    "state_streaming": "Receiving",
     "sample_numbers": "Valid numbers",
     "response_model": "Response model",
     "disclaimer": "This is a closed-set ranking within the reference bank ({{builtAt}}), not proof of identity: a model outside the bank still gets a closest match. Repeat several rounds with fixed settings and weigh other evidence."

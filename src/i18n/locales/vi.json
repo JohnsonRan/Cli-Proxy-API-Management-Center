@@ -1076,6 +1076,9 @@
     "state_truncated": "Bị cắt ngắn",
     "state_failed": "Thất bại",
     "state_cancelled": "Đã hủy",
+    "state_queued": "Đang chờ lượt",
+    "state_waiting": "Đang chờ phản hồi",
+    "state_streaming": "Đang nhận",
     "sample_numbers": "Số hợp lệ",
     "response_model": "Mô hình phản hồi",
     "disclaimer": "Đây là xếp hạng trong thư viện tham chiếu ({{builtAt}}), không phải bằng chứng danh tính: mô hình ngoài thư viện vẫn nhận ứng viên gần nhất. Hãy lặp lại nhiều lượt với cùng thiết lập và cân nhắc bằng chứng khác."

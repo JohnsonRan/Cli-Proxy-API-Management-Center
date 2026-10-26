@@ -659,16 +659,16 @@ export function MainLayout() {
           icon: sidebarIcons.quota,
         },
         {
-          path: '/logs',
-          labelKey: 'nav.logs',
-          metaKey: 'nav_meta.logs',
-          icon: sidebarIcons.logs,
-        },
-        {
           path: '/fingerprint',
           labelKey: 'nav.fingerprint',
           metaKey: 'nav_meta.fingerprint',
           icon: sidebarIcons.fingerprint,
+        },
+        {
+          path: '/logs',
+          labelKey: 'nav.logs',
+          metaKey: 'nav_meta.logs',
+          icon: sidebarIcons.logs,
         },
       ],
     },
