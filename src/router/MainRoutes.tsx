@@ -10,6 +10,7 @@ import { PluginResourcePage } from '@/features/plugins/PluginResourcePage';
 import { PluginsPage } from '@/features/plugins/PluginsPage';
 import { PluginStorePage } from '@/features/plugins/PluginStorePage';
 import { ConfigPage } from '@/features/config/ConfigPage';
+import { FingerprintPage } from '@/features/fingerprint/FingerprintPage';
 import { LogsPage } from '@/features/logs/LogsPage';
 import { UsagePage } from '@/features/usage/UsagePage';
 import { SystemPage } from '@/pages/SystemPage';
@@ -46,6 +47,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/config', element: <ConfigPage /> },
   { path: '/usage', element: <UsagePage /> },
   { path: '/logs', element: <LogsPage /> },
+  { path: '/fingerprint', element: <FingerprintPage /> },
   { path: '/system', element: <SystemPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ];
