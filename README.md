@@ -19,6 +19,8 @@ Manage providers, credentials, quotas, and logs — from a single HTML file.
 
 </div>
 
+> **Downstream Fork Notice**: This repository is maintained as a downstream fork of [router-for-me/Cli-Proxy-API-Management-Center](https://github.com/router-for-me/Cli-Proxy-API-Management-Center) following the `downstream-fork-maintain` workflow. See [MAINTAIN.md](MAINTAIN.md) for branch structure and sync instructions.
+
 ---
 
 ## One place to manage your instance
@@ -80,6 +82,14 @@ Upgrade the backend first and back up `config.yaml`. The backend returns the v8 
 | **System** | Check for updates, inspect available models, and clear local login data. |
 
 Supports **English, 简体中文, 繁體中文, and Русский**, with browser-language detection and a manual language switch. Responsive layouts support desktop, tablet, and mobile use in modern Chrome, Firefox, Safari, and Edge.
+
+## Sponsor
+
+[![APIMart — AI image and video generation API](./assets/apimart-en.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)
+
+Thanks to **APIMart** for sponsoring this project!
+
+APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — [sign up here](https://go.apimart.ai/gh-cli-proxy-api-management-center) to get started.
 
 ## Deployment
 
