@@ -138,6 +138,7 @@ function buildInitialForm(
             image: m.image === true,
             embedding: m.embedding === true,
             rerank: m.rerank === true,
+            systemone: m.systemone === true,
             thinkingJson: formatJsonObject(m.thinking),
             ...readModelOptions(m),
           }))
