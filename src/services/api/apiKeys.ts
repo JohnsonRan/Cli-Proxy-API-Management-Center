@@ -15,6 +15,8 @@ export interface ClientApiKeyItem {
   apiKey: string;
   /** Display name stored in the server config; it does not affect access. */
   name?: string;
+  /** Disabled keys stay in the config but the server rejects requests made with them. */
+  disabled?: boolean;
   models?: string[];
   allowedModels?: string[];
   excludedModels?: string[];
@@ -36,6 +38,7 @@ export const parseClientApiKeyItem = (raw: unknown): ClientApiKeyItem => {
     return {
       apiKey,
       name: name || undefined,
+      disabled: record['disabled'] === true || undefined,
       models: parseList(record['models']),
       allowedModels: parseList(record['allowed-models']),
       excludedModels: parseList(record['excluded-models']),
@@ -51,7 +54,7 @@ export const serializeClientApiKeyItem = (item: ClientApiKeyItem): unknown => {
   const hasExcluded = Boolean(excluded && excluded.length > 0);
   const name = item.name?.trim();
 
-  if (!name && !hasModels && !hasExcluded) {
+  if (!name && !item.disabled && !hasModels && !hasExcluded) {
     return item.apiKey;
   }
   const obj: Record<string, unknown> = {
@@ -59,6 +62,9 @@ export const serializeClientApiKeyItem = (item: ClientApiKeyItem): unknown => {
   };
   if (name) {
     obj['name'] = name;
+  }
+  if (item.disabled) {
+    obj['disabled'] = true;
   }
   if (hasModels) {
     obj['models'] = models;

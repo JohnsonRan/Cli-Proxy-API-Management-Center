@@ -284,6 +284,22 @@
   font-style: italic;
 }
 
+// Dim the key and model cells of a disabled key; its name badge and toggle stay readable.
+.disabledRow > td:not(:first-child):not(:last-child) {
+  opacity: 0.5;
+}
+
+.disabledBadge {
+  display: inline-block;
+  margin-left: $spacing-xs;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .keyCell {
   display: inline-flex;
   align-items: center;

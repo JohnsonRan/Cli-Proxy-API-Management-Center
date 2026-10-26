@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
   Table,
   TableBody,
@@ -259,6 +260,30 @@ export function ApiKeysPage() {
     [showNotification, t]
   );
 
+  const handleToggleEnabled = useCallback(
+    async (index: number, enabled: boolean) => {
+      const assertConnection = connectionGuardRef.current;
+      const nextItems = apiKeyItems.map((item, i) =>
+        i === index ? { ...item, disabled: enabled ? undefined : true } : item
+      );
+      setSaving(true);
+      try {
+        assertConnection();
+        await apiKeysApi.replaceItems(nextItems);
+        assertConnection();
+        setApiKeyItems(nextItems);
+        await fetchConfig(true);
+        showNotification(t('common.saved_success', '保存成功'), 'success');
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        showNotification(getErrorMessage(err), 'error');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [apiKeyItems, fetchConfig, showNotification, t]
+  );
+
   const openAddModal = () => {
     setEditingIndex(null);
     setNameInput('');
@@ -309,6 +334,8 @@ export function ApiKeysPage() {
     const nextItem: ClientApiKeyItem = {
       apiKey: trimmedKey,
       name: nameInput.trim() || undefined,
+      // Editing keeps the toggle state; new keys start enabled.
+      disabled: editingIndex !== null ? apiKeyItems[editingIndex]?.disabled : undefined,
       models: allowedModels.length > 0 ? allowedModels : undefined,
       excludedModels: excludedModels.length > 0 ? excludedModels : undefined,
     };
@@ -536,7 +563,7 @@ export function ApiKeysPage() {
                 <col style={{ minWidth: '130px', width: '14%' }} />
                 <col style={{ minWidth: '220px' }} />
                 <col style={{ minWidth: '240px', width: '36%' }} />
-                <col style={{ width: '96px' }} />
+                <col style={{ width: '136px' }} />
               </>
             }
           >
@@ -559,12 +586,20 @@ export function ApiKeysPage() {
                 );
 
                 return (
-                  <TableRow key={`${key}-${index}`}>
+                  <TableRow
+                    key={`${key}-${index}`}
+                    className={item.disabled ? styles.disabledRow : undefined}
+                  >
                     <TableCell>
                       {name ? (
                         <span className={styles.keyName}>{name}</span>
                       ) : (
                         <span className={styles.unnamed}>{t('api_keys_page.unnamed')}</span>
+                      )}
+                      {item.disabled && (
+                        <span className={styles.disabledBadge}>
+                          {t('api_keys_page.disabled_badge')}
+                        </span>
                       )}
                     </TableCell>
 
@@ -648,6 +683,14 @@ export function ApiKeysPage() {
 
                     <TableCell alignRight>
                       <div className={styles.rowActions}>
+                        <ToggleSwitch
+                          checked={!item.disabled}
+                          onChange={(enabled) => void handleToggleEnabled(index, enabled)}
+                          disabled={saving}
+                          ariaLabel={t(
+                            item.disabled ? 'api_keys_page.enable_key' : 'api_keys_page.disable_key'
+                          )}
+                        />
                         <button
                           type="button"
                           className={styles.iconBtn}
