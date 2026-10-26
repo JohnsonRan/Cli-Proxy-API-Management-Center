@@ -409,6 +409,7 @@ export const summarizeEventGroup = (events: UsageEvent[]): UsageEvent => {
     tokens,
     cost: events.reduce((sum, e) => sum + e.cost, 0),
     priced: events.some((e) => e.priced),
+    cacheable: events.some((e) => e.cacheable) ? true : head.cacheable,
     latencyMs: average(events.map((e) => e.latencyMs)),
     ttftMs: average(events.map((e) => e.ttftMs)),
     outputTps: average(events.map((e) => e.outputTps)),

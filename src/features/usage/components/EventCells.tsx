@@ -293,7 +293,8 @@ export function EventTokensCell({ event: e }: { event: UsageEvent }) {
   const { t } = useTranslation();
   const tk = e.tokens;
   const input = tk.inputUncached + tk.cacheRead + tk.cacheWrite + tk.unclassified;
-  const hit = eventCacheHitRate(tk);
+  // A model that has never served a cache read has no meaningful hit rate.
+  const hit = e.cacheable === false ? null : eventCacheHitRate(tk);
   return (
     <span className={styles.rankText}>
       <span className={styles.cellStrong}>

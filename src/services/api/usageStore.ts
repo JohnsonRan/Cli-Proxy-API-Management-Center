@@ -29,6 +29,11 @@ export interface UsageAggregate {
   avgTtftMs: number;
   /** Token-weighted output tokens per second after the first token; 0 when not measured. */
   outputTps: number;
+  /**
+   * Input of models that have ever served a cache read: the hit-rate denominator that models
+   * without prompt caching do not dilute. Undefined from servers that predate it.
+   */
+  cacheableInput?: number;
 }
 
 export interface UsageSeriesPoint extends UsageAggregate {
@@ -105,6 +110,8 @@ export interface UsageEvent {
   tokens: UsageTokens;
   cost: number;
   priced: boolean;
+  /** False when the model has never served a cache read; undefined from older servers. */
+  cacheable?: boolean;
   clientIp: string;
   clientGeo?: ClientGeo;
   /** Recorded downstream transport ('' for rows stored before it was recorded). */
@@ -277,6 +284,7 @@ const normalizeAggregate = (value: unknown): UsageAggregate => {
     avgLatencyMs: num(a.avg_latency_ms),
     avgTtftMs: num(a.avg_ttft_ms),
     outputTps: num(a.output_tps),
+    cacheableInput: typeof a.cacheable_input === 'number' ? a.cacheable_input : undefined,
   };
 };
 
@@ -371,6 +379,7 @@ export const normalizeUsageEvents = (data: unknown): UsageEventsPage => {
       tokens: normalizeTokens(e.tokens),
       cost: num(e.cost),
       priced: e.priced === true,
+      cacheable: typeof e.cacheable === 'boolean' ? e.cacheable : undefined,
       clientIp: str(e.client_ip),
       clientGeo: normalizeClientGeo(e.client_geo),
       transport: str(e.transport),

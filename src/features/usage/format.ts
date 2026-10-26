@@ -42,9 +42,12 @@ export const previousWindow = (window: { from: number; to: number }) => ({
 export const changePercent = (current: number, previous: number): number | null =>
   previous > 0 ? ((current - previous) / previous) * 100 : null;
 
-/** Share of input tokens served from cache, in percent, or null without input. */
+/**
+ * Share of input tokens served from cache, in percent, or null without input. Only models that
+ * have ever served a cache read count, so models without prompt caching do not dilute it.
+ */
 export const cacheHitRate = (a: UsageAggregate): number | null => {
-  const input = inputTokens(a);
+  const input = a.cacheableInput ?? inputTokens(a);
   return input > 0 ? (a.tokens.cacheRead / input) * 100 : null;
 };
 

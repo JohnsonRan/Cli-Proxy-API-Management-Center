@@ -221,7 +221,14 @@ describe('usage formatting', () => {
     expect(changePercent(150, 100)).toBe(50);
     expect(changePercent(5, 0)).toBeNull();
     const totals = normalizeUsageStats({ totals: aggregate(1, 0, 0) }).totals;
+    expect(totals.cacheableInput).toBeUndefined();
     expect(cacheHitRate(totals)).toBe(40);
+    // Input of models without prompt caching stays out of the hit rate.
+    const cacheable = normalizeUsageStats({
+      totals: { ...aggregate(1, 0, 0), cacheable_input: 500 },
+    }).totals;
+    expect(cacheHitRate(cacheable)).toBe(80);
+    expect(cacheHitRate({ ...cacheable, cacheableInput: 0 })).toBeNull();
     const four = normalizeUsageStats({
       totals: { ...aggregate(4, 0, 0.9), unpriced_requests: 1 },
     }).totals;
@@ -816,6 +823,13 @@ describe('usage precision, transport and cells', () => {
     expect(tokens).toContain('<span title="1,000">1K</span> → <span>300</span>');
     expect(tokens).toContain('75%');
     expect(tokens).toContain('80');
+    expect(event.cacheable).toBeUndefined();
+    const plainTokens = renderToStaticMarkup(
+      createElement(EventTokensCell, {
+        event: { ...event, tokens: { ...event.tokens, cacheRead: 0 }, cacheable: false },
+      })
+    );
+    expect(plainTokens).not.toContain('0%');
     const latency = (outputTps: number) =>
       renderToStaticMarkup(
         createElement(EventLatencyCell, {
