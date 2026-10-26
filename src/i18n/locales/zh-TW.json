@@ -1356,7 +1356,7 @@
     "store_geoip_source": "位置資料來源：",
     "quota_value_title": "訂閱額度價值",
     "quota_value_desc": "按 API 價格估算每個額度視窗 100% 值多少：用該憑證達到目前視窗百分比所花的用量反推。只統計經過本代理的請求，官方 App 或其他代理的用量會讓估值偏低。已用低於 {{percent}}% 時誤差太大，不給估值。當額度上漲但代理幾乎沒有請求時，上漲部分視為外部用量並在推算前扣除。",
-    "quota_value_empty": "尚無額度取樣。Codex 與 Claude OAuth 憑證處理過請求後每分鐘取樣一次，歷史從那時開始累積。",
+    "quota_value_empty": "尚無額度取樣。Codex、Claude 與 Antigravity OAuth 憑證處理過請求後每分鐘取樣一次，歷史從那時開始累積。",
     "quota_value_compare_title": "各憑證滿額視窗價值",
     "quota_value_window": "{{period}} 視窗",
     "quota_value_full_cost": "≈ 100% 費用",

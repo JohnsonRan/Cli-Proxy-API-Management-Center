@@ -4,6 +4,7 @@ import {
   MIN_RELIABLE_PERCENT,
   buildQuotaValues,
   formatPeriod,
+  formatPool,
   isReliableWindow,
   quotaPeriods,
   windowIssue,
@@ -276,5 +277,39 @@ describe('usage quota value', () => {
       source: 'window',
       fullCost: 20,
     });
+  });
+
+  test('keeps per-pool quotas of one credential apart', () => {
+    const pooled = (pool: string, used: number, fullCost: number) => ({
+      ...raw('ag1', `${pool}-5h`, 18000, 100_000, used, 4, fullCost),
+      provider: 'antigravity',
+      pool,
+    });
+    const res = normalizeUsageQuotaValue({
+      windows: [pooled('gemini', 20, 20), pooled('claude-gpt', 10, 40)],
+      models: [
+        {
+          auth_index: 'ag1',
+          provider: 'antigravity',
+          pool: 'claude-gpt',
+          period_seconds: 18000,
+          status: 'fitted',
+          full_cost: 50,
+          features: [],
+          model_values: [],
+        },
+      ],
+    });
+    expect(res.windows.map((w) => w.pool)).toEqual(['gemini', 'claude-gpt']);
+    expect(res.models[0].pool).toBe('claude-gpt');
+
+    const values = buildQuotaValues(res.windows, res.models);
+    expect(values.map((c) => [c.key, c.authIndex, c.pool])).toEqual([
+      ['ag1:claude-gpt', 'ag1', 'claude-gpt'],
+      ['ag1:gemini', 'ag1', 'gemini'],
+    ]);
+    expect(values[0].periods[0].reference).toMatchObject({ source: 'model', fullCost: 50 });
+    expect(values[1].periods[0].reference).toMatchObject({ source: 'window', fullCost: 20 });
+    expect(formatPool('claude-gpt')).toBe('Claude/GPT');
   });
 });

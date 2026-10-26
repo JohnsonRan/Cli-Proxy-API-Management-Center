@@ -485,7 +485,9 @@ const optionalNumber = (value: unknown): number | undefined =>
 export interface UsageQuotaWindow {
   authIndex: string;
   provider: string;
-  /** Provider window name (`primary`/`secondary`, `5h`/`7d`); pair windows by `periodSeconds`. */
+  /** Model family the window covers when a credential has separate quotas per family (Antigravity `gemini`/`claude-gpt`); empty otherwise. */
+  pool: string;
+  /** Provider window name (`primary`/`secondary`, `5h`/`7d`, `gemini-5h`); pair windows by `periodSeconds`. */
   window: string;
   periodSeconds: number;
   /** Nominal window start (resetAt - periodSeconds) in unix seconds. */
@@ -521,6 +523,7 @@ export interface UsageQuotaModelValue {
 export interface UsageQuotaModel {
   authIndex: string;
   provider: string;
+  pool: string;
   periodSeconds: number;
   status: 'fitted' | 'insufficient';
   windows: number;
@@ -550,6 +553,7 @@ export const normalizeUsageQuotaValue = (data: unknown): UsageQuotaValueResponse
     return {
       authIndex: str(w.auth_index),
       provider: str(w.provider),
+      pool: str(w.pool),
       window: str(w.window),
       periodSeconds: num(w.period_seconds),
       startAt: num(w.start_at),
@@ -569,6 +573,7 @@ export const normalizeUsageQuotaValue = (data: unknown): UsageQuotaValueResponse
   const models = list(r.models).map((m) => ({
     authIndex: str(m.auth_index),
     provider: str(m.provider),
+    pool: str(m.pool),
     periodSeconds: num(m.period_seconds),
     status: m.status === 'fitted' ? ('fitted' as const) : ('insufficient' as const),
     windows: num(m.windows),

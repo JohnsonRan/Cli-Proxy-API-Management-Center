@@ -1330,7 +1330,7 @@
     "store_geoip_source": "Location data:",
     "quota_value_title": "Subscription quota value",
     "quota_value_desc": "What 100% of each quota window is worth at API prices, estimated from the usage this credential needed to reach its window percentage. Only traffic through this proxy counts, so usage elsewhere (official apps, other proxies) makes the estimate low. Estimates below {{percent}}% are too coarse and are not quoted. When the quota rises with little traffic through this proxy, that rise is treated as outside use and deducted before extrapolating.",
-    "quota_value_empty": "No quota samples yet. Codex and Claude OAuth credentials are sampled every minute once they have served a request; history builds up from then on.",
+    "quota_value_empty": "No quota samples yet. Codex, Claude and Antigravity OAuth credentials are sampled every minute once they have served a request; history builds up from then on.",
     "quota_value_compare_title": "Value of a full window per credential",
     "quota_value_window": "{{period}} window",
     "quota_value_full_cost": "≈ 100% cost",

@@ -1330,7 +1330,7 @@
     "store_geoip_source": "위치 데이터:",
     "quota_value_title": "구독 할당량 가치",
     "quota_value_desc": "각 할당량 창의 100%가 API 가격으로 얼마인지, 이 자격 증명이 현재 창 비율에 도달하는 데 쓴 사용량으로 추정합니다. 이 프록시를 거친 트래픽만 집계하므로 다른 곳(공식 앱, 다른 프록시)의 사용은 추정치를 낮춥니다. {{percent}}% 미만은 오차가 커서 표시하지 않습니다. 프록시를 통한 트래픽이 거의 없는데 할당량이 증가한 경우, 해당 증가는 외부 사용으로 간주되어 추정 전에 차감됩니다.",
-    "quota_value_empty": "아직 할당량 샘플이 없습니다. Codex와 Claude OAuth 자격 증명은 요청을 처리한 뒤 1분마다 샘플링되며, 그때부터 기록이 쌓입니다.",
+    "quota_value_empty": "아직 할당량 샘플이 없습니다. Codex, Claude, Antigravity OAuth 자격 증명은 요청을 처리한 뒤 1분마다 샘플링되며, 그때부터 기록이 쌓입니다.",
     "quota_value_compare_title": "자격 증명별 전체 창 가치",
     "quota_value_window": "{{period}} 창",
     "quota_value_full_cost": "≈ 100% 비용",

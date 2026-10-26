@@ -51,33 +51,47 @@ export interface QuotaPeriodValue {
 }
 
 export interface CredentialQuotaValue {
+  /** Unique per credential and pool. */
+  key: string;
   authIndex: string;
   provider: string;
+  /** Model family of a per-family quota (Antigravity), empty for credential-wide quotas. */
+  pool: string;
   /** Shortest period first. Windows are paired by period, never by provider window name. */
   periods: QuotaPeriodValue[];
   /** Longest period's reference estimate divided by the shortest one's: how many short windows a long one holds. */
   ratio: number | null;
 }
 
-/** Group window instances and fitted models per credential and period. Credentials with the most valuable estimate come first. */
+const quotaKey = (authIndex: string, pool: string) => (pool ? `${authIndex}:${pool}` : authIndex);
+
+/** Display name of a quota pool. */
+export const formatPool = (pool: string): string =>
+  pool === 'gemini' ? 'Gemini' : pool === 'claude-gpt' ? 'Claude/GPT' : pool;
+
+/** Group window instances and fitted models per credential, pool and period. Credentials with the most valuable estimate come first. */
 export function buildQuotaValues(
   windows: readonly UsageQuotaWindow[],
   models?: readonly UsageQuotaModel[]
 ): CredentialQuotaValue[] {
   const byCredential = new Map<string, Map<number, UsageQuotaWindow[]>>();
-  const providers = new Map<string, string>();
+  const first = new Map<string, UsageQuotaWindow>();
   for (const w of windows) {
     if (!w.authIndex || w.periodSeconds <= 0) continue;
-    providers.set(w.authIndex, w.provider);
-    let periods = byCredential.get(w.authIndex);
-    if (!periods) byCredential.set(w.authIndex, (periods = new Map()));
+    const key = quotaKey(w.authIndex, w.pool);
+    first.set(key, w);
+    let periods = byCredential.get(key);
+    if (!periods) byCredential.set(key, (periods = new Map()));
     const list = periods.get(w.periodSeconds) ?? [];
     list.push(w);
     periods.set(w.periodSeconds, list);
   }
 
   const out: CredentialQuotaValue[] = [];
-  for (const [authIndex, periods] of byCredential) {
+  for (const [key, periods] of byCredential) {
+    const meta = first.get(key);
+    if (!meta) continue;
+    const { authIndex, provider, pool } = meta;
     const values: QuotaPeriodValue[] = [...periods.entries()]
       .sort(([a], [b]) => a - b)
       .map(([periodSeconds, list]) => {
@@ -86,8 +100,9 @@ export function buildQuotaValues(
         const estimate = reliable[reliable.length - 1] ?? null;
 
         const matchingModel =
-          models?.find((m) => m.authIndex === authIndex && m.periodSeconds === periodSeconds) ??
-          null;
+          models?.find(
+            (m) => m.authIndex === authIndex && m.pool === pool && m.periodSeconds === periodSeconds
+          ) ?? null;
 
         let reference: QuotaReferenceEstimate | null = null;
         if (matchingModel && matchingModel.status === 'fitted' && matchingModel.fullCost !== null) {
@@ -129,15 +144,17 @@ export function buildQuotaValues(
     const short = values[0]?.reference?.fullCost ?? null;
     const long = values.length > 1 ? (values[values.length - 1].reference?.fullCost ?? null) : null;
     out.push({
+      key,
       authIndex,
-      provider: providers.get(authIndex) ?? '',
+      provider,
+      pool,
       periods: values,
       ratio: short && long !== null ? long / short : null,
     });
   }
   const best = (c: CredentialQuotaValue) =>
     Math.max(0, ...c.periods.map((p) => p.reference?.fullCost ?? 0));
-  return out.sort((a, b) => best(b) - best(a) || a.authIndex.localeCompare(b.authIndex));
+  return out.sort((a, b) => best(b) - best(a) || a.key.localeCompare(b.key));
 }
 
 /** Period label such as 5h, 7d or 90m. */

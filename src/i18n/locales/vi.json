@@ -1286,7 +1286,7 @@
     "store_geoip_source": "Dữ liệu vị trí:",
     "quota_value_title": "Giá trị hạn mức gói đăng ký",
     "quota_value_desc": "100% mỗi cửa sổ hạn mức đáng giá bao nhiêu theo giá API, ước tính từ lượng dùng mà thông tin xác thực cần để đạt phần trăm hiện tại. Chỉ tính lưu lượng qua proxy này, nên dùng ở nơi khác (ứng dụng chính thức, proxy khác) làm ước tính thấp hơn. Dưới {{percent}}% ước tính quá thô nên không hiển thị. Khi hạn mức tăng mà lưu lượng qua proxy rất ít, phần tăng đó được coi là dùng ngoài và được trừ trước khi ước tính.",
-    "quota_value_empty": "Chưa có mẫu hạn mức. Thông tin xác thực Codex và Claude OAuth được lấy mẫu mỗi phút sau khi phục vụ yêu cầu; lịch sử tích lũy từ đó.",
+    "quota_value_empty": "Chưa có mẫu hạn mức. Thông tin xác thực Codex, Claude và Antigravity OAuth được lấy mẫu mỗi phút sau khi phục vụ yêu cầu; lịch sử tích lũy từ đó.",
     "quota_value_compare_title": "Giá trị cửa sổ đầy theo thông tin xác thực",
     "quota_value_window": "Cửa sổ {{period}}",
     "quota_value_full_cost": "≈ chi phí 100%",
