@@ -66,6 +66,18 @@ describe('client API keys model permissions', () => {
     expect(serializeClientApiKeyItem({ apiKey: 'sk-a', name: '  ' })).toBe('sk-a');
   });
 
+  test('round-trips the disabled flag', () => {
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', disabled: true }).disabled).toBe(true);
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', disabled: false }).disabled).toBeUndefined();
+    expect(parseClientApiKeyItem({ 'api-key': 'sk-a', disabled: 'true' }).disabled).toBeUndefined();
+    expect(serializeClientApiKeyItem({ apiKey: 'sk-a', disabled: true })).toEqual({
+      'api-key': 'sk-a',
+      disabled: true,
+    });
+    // Re-enabling a key without other settings stores it as a bare string again.
+    expect(serializeClientApiKeyItem({ apiKey: 'sk-a', disabled: undefined })).toBe('sk-a');
+  });
+
   test('keeps the name next to model rules', () => {
     expect(serializeClientApiKeyItem({ apiKey: 'sk-a', name: 'CI', models: ['gpt-*'] })).toEqual({
       'api-key': 'sk-a',
