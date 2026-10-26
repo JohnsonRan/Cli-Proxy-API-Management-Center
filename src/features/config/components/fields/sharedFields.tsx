@@ -5,8 +5,7 @@
 import { useTranslation } from 'react-i18next';
 import type { VisualConfigValues } from '@/types/visualConfig';
 import { SPONSORS } from '../../sponsors';
-import { ApiKeysCardEditor } from '../blocks/ApiKeysCardEditor';
-import { SettingCell, SettingList, TextSetting, ToggleSetting } from './FieldPrimitives';
+import { TextSetting, ToggleSetting } from './FieldPrimitives';
 import fieldStyles from './Field.module.scss';
 
 export type SharedFieldProps = {
@@ -92,20 +91,6 @@ export function ProxyUrlField({ values, disabled, onChange, wide }: SharedFieldP
       onChange={(proxyUrl) => onChange({ proxyUrl })}
       disabled={disabled}
     />
-  );
-}
-
-export function ApiKeysField({ values, disabled, onChange }: SharedFieldProps) {
-  return (
-    <SettingList>
-      <SettingCell fieldId="apiKeys">
-        <ApiKeysCardEditor
-          value={values.apiKeysText}
-          disabled={disabled}
-          onChange={(apiKeysText) => onChange({ apiKeysText })}
-        />
-      </SettingCell>
-    </SettingList>
   );
 }
 
