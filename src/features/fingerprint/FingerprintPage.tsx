@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import {
@@ -14,8 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { prefersReducedMotion } from '@/hooks/motion';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
 import { useAuthStore, useModelsStore } from '@/stores';
 import {
@@ -33,19 +32,65 @@ const TOP_CANDIDATES = 5;
 const formatPercent = (value: number | null | undefined) =>
   typeof value === 'number' && Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : '—';
 
-const DECISION_TONE: Record<string, string> = {
-  scored: 'success',
-  partial: 'warning',
-  unscorable: 'error',
-  not_model: 'error',
+type Tone = 'Good' | 'Warn' | 'Bad' | 'Muted';
+
+const DECISION_TONE: Record<string, Tone> = {
+  scored: 'Good',
+  partial: 'Warn',
+  unscorable: 'Bad',
+  not_model: 'Bad',
 };
 
-const STATE_TONE: Record<string, string> = {
-  complete: 'stateOk',
-  truncated: 'stateWarn',
-  failed: 'stateError',
-  cancelled: 'stateMuted',
+const STATE_TONE: Record<string, Tone> = {
+  complete: 'Good',
+  truncated: 'Warn',
+  failed: 'Bad',
+  cancelled: 'Muted',
 };
+
+interface RunInfo {
+  model: string;
+  api: FingerprintApiFormat;
+}
+
+/** Headline figure in the usage page's stat card style: dot, label, value and caption. */
+function StatCard({
+  label,
+  value,
+  sub,
+  dot,
+  loading,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  dot: Tone | 'Primary';
+  loading: boolean;
+}) {
+  return (
+    <Card className={styles.statCard}>
+      <span className={styles.statLabelGroup}>
+        <span className={`${styles.metricDot} ${styles[`dot${dot}`]}`} aria-hidden="true" />
+        <span className={styles.statLabel}>{label}</span>
+      </span>
+      {loading ? (
+        <Skeleton height={32} width="60%" rounded={6} />
+      ) : (
+        <span className={styles.statValue}>{value}</span>
+      )}
+      <span className={styles.statSub}>{loading ? '' : sub}</span>
+    </Card>
+  );
+}
+
+function PanelHeading({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className={styles.panelHeading}>
+      <h2 className={styles.panelTitle}>{title}</h2>
+      <p className={styles.panelDesc}>{desc}</p>
+    </div>
+  );
+}
 
 export function FingerprintPage() {
   const { t } = useTranslation();
@@ -63,9 +108,9 @@ export function FingerprintPage() {
   const [stream, setStream] = useState(true);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<FingerprintDetectResult | null>(null);
+  const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const [error, setError] = useState('');
   const abortRef = useRef<AbortController | null>(null);
-  const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (connectionStatus !== 'connected' || !apiBase) return;
@@ -86,15 +131,6 @@ export function FingerprintPage() {
   }, [connectionStatus, apiBase, resolveApiKeys, fetchModels]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
-
-  // On narrow screens the result stacks below the form; bring it into view once.
-  useEffect(() => {
-    if (!result) return;
-    resultRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-      block: 'nearest',
-    });
-  }, [result]);
 
   const modelOptions = useMemo(() => models.map((item) => item.name), [models]);
   const keyOptions = useMemo(
@@ -117,6 +153,7 @@ export function FingerprintPage() {
     setRunning(true);
     setError('');
     setResult(null);
+    setRunInfo({ model: name, api: apiFormat });
     try {
       const data = await fingerprintApi.detect(
         {
@@ -141,18 +178,30 @@ export function FingerprintPage() {
 
   const analysis = result?.analysis ?? null;
   const candidates = analysis?.results.slice(0, TOP_CANDIDATES) ?? [];
-  const decisionTone = analysis ? (DECISION_TONE[analysis.decision] ?? 'muted') : 'muted';
+  const samples = result?.samples ?? [];
+  const completeSamples = samples.filter((sample) => sample.state === 'complete').length;
+  const numberCount = samples.reduce((sum, sample) => sum + sample.count, 0);
+  const numberExpected = samples.reduce((sum, sample) => sum + sample.expected_count, 0);
+  const emptyText = t(running ? 'fingerprint.running_hint' : 'fingerprint.empty_hint');
+  const decisionTone: Tone = analysis ? (DECISION_TONE[analysis.decision] ?? 'Muted') : 'Muted';
 
   return (
-    <div className={styles.container}>
-      <header className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>{t('fingerprint.title')}</h1>
-        <p className={styles.pageDescription}>{t('fingerprint.description')}</p>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>{t('fingerprint.title')}</h1>
+        <p className={styles.meta}>
+          {result && runInfo
+            ? t('fingerprint.meta', {
+                model: runInfo.model,
+                api: t(`fingerprint.api_${runInfo.api}`),
+              })
+            : t('fingerprint.subtitle')}
+        </p>
       </header>
 
-      <div className={styles.layout}>
-        <Card title={t('fingerprint.form_title')} className={styles.formCard}>
-          <div className={styles.formFields}>
+      <div className={styles.toolbar}>
+        <div className={styles.controls}>
+          <div className={styles.modelControl}>
             <AutocompleteInput
               id="fingerprint-model"
               label={t('fingerprint.model')}
@@ -162,30 +211,32 @@ export function FingerprintPage() {
               placeholder={t('fingerprint.model_placeholder')}
               disabled={running}
             />
-            <div className="form-group">
-              <label htmlFor="fingerprint-api-format">{t('fingerprint.api_format')}</label>
-              <Select
-                id="fingerprint-api-format"
-                value={apiFormat}
-                options={formatOptions}
-                onChange={(value) => setApiFormat(value as FingerprintApiFormat)}
-                disabled={running}
-                ariaLabel={t('fingerprint.api_format')}
-                fullWidth
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="fingerprint-api-key">{t('fingerprint.api_key')}</label>
-              <Select
-                id="fingerprint-api-key"
-                value={apiKey}
-                options={keyOptions}
-                onChange={setApiKey}
-                disabled={running}
-                ariaLabel={t('fingerprint.api_key')}
-                fullWidth
-              />
-            </div>
+          </div>
+          <div className={`form-group ${styles.selectControl}`}>
+            <label htmlFor="fingerprint-api-format">{t('fingerprint.api_format')}</label>
+            <Select
+              id="fingerprint-api-format"
+              value={apiFormat}
+              options={formatOptions}
+              onChange={(value) => setApiFormat(value as FingerprintApiFormat)}
+              disabled={running}
+              ariaLabel={t('fingerprint.api_format')}
+              fullWidth
+            />
+          </div>
+          <div className={`form-group ${styles.selectControl}`}>
+            <label htmlFor="fingerprint-api-key">{t('fingerprint.api_key')}</label>
+            <Select
+              id="fingerprint-api-key"
+              value={apiKey}
+              options={keyOptions}
+              onChange={setApiKey}
+              disabled={running}
+              ariaLabel={t('fingerprint.api_key')}
+              fullWidth
+            />
+          </div>
+          <div className={styles.effortControl}>
             <Input
               id="fingerprint-effort"
               label={t('fingerprint.effort')}
@@ -195,166 +246,183 @@ export function FingerprintPage() {
               disabled={running}
             />
           </div>
-          <div className={styles.footer}>
+          <div className={styles.runControls}>
             <ToggleSwitch
               checked={stream}
               onChange={setStream}
               label={t('fingerprint.stream')}
               disabled={running}
             />
-            <div className={styles.actions}>
-              {running && (
-                <Button variant="secondary" onClick={() => abortRef.current?.abort()}>
-                  {t('fingerprint.cancel')}
-                </Button>
-              )}
-              <Button onClick={run} loading={running} disabled={!model.trim() || running}>
+            {running ? (
+              <Button variant="secondary" onClick={() => abortRef.current?.abort()}>
+                {t('fingerprint.cancel')}
+              </Button>
+            ) : (
+              <Button onClick={run} disabled={!model.trim()}>
                 {t('fingerprint.run')}
               </Button>
-            </div>
+            )}
           </div>
-          <p className={styles.footnote}>{t('fingerprint.usage_hint')}</p>
-        </Card>
-
-        <div ref={resultRef} className={styles.resultColumn}>
-          {error && <div className="error-box">{error}</div>}
-
-          {!result && (
-            <Card title={t('fingerprint.result_title')}>
-              <div className={styles.placeholder} aria-live="polite">
-                {running && <LoadingSpinner size={24} />}
-                <p>{t(running ? 'fingerprint.running_hint' : 'fingerprint.empty_hint')}</p>
-              </div>
-            </Card>
-          )}
-
-          {result && (
-            <Card
-              title={t('fingerprint.result_title')}
-              extra={
-                analysis ? (
-                  <span className={`status-badge ${decisionTone} ${styles.decisionBadge}`}>
-                    {t(`fingerprint.decision_${analysis.decision}`, {
-                      defaultValue: analysis.decision,
-                    })}
-                  </span>
-                ) : null
-              }
-            >
-              {result.error && <div className="error-box">{result.error}</div>}
-
-              {analysis && (
-                <div className={styles.verdict}>
-                  <div className={styles.verdictMain}>
-                    <div className={styles.label}>{t('fingerprint.prediction')}</div>
-                    <div className={styles.verdictName}>{analysis.prediction_name || '—'}</div>
-                    <div className={styles.verdictFamily}>
-                      {t('fingerprint.family')} · {analysis.family_prediction_name || '—'}
-                    </div>
-                  </div>
-                  <div className={styles.verdictScore}>
-                    <div className={styles.label}>{t('fingerprint.probability')}</div>
-                    <div className={styles.verdictPercent}>
-                      {formatPercent(analysis.probability)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {candidates.length > 0 && (
-                <section className={styles.section}>
-                  <h3 className={styles.sectionTitle}>{t('fingerprint.candidates_title')}</h3>
-                  <Table>
-                    <TableHeader>
-                      <tr>
-                        <TableHead>{t('fingerprint.candidate')}</TableHead>
-                        <TableHead>{t('fingerprint.family')}</TableHead>
-                        <TableHead alignRight>{t('fingerprint.score')}</TableHead>
-                        <TableHead className={styles.probabilityHead}>
-                          {t('fingerprint.probability')}
-                        </TableHead>
-                      </tr>
-                    </TableHeader>
-                    <TableBody>
-                      {candidates.map((item, index) => (
-                        <TableRow key={item.model} selected={index === 0}>
-                          <TableCell className={styles.candidateName}>
-                            {item.display_name || item.model}
-                          </TableCell>
-                          <TableCell className={styles.muted}>
-                            {item.family_name || item.family}
-                          </TableCell>
-                          <TableCell alignRight className={styles.numeric}>
-                            {item.score.toFixed(3)}
-                          </TableCell>
-                          <TableCell>
-                            <div className={styles.probability}>
-                              <span className={styles.bar} aria-hidden="true">
-                                <span
-                                  className={styles.barFill}
-                                  style={{
-                                    width: `${Math.min(100, Math.max(0, (item.probability ?? 0) * 100))}%`,
-                                  }}
-                                />
-                              </span>
-                              <span className={styles.numeric}>
-                                {formatPercent(item.probability)}
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </section>
-              )}
-
-              {result.samples.length > 0 && (
-                <section className={styles.section}>
-                  <h3 className={styles.sectionTitle}>{t('fingerprint.samples_title')}</h3>
-                  <Table>
-                    <TableHeader>
-                      <tr>
-                        <TableHead className={styles.indexCol}>#</TableHead>
-                        <TableHead>{t('fingerprint.sample_state')}</TableHead>
-                        <TableHead alignRight>{t('fingerprint.sample_numbers')}</TableHead>
-                        <TableHead>{t('fingerprint.response_model')}</TableHead>
-                      </tr>
-                    </TableHeader>
-                    <TableBody>
-                      {result.samples.map((sample, index) => (
-                        <TableRow key={index}>
-                          <TableCell className={styles.muted}>{index + 1}</TableCell>
-                          <TableCell>
-                            <span className={styles[STATE_TONE[sample.state] ?? 'stateMuted']}>
-                              {t(`fingerprint.state_${sample.state}`, {
-                                defaultValue: sample.state,
-                              })}
-                            </span>
-                            {sample.error && (
-                              <div className={styles.sampleError}>{sample.error}</div>
-                            )}
-                          </TableCell>
-                          <TableCell alignRight className={styles.numeric}>
-                            {sample.count} / {sample.expected_count}
-                          </TableCell>
-                          <TableCell className={styles.mono}>
-                            {sample.response_model || '—'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </section>
-              )}
-
-              <p className={styles.footnote}>
-                {t('fingerprint.disclaimer', { builtAt: result.built_at || '—' })}
-              </p>
-            </Card>
-          )}
         </div>
+        <p className={styles.toolbarNote}>
+          {t('fingerprint.description')} {t('fingerprint.usage_hint')}
+        </p>
       </div>
+
+      {error && (
+        <div className={styles.errorBanner} role="alert">
+          {error}
+        </div>
+      )}
+      {result?.error && (
+        <div className={styles.errorBanner} role="alert">
+          {result.error}
+        </div>
+      )}
+
+      <div className={styles.cards} aria-busy={running}>
+        <StatCard
+          label={t('fingerprint.prediction')}
+          value={analysis?.prediction_name || '—'}
+          sub={analysis?.family_prediction_name}
+          dot="Primary"
+          loading={running}
+        />
+        <StatCard
+          label={t('fingerprint.probability')}
+          value={formatPercent(analysis?.probability)}
+          sub={analysis ? t('fingerprint.probability_sub') : undefined}
+          dot="Good"
+          loading={running}
+        />
+        <StatCard
+          label={t('fingerprint.decision')}
+          value={
+            analysis ? (
+              <span className={styles[`tone${decisionTone}`]}>
+                {t(`fingerprint.decision_${analysis.decision}`, {
+                  defaultValue: analysis.decision,
+                })}
+              </span>
+            ) : (
+              '—'
+            )
+          }
+          sub={analysis ? t('fingerprint.used_outputs', { n: analysis.used_outputs }) : undefined}
+          dot={decisionTone}
+          loading={running}
+        />
+        <StatCard
+          label={t('fingerprint.valid_samples')}
+          value={samples.length ? `${completeSamples} / ${samples.length}` : '—'}
+          sub={
+            samples.length
+              ? t('fingerprint.valid_numbers', { n: numberCount, expected: numberExpected })
+              : undefined
+          }
+          dot="Muted"
+          loading={running}
+        />
+      </div>
+
+      <div className={styles.split}>
+        <section className={styles.panel}>
+          <PanelHeading
+            title={t('fingerprint.candidates_title')}
+            desc={t('fingerprint.candidates_desc', { n: TOP_CANDIDATES })}
+          />
+          {candidates.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <tr>
+                  <TableHead>{t('fingerprint.candidate')}</TableHead>
+                  <TableHead alignRight>{t('fingerprint.score')}</TableHead>
+                  <TableHead alignRight>{t('fingerprint.probability')}</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {candidates.map((item, index) => (
+                  <TableRow key={item.model}>
+                    <TableCell>
+                      <span className={styles.rankName}>
+                        <span className={styles.rank}>{index + 1}</span>
+                        <span className={styles.rankText}>
+                          <span className={styles.cellStrong}>
+                            {item.display_name || item.model}
+                          </span>
+                          <span className={styles.cellSub}>{item.family_name || item.family}</span>
+                        </span>
+                      </span>
+                    </TableCell>
+                    <TableCell alignRight className={styles.numeric}>
+                      {item.score.toFixed(3)}
+                    </TableCell>
+                    <TableCell alignRight>
+                      <span className={styles.share}>
+                        <span className={styles.shareText}>{formatPercent(item.probability)}</span>
+                        <span className={styles.shareTrack} aria-hidden="true">
+                          <span
+                            className={styles.shareBar}
+                            style={{
+                              width: `${Math.min(100, Math.max(0, (item.probability ?? 0) * 100))}%`,
+                            }}
+                          />
+                        </span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className={styles.empty}>{emptyText}</p>
+          )}
+        </section>
+
+        <section className={styles.panel}>
+          <PanelHeading
+            title={t('fingerprint.samples_title')}
+            desc={t('fingerprint.samples_desc')}
+          />
+          {samples.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <tr>
+                  <TableHead>#</TableHead>
+                  <TableHead>{t('fingerprint.sample_state')}</TableHead>
+                  <TableHead alignRight>{t('fingerprint.sample_numbers')}</TableHead>
+                  <TableHead>{t('fingerprint.response_model')}</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {samples.map((sample, index) => (
+                  <TableRow key={index}>
+                    <TableCell className={styles.rank}>{index + 1}</TableCell>
+                    <TableCell>
+                      <span className={styles[`tone${STATE_TONE[sample.state] ?? 'Muted'}`]}>
+                        {t(`fingerprint.state_${sample.state}`, { defaultValue: sample.state })}
+                      </span>
+                      {sample.error && <span className={styles.errorText}>{sample.error}</span>}
+                    </TableCell>
+                    <TableCell alignRight className={styles.numeric}>
+                      {sample.count} / {sample.expected_count}
+                    </TableCell>
+                    <TableCell className={styles.mono}>{sample.response_model || '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className={styles.empty}>{emptyText}</p>
+          )}
+        </section>
+      </div>
+
+      {result && (
+        <p className={styles.footnote}>
+          {t('fingerprint.disclaimer', { builtAt: result.built_at || '—' })}
+        </p>
+      )}
     </div>
   );
 }
