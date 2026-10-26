@@ -215,8 +215,11 @@ jobs:
           git merge --squash origin/patch/modal-close-race
           git commit -m "merge patch/modal-close-race branch"
 
-          # Needs the core patch/fingerprint-detector endpoint.
-          git merge --squash origin/patch/fingerprint-detector
+          # Needs the core patch/fingerprint-detector endpoint. Its nav entry and patch/usage-store's
+          # both sit right before /logs; only that exact conflict is resolved (usage, fingerprint, logs).
+          if ! git merge --squash origin/patch/fingerprint-detector; then
+            bun .github/scripts/resolve-observe-nav.ts
+          fi
           git commit -m "merge patch/fingerprint-detector branch"
 
       - name: Validate build and tests
