@@ -1095,6 +1095,8 @@
     "usage_hint": "检测请求会计入用量统计，可在用量页面按所选密钥和模型查看。",
     "failed": "检测失败",
     "result_title": "检测结果",
+    "empty_hint": "选择模型后开始检测，结果会显示在这里。",
+    "running_hint": "正在检测，通常需要几十秒到几分钟…",
     "prediction": "最可能的模型",
     "family": "模型家族",
     "probability": "置信度",

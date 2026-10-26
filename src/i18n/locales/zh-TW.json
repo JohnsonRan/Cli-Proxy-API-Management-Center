@@ -1123,6 +1123,8 @@
     "usage_hint": "檢測請求會計入用量統計，可在用量頁面依所選金鑰和模型查看。",
     "failed": "檢測失敗",
     "result_title": "檢測結果",
+    "empty_hint": "選擇模型後開始檢測，結果會顯示在這裡。",
+    "running_hint": "正在檢測，通常需要幾十秒到幾分鐘…",
     "prediction": "最可能的模型",
     "family": "模型家族",
     "probability": "信賴度",

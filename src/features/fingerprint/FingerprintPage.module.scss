@@ -28,23 +28,30 @@
   line-height: 1.6;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-lg;
-}
-
-// Model gets its own row; the three options share the next one.
-.formGrid {
+// Parameters on the left, result on the right; stacked on narrow screens.
+.layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0 $spacing-md;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  align-items: start;
+  gap: $spacing-lg;
 
-  @media (max-width: 720px) {
+  @media (max-width: 1024px) {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  // Match the Select trigger so text inputs and dropdowns line up in one row.
+.formCard {
+  min-width: 0;
+  position: sticky;
+  top: $spacing-lg;
+
+  @media (max-width: 1024px) {
+    position: static;
+  }
+}
+
+.formFields {
+  // Match the Select trigger so text inputs and dropdowns share one height.
   :global(.input) {
     height: 40px;
     padding-block: 0;
@@ -52,15 +59,10 @@
   }
 }
 
-.modelField {
-  grid-column: 1 / -1;
-}
-
 .footer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: $spacing-md;
   padding-top: $spacing-md;
   border-top: 1px solid var(--border-color);
@@ -68,9 +70,11 @@
 
 .actions {
   display: flex;
-  align-items: center;
   gap: $spacing-sm;
-  margin-left: auto;
+
+  > * {
+    flex: 1;
+  }
 }
 
 .footnote {
@@ -81,8 +85,32 @@
 }
 
 // Clear the floating top-right toolbar when the result scrolls into view.
-.resultAnchor {
+.resultColumn {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  min-width: 0;
   scroll-margin-top: 96px;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  min-height: 240px;
+  padding: $spacing-lg;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+
+  p {
+    margin: 0;
+    max-width: 36ch;
+  }
 }
 
 .decisionBadge {
@@ -142,6 +170,10 @@
 
 .section {
   margin-top: $spacing-lg;
+
+  :global(th) {
+    white-space: nowrap;
+  }
 }
 
 .sectionTitle {
@@ -167,7 +199,7 @@
 .mono {
   font-family: $font-mono;
   font-size: 12px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .indexCol {

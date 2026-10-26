@@ -1096,6 +1096,8 @@
     "usage_hint": "Detection requests count toward usage; see them on the usage page by key and model.",
     "failed": "Detection failed",
     "result_title": "Result",
+    "empty_hint": "Pick a model and start detection. Results appear here.",
+    "running_hint": "Detecting… this usually takes from tens of seconds to a few minutes.",
     "prediction": "Most likely model",
     "family": "Family",
     "probability": "Confidence",

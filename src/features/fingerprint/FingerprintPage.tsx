@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { prefersReducedMotion } from '@/hooks/motion';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
 import { useAuthStore, useModelsStore } from '@/stores';
@@ -86,12 +87,12 @@ export function FingerprintPage() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  // The result lands below the form, usually off-screen; bring it into view once.
+  // On narrow screens the result stacks below the form; bring it into view once.
   useEffect(() => {
     if (!result) return;
     resultRef.current?.scrollIntoView({
       behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-      block: 'start',
+      block: 'nearest',
     });
   }, [result]);
 
@@ -149,20 +150,18 @@ export function FingerprintPage() {
         <p className={styles.pageDescription}>{t('fingerprint.description')}</p>
       </header>
 
-      <div className={styles.content}>
-        <Card title={t('fingerprint.form_title')}>
-          <div className={styles.formGrid}>
-            <div className={styles.modelField}>
-              <AutocompleteInput
-                id="fingerprint-model"
-                label={t('fingerprint.model')}
-                value={model}
-                onChange={setModel}
-                options={modelOptions}
-                placeholder={t('fingerprint.model_placeholder')}
-                disabled={running}
-              />
-            </div>
+      <div className={styles.layout}>
+        <Card title={t('fingerprint.form_title')} className={styles.formCard}>
+          <div className={styles.formFields}>
+            <AutocompleteInput
+              id="fingerprint-model"
+              label={t('fingerprint.model')}
+              value={model}
+              onChange={setModel}
+              options={modelOptions}
+              placeholder={t('fingerprint.model_placeholder')}
+              disabled={running}
+            />
             <div className="form-group">
               <label htmlFor="fingerprint-api-format">{t('fingerprint.api_format')}</label>
               <Select
@@ -217,10 +216,19 @@ export function FingerprintPage() {
           <p className={styles.footnote}>{t('fingerprint.usage_hint')}</p>
         </Card>
 
-        {error && <div className="error-box">{error}</div>}
+        <div ref={resultRef} className={styles.resultColumn}>
+          {error && <div className="error-box">{error}</div>}
 
-        {result && (
-          <div ref={resultRef} className={styles.resultAnchor}>
+          {!result && (
+            <Card title={t('fingerprint.result_title')}>
+              <div className={styles.placeholder} aria-live="polite">
+                {running && <LoadingSpinner size={24} />}
+                <p>{t(running ? 'fingerprint.running_hint' : 'fingerprint.empty_hint')}</p>
+              </div>
+            </Card>
+          )}
+
+          {result && (
             <Card
               title={t('fingerprint.result_title')}
               extra={
@@ -344,8 +352,8 @@ export function FingerprintPage() {
                 {t('fingerprint.disclaimer', { builtAt: result.built_at || '—' })}
               </p>
             </Card>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

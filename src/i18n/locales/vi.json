@@ -1052,6 +1052,8 @@
     "usage_hint": "Yêu cầu nhận diện được tính vào thống kê sử dụng; xem trên trang sử dụng theo khóa và mô hình.",
     "failed": "Nhận diện thất bại",
     "result_title": "Kết quả",
+    "empty_hint": "Chọn mô hình rồi bắt đầu phát hiện. Kết quả sẽ hiển thị ở đây.",
+    "running_hint": "Đang phát hiện, thường mất từ vài chục giây đến vài phút…",
     "prediction": "Mô hình khả năng cao nhất",
     "family": "Họ mô hình",
     "probability": "Độ tin cậy",
