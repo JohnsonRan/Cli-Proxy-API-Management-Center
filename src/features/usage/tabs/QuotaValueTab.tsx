@@ -24,8 +24,10 @@ import { formatCompact, formatCost, formatPercent } from '../format';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
   MIN_RELIABLE_PERCENT,
+  type CredentialQuotaValue,
   buildQuotaValues,
   formatPeriod,
+  formatPool,
   isReliableWindow,
   quotaPeriods,
   windowIssue,
@@ -92,8 +94,14 @@ export function QuotaValueTab({
     [filteredWindows, data?.models]
   );
   const periods = useMemo(() => quotaPeriods(values), [values]);
-  const name = useCallback((authIndex: string) => labels.credential(authIndex), [labels]);
-  const active = values.find((c) => c.authIndex === selected) ?? values[0];
+  const name = useCallback(
+    (c: CredentialQuotaValue) =>
+      c.pool
+        ? `${labels.credential(c.authIndex)} · ${formatPool(c.pool)}`
+        : labels.credential(c.authIndex),
+    [labels]
+  );
+  const active = values.find((c) => c.key === selected) ?? values[0];
 
   const dateLabel = useCallback(
     (sec: number) =>
@@ -110,7 +118,7 @@ export function QuotaValueTab({
     const base = baseCartesianOptions(theme, false, formatCost);
     return {
       data: {
-        labels: values.map((c) => name(c.authIndex)),
+        labels: values.map(name),
         datasets: periods.map((period, index) => ({
           label: t('usage_stats.quota_value_window', { period: formatPeriod(period) }),
           data: values.map(
@@ -228,12 +236,12 @@ export function QuotaValueTab({
           <TableBody>
             {values.flatMap((c) =>
               c.periods.map((p, index) => (
-                <TableRow key={`${c.authIndex}:${p.periodSeconds}`}>
+                <TableRow key={`${c.key}:${p.periodSeconds}`}>
                   <TableCell>
                     {index === 0 && (
                       <div className={styles.cellMain}>
                         <span className={styles.cellLine}>
-                          <span className={styles.cellStrong}>{name(c.authIndex)}</span>
+                          <span className={styles.cellStrong}>{name(c)}</span>
                           <ProviderBadge provider={c.provider} />
                         </span>
                         {c.ratio !== null && (
@@ -309,8 +317,8 @@ export function QuotaValueTab({
             desc={t('usage_stats.quota_value_trend_desc')}
           />
           <Select
-            value={active?.authIndex ?? ''}
-            options={values.map((c) => ({ value: c.authIndex, label: name(c.authIndex) }))}
+            value={active?.key ?? ''}
+            options={values.map((c) => ({ value: c.key, label: name(c) }))}
             onChange={setSelected}
             ariaLabel={t('usage_stats.select_credentials')}
             size="sm"
