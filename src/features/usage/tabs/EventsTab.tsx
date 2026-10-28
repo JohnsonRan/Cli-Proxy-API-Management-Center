@@ -286,9 +286,6 @@ export function EventsTab({
     [i18n.language]
   );
 
-  // A request is "slow" when it takes over twice the average of the matching requests.
-  const slowAfterMs = (summary?.totals.avgLatencyMs ?? 0) * 2;
-
   const cell = (column: EventColumn, e: UsageEvent) => {
     switch (column) {
       case 'time':
@@ -328,7 +325,7 @@ export function EventsTab({
       case 'latency':
         return (
           <TableCell alignRight>
-            <EventLatencyCell event={e} slowAfterMs={slowAfterMs} />
+            <EventLatencyCell event={e} />
           </TableCell>
         );
       case 'cost':

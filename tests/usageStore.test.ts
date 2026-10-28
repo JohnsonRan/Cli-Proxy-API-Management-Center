@@ -49,6 +49,7 @@ import {
   formatDatetimeLocal,
   formatMs,
   formatTps,
+  speedTone,
   parseDatetimeLocal,
   previousWindow,
   rangeWindow,
@@ -189,6 +190,13 @@ describe('usage formatting', () => {
     expect(formatTps(Number.NaN)).toBe('—');
     expect(formatTps(42.46)).toBe('42.5 t/s');
     expect(formatTps(1234.4)).toBe('1,234 t/s');
+    expect(speedTone('ttft', 0)).toBe('none');
+    expect(speedTone('ttft', 1710)).toBe('good');
+    expect(speedTone('ttft', 5000)).toBe('warn');
+    expect(speedTone('tps', 54.8)).toBe('good');
+    expect(speedTone('tps', 19.3)).toBe('warn');
+    expect(speedTone('tps', 6.8)).toBe('bad');
+    expect(speedTone('tps', 35)).toBe('warn');
   });
 
   test('chart axes and tooltips use compact units unless told otherwise', () => {
@@ -838,6 +846,11 @@ describe('usage precision, transport and cells', () => {
       );
     expect(latency(85.25)).toContain('85.3 t/s');
     expect(latency(0)).not.toContain('t/s');
+    // 500 ms of 2000 ms waiting for the first token puts the color split at 25%.
+    expect(latency(85.25)).toContain(
+      'linear-gradient(var(--viz-success) 19%, var(--viz-success) 31%)'
+    );
+    expect(latency(5)).toContain('var(--viz-success) 19%, var(--viz-failure) 31%');
   });
 });
 

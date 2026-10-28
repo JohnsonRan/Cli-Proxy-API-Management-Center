@@ -1,7 +1,15 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UsageEvent } from '@/services/api/usageStore';
-import { formatCompact, formatCost, formatMs, formatPercent, formatTps } from '../format';
+import {
+  formatCompact,
+  formatCost,
+  formatMs,
+  formatPercent,
+  formatTps,
+  speedTone,
+  type SpeedTone,
+} from '../format';
 import { Compact } from './PanelBits';
 import type { UsageLabels } from '../hooks/useUsageLabels';
 import {
@@ -320,25 +328,42 @@ export function EventTokensCell({ event: e }: { event: UsageEvent }) {
   );
 }
 
-export function EventLatencyCell({
-  event: e,
-  slowAfterMs = 0,
-}: {
-  event: UsageEvent;
-  slowAfterMs?: number;
-}) {
+const TONE_COLOR: Record<SpeedTone, string> = {
+  good: 'var(--viz-success)',
+  warn: 'var(--amber-color)',
+  bad: 'var(--viz-failure)',
+  none: 'var(--text-tertiary)',
+};
+
+export function EventLatencyCell({ event: e }: { event: UsageEvent }) {
+  const { t } = useTranslation();
+  const ttftColor = TONE_COLOR[speedTone('ttft', e.ttftMs)];
+  const tpsColor = TONE_COLOR[speedTone('tps', e.outputTps)];
+  const rows: [string, string, string][] = [
+    [t('usage_stats.speed_ttft'), formatMs(e.ttftMs), ttftColor],
+    [t('usage_stats.speed_total'), formatMs(e.latencyMs), 'var(--text-primary)'],
+    [t('usage_stats.speed_tps'), formatTps(e.outputTps), tpsColor],
+  ];
+  // Bar splits total time: waiting for the first token on top, generating below.
+  const split = e.latencyMs > 0 ? Math.min(100, Math.max(0, (e.ttftMs / e.latencyMs) * 100)) : 0;
   return (
-    <span className={styles.rankText}>
+    <span className={styles.speedCell}>
       <span
-        className={
-          slowAfterMs > 0 && e.latencyMs > slowAfterMs ? styles.slowValue : styles.cellStrong
-        }
-      >
-        {formatMs(e.latencyMs)}
-      </span>
-      <span className={styles.cellSub}>
-        TTFT {formatMs(e.ttftMs)}
-        {e.outputTps > 0 && ` · ${formatTps(e.outputTps)}`}
+        className={styles.speedBar}
+        aria-hidden="true"
+        style={{
+          background: `linear-gradient(${ttftColor} ${Math.max(0, split - 6)}%, ${tpsColor} ${Math.min(100, split + 6)}%)`,
+        }}
+      />
+      <span className={styles.speedRows}>
+        {rows.map(([label, value, color]) => (
+          <Fragment key={label}>
+            <span className={styles.speedLabel}>{label}</span>
+            <span className={styles.speedValue} style={{ color }}>
+              {value}
+            </span>
+          </Fragment>
+        ))}
       </span>
     </span>
   );

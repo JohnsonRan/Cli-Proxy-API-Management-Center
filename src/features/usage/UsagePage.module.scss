@@ -980,9 +980,38 @@
   box-shadow: inset 3px 0 0 var(--viz-failure);
 }
 
-.slowValue {
-  font-weight: 700;
-  color: #ea580c;
+/* First token, total time and speed, each colored by grade, beside a matching gradient bar. */
+.speedCell {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 10px;
+  text-align: left;
+}
+
+.speedBar {
+  flex: none;
+  width: 4px;
+  border-radius: 2px;
+}
+
+.speedRows {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 12px;
+  row-gap: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.speedLabel {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.speedValue {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ---------- Global Filter Bar & MultiSelect ---------- */
