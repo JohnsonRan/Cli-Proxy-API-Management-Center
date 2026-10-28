@@ -2360,7 +2360,7 @@
     "stat_named_desc": "Khóa có tên trong cấu hình máy chủ",
     "name_hint": "Được lưu trong cấu hình máy chủ (access.api-keys) và dùng chung cho mọi bảng điều khiển. Xóa trường này để xóa tên.",
     "stat_restricted": "Khóa bị giới hạn",
-    "stat_restricted_desc": "Khóa có phạm vi mô hình bị giới hạn",
+    "stat_restricted_desc": "Khóa bị giới hạn bởi quy tắc mô hình hoặc phạm vi nhà cung cấp",
     "table_name": "Tên / Ghi chú",
     "table_key": "Khóa API",
     "table_models": "Phạm vi mô hình",
@@ -2402,6 +2402,26 @@
     "empty_search_desc": "Hãy thử tìm kiếm với từ khóa khác.",
     "delete_modal_title": "Xóa khóa API máy khách",
     "delete_modal_confirm": "Bạn có chắc chắn muốn xóa khóa này không? Các máy khách sử dụng khóa này sẽ mất quyền truy cập ngay lập tức.",
-    "delete_btn": "Xác nhận xóa"
+    "delete_btn": "Xác nhận xóa",
+    "scopes": {
+      "title": "Phạm vi nhà cung cấp",
+      "description": "client.key-scopes: giới hạn khóa theo tiền tố vào thông tin xác thực của các nhà cung cấp đã liệt kê",
+      "hint": "Khóa bắt đầu bằng tiền tố chỉ thấy và chỉ dùng được các nhà cung cấp này; tiền tố khớp dài nhất được áp dụng và khóa đầy đủ cũng dùng làm tiền tố được. Yêu cầu tới mô hình khác nhận 400 model_not_found, tìm kiếm web và giọng nói của Codex cần có codex trong danh sách. Dùng khóa nhà cung cấp (claude, codex, gemini, xai, …), tên mục openai-compatibility hoặc ID plugin thực thi; anthropic, openai, chatgpt, muse và grok là bí danh. Khóa không khớp quy tắc nào không bị giới hạn. Không áp dụng ở chế độ Home.",
+      "empty": "Chưa có quy tắc: mọi khóa client đều dùng được mọi nhà cung cấp.",
+      "prefix_label": "Tiền tố khóa",
+      "providers_label": "Nhà cung cấp",
+      "providers_placeholder": "Nhập nhà cung cấp rồi nhấn Enter",
+      "add_rule": "Thêm quy tắc",
+      "remove_rule": "Xóa quy tắc",
+      "remove_provider": "Bỏ {{provider}}",
+      "save": "Lưu phạm vi",
+      "reset": "Hủy thay đổi",
+      "tag": "Chỉ {{providers}}",
+      "matched_prefix": "Tiền tố khóa khớp: {{prefix}}",
+      "modal_note": "Khóa này khớp phạm vi “{{prefix}}” và chỉ dùng được: {{providers}}.",
+      "error_prefix_required": "Nhập tiền tố khóa.",
+      "error_providers_required": "Thêm ít nhất một nhà cung cấp; backend bỏ qua quy tắc không có nhà cung cấp.",
+      "error_prefix_duplicate": "Tiền tố này đã được dùng; chỉ quy tắc đầu tiên có hiệu lực."
+    }
   }
 }
