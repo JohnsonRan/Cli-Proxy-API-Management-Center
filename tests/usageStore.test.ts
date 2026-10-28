@@ -851,6 +851,23 @@ describe('usage precision, transport and cells', () => {
       'linear-gradient(var(--viz-success) 19%, var(--viz-success) 31%)'
     );
     expect(latency(5)).toContain('var(--viz-success) 19%, var(--viz-failure) 31%');
+    // Embeddings and rerank never stream: the first byte is the whole response, so no grade.
+    const unstreamed = renderToStaticMarkup(
+      createElement(EventLatencyCell, {
+        event: { ...event, stream: false, latencyMs: 16600, ttftMs: 16600, outputTps: 0 },
+      })
+    );
+    expect(unstreamed).toContain('16.6 s');
+    expect(unstreamed).not.toContain('--viz-failure');
+    expect(unstreamed).toContain('<span title="');
+    expect(latency(85.25)).not.toContain('<span title="');
+  });
+
+  test('keeps first token only for successful streamed events', async () => {
+    const { eventTtftMs } = await import('@/features/usage/logic');
+    expect(eventTtftMs({ stream: true, failed: false, ttftMs: 500 })).toBe(500);
+    expect(eventTtftMs({ stream: false, failed: false, ttftMs: 500 })).toBe(0);
+    expect(eventTtftMs({ stream: true, failed: true, ttftMs: 500 })).toBe(0);
   });
 });
 

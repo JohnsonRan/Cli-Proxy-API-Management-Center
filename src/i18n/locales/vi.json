@@ -1054,6 +1054,7 @@
     "speed_ttft": "Token đầu",
     "speed_total": "Tổng thời gian",
     "speed_tps": "TPS trung bình",
+    "speed_unstreamed_hint": "Phản hồi không truyền trực tuyến được trả về một lần, nên không đo thời gian token đầu tiên và tốc độ đầu ra.",
     "col_samples": "Mẫu",
     "col_ttft_p50": "TTFT P50",
     "col_speed_p50": "Tốc độ P50",

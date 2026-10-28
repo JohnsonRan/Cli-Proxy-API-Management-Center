@@ -1098,6 +1098,7 @@
     "speed_ttft": "First token",
     "speed_total": "Total",
     "speed_tps": "Avg TPS",
+    "speed_unstreamed_hint": "Non-streamed responses arrive in one piece, so first token and output speed are not measured.",
     "col_samples": "Samples",
     "col_ttft_p50": "TTFT P50",
     "col_speed_p50": "Speed P50",

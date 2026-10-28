@@ -1096,6 +1096,7 @@
     "speed_ttft": "首字",
     "speed_total": "总耗时",
     "speed_tps": "平均 TPS",
+    "speed_unstreamed_hint": "非流式响应一次性返回，因此不测量首字时间和输出速度。",
     "col_samples": "样本",
     "col_ttft_p50": "首字 P50",
     "col_speed_p50": "速度 P50",

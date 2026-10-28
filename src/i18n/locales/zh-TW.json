@@ -1124,6 +1124,7 @@
     "speed_ttft": "首字",
     "speed_total": "總耗時",
     "speed_tps": "平均 TPS",
+    "speed_unstreamed_hint": "非串流回應會一次傳回，因此不測量首字時間和輸出速度。",
     "col_samples": "樣本",
     "col_ttft_p50": "首字 P50",
     "col_speed_p50": "速度 P50",

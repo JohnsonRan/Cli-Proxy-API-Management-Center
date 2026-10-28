@@ -17,6 +17,7 @@ import {
   eventCostPerMillion,
   eventErrorSummary,
   eventTransport,
+  eventTtftMs,
   formatClientGeoLine,
   riskHint,
   riskLabel,
@@ -337,17 +338,21 @@ const TONE_COLOR: Record<SpeedTone, string> = {
 
 export function EventLatencyCell({ event: e }: { event: UsageEvent }) {
   const { t } = useTranslation();
-  const ttftColor = TONE_COLOR[speedTone('ttft', e.ttftMs)];
+  const ttft = eventTtftMs(e);
+  const ttftColor = TONE_COLOR[speedTone('ttft', ttft)];
   const tpsColor = TONE_COLOR[speedTone('tps', e.outputTps)];
   const rows: [string, string, string][] = [
-    [t('usage_stats.speed_ttft'), formatMs(e.ttftMs), ttftColor],
+    [t('usage_stats.speed_ttft'), formatMs(ttft), ttftColor],
     [t('usage_stats.speed_total'), formatMs(e.latencyMs), 'var(--text-primary)'],
     [t('usage_stats.speed_tps'), formatTps(e.outputTps), tpsColor],
   ];
   // Bar splits total time: waiting for the first token on top, generating below.
-  const split = e.latencyMs > 0 ? Math.min(100, Math.max(0, (e.ttftMs / e.latencyMs) * 100)) : 0;
+  const split = e.latencyMs > 0 ? Math.min(100, Math.max(0, (ttft / e.latencyMs) * 100)) : 0;
   return (
-    <span className={styles.speedCell}>
+    <span
+      className={styles.speedCell}
+      title={e.stream ? undefined : t('usage_stats.speed_unstreamed_hint')}
+    >
       <span
         className={styles.speedBar}
         aria-hidden="true"

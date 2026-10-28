@@ -1098,6 +1098,7 @@
     "speed_ttft": "첫 토큰",
     "speed_total": "총 소요",
     "speed_tps": "평균 TPS",
+    "speed_unstreamed_hint": "비스트리밍 응답은 한 번에 반환되므로 첫 토큰 시간과 출력 속도를 측정하지 않습니다.",
     "col_samples": "표본",
     "col_ttft_p50": "TTFT P50",
     "col_speed_p50": "속도 P50",
