@@ -1,0 +1,1864 @@
+@use '../../styles/mixins' as *;
+
+.page {
+  // Status colours follow the page palette (METRIC_ACCENTS.success / failed, Claude Console status).
+  --viz-success: #0ca30c;
+  --viz-failure: #d03b3b;
+  // In-flight and newly arrived rows: outcome not known yet, so neither success nor failure.
+  // Fill is Console's yellow; text/outline use its warning text step so the label stays legible.
+  --usage-pending: #eda100;
+  --usage-pending-text: #734500;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+}
+
+:global([data-theme='dark']) .page {
+  --usage-pending-text: #db9300;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 30px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.meta {
+  margin: 0;
+  font-family: $font-mono;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+
+  &::before {
+    content: '▍';
+    color: var(--viz-success);
+    margin-right: 1px;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.errorBanner {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--danger-color);
+  background: var(--bg-error-light);
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  overflow-wrap: anywhere;
+}
+
+.errorText {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--danger-color);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Summary cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+// The overview's eight headline cards: two even rows of four.
+.cardsFour {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    // Subs wrap on phones; equal rows would pad every row to the tallest one.
+    grid-auto-rows: auto;
+  }
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+  min-width: 0;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.table th,
+.table td {
+  white-space: nowrap;
+}
+
+.muted {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.mono {
+  font-family: $font-mono;
+  font-size: 12.5px;
+}
+
+.cellMain {
+  display: block;
+}
+
+.cellSub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.statusOk {
+  color: var(--viz-success);
+  font-family: $font-mono;
+}
+
+.statusFailed {
+  color: var(--viz-failure);
+  font-family: $font-mono;
+  cursor: help;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- Metric toggle ---------- */
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--bg-secondary);
+}
+
+.segment,
+.segmentActive {
+  @include button-reset;
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--dur-hover) var(--ease-out-strong);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+}
+
+.segmentActive {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+/* ---------- Tabs ---------- */
+
+// overflow-x: auto also makes overflow-y auto, so nothing may stick out vertically: the strip
+// line is an inset shadow the tab underline paints over, instead of a border tabs overlap with -1px.
+.tabs {
+  display: flex;
+  gap: 4px;
+  box-shadow: inset 0 -1px 0 var(--border-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tab,
+.tabActive {
+  @include button-reset;
+  padding: 8px 14px;
+  border-bottom: 2px solid transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+
+// button-reset draws a focus outline on mouse clicks too; keep it for keyboard focus only.
+.tab:focus:not(:focus-visible),
+.tabActive:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ---------- Charts ---------- */
+
+.chartBox {
+  position: relative;
+  height: 280px;
+}
+
+.chartBoxSmall {
+  position: relative;
+  height: 230px;
+}
+
+/* ---------- Summary changes ---------- */
+
+/* ---------- Tables ---------- */
+
+.sortButton,
+.sortButtonActive {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.sortIcon {
+  font-size: 9px;
+  opacity: 0.35;
+  transition: opacity var(--dur-hover) var(--ease-out-strong);
+}
+
+.sortButton:hover .sortIcon,
+.sortButtonActive .sortIcon {
+  opacity: 1;
+}
+
+.sortButtonActive {
+  color: var(--text-primary);
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clickableRow {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.riskBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #dc2626;
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  border: 1px solid color-mix(in srgb, #dc2626 25%, transparent);
+}
+
+.substitutedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #d97706;
+  background: color-mix(in srgb, #d97706 12%, transparent);
+  border: 1px solid color-mix(in srgb, #d97706 25%, transparent);
+}
+
+.invalidRow td {
+  background: var(--bg-error-light);
+}
+
+.cellInput,
+.cellInputNumber {
+  width: 100%;
+  min-width: 90px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 12.5px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 0;
+  }
+}
+
+.cellInput {
+  min-width: 200px;
+}
+
+/* ---------- Events toolbar ---------- */
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filterLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Event detail ---------- */
+
+.detailList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 13px;
+
+  dt {
+    color: var(--text-tertiary);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+}
+
+.detailError {
+  margin-top: 14px;
+
+  pre {
+    margin: 6px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    font-family: $font-mono;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ---------- Heatmap ---------- */
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-x: auto;
+}
+
+.heatRow {
+  display: grid;
+  grid-template-columns: 36px repeat(24, minmax(10px, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.heatDay,
+.heatHour {
+  font-family: $font-mono;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+.heatCell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: #2a78d6; // Console sequential charts are a blue ramp; intensity comes from opacity
+
+  &[data-empty='true'] {
+    background: var(--border-color);
+    opacity: 0.6;
+  }
+}
+
+/* ---------- Headline cards ---------- */
+
+.statCardReveal {
+  display: flex;
+  min-width: 0;
+}
+
+.statCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 15px 16px 12px;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    border-color: var(--border-hover, var(--border-primary));
+    background-color: var(--bg-quinary, var(--bg-primary));
+  }
+}
+
+.statTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.statLabelGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.metricDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statLabel {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.statGlyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+
+  svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 1.75;
+  }
+}
+
+.statValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statValue {
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-primary);
+}
+
+// Wraps instead of clipping: narrow phone cards cannot fit the hint, and touch has no tooltip.
+.statSub {
+  min-height: 16px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin: 0 4px 0 6px;
+  vertical-align: 1px;
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
+
+.statSpark {
+  height: 34px;
+  // auto top keeps sparklines aligned across a row when subs wrap to different heights
+  margin: auto -4px 0;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// Sparklines sweep in left to right once when the card mounts; refreshes only reshape them.
+// A clip, not a stroke dash: dashes ignore pathLength under vector-effect: non-scaling-stroke.
+.sparkReveal {
+  animation: usage-spark-reveal 900ms var(--ease-out-strong) 120ms both;
+}
+
+@keyframes usage-spark-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.changeGood,
+.changeBad,
+.changeFlat {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.changeGood {
+  color: color-mix(in srgb, var(--viz-success) 48%, var(--text-primary));
+}
+
+.changeBad {
+  color: color-mix(in srgb, var(--viz-failure) 72%, var(--text-primary));
+}
+
+.changeFlat {
+  color: var(--text-secondary);
+}
+
+/* ---------- Section headings ---------- */
+
+.panelHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.panelDesc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Ranked rows ---------- */
+
+.rankName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rank {
+  min-width: 14px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rankText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cellStrong {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.share {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 72px;
+}
+
+.shareText {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.shareTrack {
+  width: 72px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.shareBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.rateGood {
+  font-weight: 600;
+  color: var(--viz-success);
+}
+
+.rateWarn {
+  font-weight: 600;
+  color: #d97706;
+}
+
+.rateBad {
+  font-weight: 600;
+  color: var(--viz-failure);
+}
+
+.table td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Provider and key labels ---------- */
+
+.providerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.providerIcon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  object-fit: contain;
+}
+
+.compatTag {
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.cellSub {
+  font-weight: 400;
+}
+
+/* ---------- Request events ---------- */
+
+/* Compact summary cards on the shared Card surface, without sparklines. */
+// Fixed columns keep the 7-8 cards in balanced rows instead of one orphan on a second row.
+.summaryStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  min-height: 92px;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 13px 14px 12px;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    border-color: var(--border-hover, var(--border-primary));
+    background-color: var(--bg-quinary, var(--bg-primary));
+  }
+}
+
+.summaryTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summaryLabel {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.summaryGlyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.75;
+  }
+}
+
+.summaryValue {
+  font-size: 23px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-primary);
+
+  > * {
+    font-weight: inherit;
+  }
+}
+
+.summarySub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.summaryNote {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.pillOk,
+.pillFailed,
+.pillPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: $font-mono;
+  font-size: 12px;
+  font-weight: 650;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.pillOk {
+  color: var(--viz-success);
+  background: color-mix(in srgb, var(--viz-success) 12%, transparent);
+}
+
+.pillFailed {
+  color: var(--viz-failure);
+  background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
+}
+
+// Outlined in the pending yellow so a running call never reads as a finished OK pill.
+.pillPending {
+  color: var(--usage-pending-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--usage-pending) 70%, transparent);
+
+  &::before {
+    background: var(--usage-pending);
+    animation: usage-pending 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes usage-pending {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.inFlightRow td {
+  background: color-mix(in srgb, var(--usage-pending) 8%, transparent);
+}
+
+/* One WebSocket connection: an open one keeps the in-flight tint plus a pending edge. */
+.liveGroupRow td {
+  background: color-mix(in srgb, var(--usage-pending) 8%, transparent);
+}
+
+.liveGroupRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--usage-pending);
+}
+
+.groupCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-family: $font-mono;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 12%, transparent);
+
+  &::before {
+    content: '';
+    border-left: 4px solid currentColor;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    transition: transform var(--dur-hover) var(--ease-out-strong);
+  }
+}
+
+.groupCountOpen::before {
+  transform: rotate(90deg);
+}
+
+/* Turns of an expanded connection, hung under it on the WebSocket colour. */
+.groupChildRow td {
+  background: var(--bg-secondary);
+}
+
+.groupChildRow td:first-child {
+  padding-left: 22px;
+  box-shadow:
+    inset 12px 0 0 var(--bg-secondary),
+    inset 13px 0 0 color-mix(in srgb, #8b5cf6 45%, transparent);
+}
+
+.failedRow td {
+  background: color-mix(in srgb, var(--viz-failure) 6%, transparent);
+}
+
+.failedRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--viz-failure);
+}
+
+/* First token, total time and speed, each colored by grade, beside a matching gradient bar. */
+.speedCell {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 10px;
+  text-align: left;
+}
+
+.speedBar {
+  flex: none;
+  width: 4px;
+  border-radius: 2px;
+}
+
+.speedRows {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 12px;
+  row-gap: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.speedLabel {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.speedValue {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- Global Filter Bar & MultiSelect ---------- */
+
+.filterBar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+}
+
+.filterControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.customRangeWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.customRangeInputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.datetimeInput {
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 12px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 0;
+  }
+}
+
+.customRangeSeparator {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.customRangeError {
+  font-size: 12px;
+  color: var(--danger-color);
+}
+
+.chipsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  max-width: 280px;
+}
+
+.chipPrefix {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.chipLabel {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  // A named key shows its name and masked key on one line, like the other chips.
+  .rankText {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+  }
+}
+
+.chipRemove {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  }
+}
+
+.clearAllBtn {
+  @include button-reset;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+
+  &:hover {
+    color: var(--danger-color);
+  }
+}
+
+.multiSelectWrap {
+  position: relative;
+}
+
+.multiSelectTrigger {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover, var(--text-tertiary));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.multiSelectTriggerActive {
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-primary));
+}
+
+.multiSelectTriggerOpen {
+  border-color: var(--primary-color);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  transition: transform var(--dur-hover) var(--ease-out-strong);
+}
+
+.multiSelectPopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  // Fit the widest row, never narrower than the trigger; longer rows ellipsize at the cap.
+  width: max-content;
+  min-width: max(100%, 260px);
+  max-width: min(460px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.multiSelectPopoverRight {
+  left: auto;
+  right: 0;
+}
+
+.multiSelectSearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.multiSelectSearchInput {
+  width: 100%;
+  padding: 6px 26px 6px 28px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12.5px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 0;
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.clearSearchBtn {
+  @include button-reset;
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.multiSelectHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+}
+
+.multiSelectCount {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.multiSelectClearBtn {
+  @include button-reset;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--danger-color);
+  }
+}
+
+.multiSelectList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow: hidden auto;
+  padding-right: 2px;
+}
+
+.multiSelectOption {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+}
+
+.multiSelectCheck {
+  flex: 1;
+  min-width: 0;
+}
+
+.multiSelectCheckLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.multiSelectOptionContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.multiSelectOptionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multiSelectOptionModel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+
+  // Both parts ellipsize when the row hits the popover cap; the provider gives way faster.
+  > *,
+  .providerBadge > span:not(.compatTag) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  > :not(:first-child) {
+    flex-shrink: 3;
+  }
+
+  .compatTag {
+    flex: none;
+  }
+}
+
+.multiSelectOptionRequests {
+  font-family: $font-mono;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex: none;
+}
+
+.multiSelectEmpty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.filterTagBtn {
+  @include button-reset;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: -1px -3px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+  }
+}
+
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.endpointSub {
+  font-family: $font-mono;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.errorSub {
+  font-size: 11px;
+  color: var(--viz-failure);
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 140px;
+  min-width: 0;
+}
+
+.clientText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientSub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subArrow {
+  margin: 0 4px;
+  color: #d97706;
+  font-weight: 600;
+}
+
+.rangeSelect {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 150px;
+}
+
+.resultFilterRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resultFilterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 200px;
+}
+
+/* ---------- Realtime ---------- */
+
+.realtimeBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.realtimeStatus {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.liveDot,
+.liveDotPaused {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.liveDot {
+  background: var(--viz-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--viz-success) 60%, transparent);
+  animation: usage-live 1.6s ease-out infinite;
+}
+
+.liveDotPaused {
+  background: var(--text-tertiary);
+}
+
+@keyframes usage-live {
+  to {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.freshRow td {
+  animation: usage-fresh 4s ease-out;
+}
+
+@keyframes usage-fresh {
+  from {
+    background: color-mix(in srgb, var(--usage-pending) 16%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot,
+  .pillPending::before,
+  .freshRow td,
+  .sparkReveal {
+    animation: none;
+  }
+
+  .statCard,
+  .summaryItem,
+  .quotaFill,
+  .quotaCellButton,
+  .groupCount::before {
+    transition: none;
+  }
+
+  .freshRow td {
+    background: color-mix(in srgb, var(--viz-success) 10%, transparent);
+  }
+}
+
+/* ---------- Dense event cells ---------- */
+
+.cellLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.transportTag {
+  padding: 0 5px;
+  border-radius: 5px;
+  font-family: $font-mono;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+}
+
+.transport_ws {
+  color: #8b5cf6;
+}
+
+.transport_sse {
+  color: #0ea5e9;
+}
+
+.transport_http {
+  color: var(--text-tertiary);
+}
+
+.tierBadge {
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+}
+
+.tokenDetail {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.cacheHit {
+  font-weight: 600;
+  color: #14b8a6;
+}
+
+.reasoningTokens {
+  color: #8b5cf6;
+}
+
+/* ---------- Stats precision ---------- */
+
+.precisionExact,
+.precisionHourly {
+  margin-left: 10px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: help;
+}
+
+.precisionExact {
+  color: var(--viz-success);
+  background: color-mix(in srgb, var(--viz-success) 12%, transparent);
+}
+
+.precisionHourly {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+}
+
+/* ---------- Request log viewer ---------- */
+
+.logActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.logViewer {
+  margin: 8px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-family: $font-mono;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Pricing ---------- */
+
+.iconActions {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.iconButton {
+  padding: 4px 6px;
+  line-height: 0;
+}
+
+.iconLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overrideTag {
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-items: start;
+
+  :global(.form-group) {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.settingToggleBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  min-width: 0;
+  // The grid aligns inputs to the top; the two switch boxes share a row and match its height.
+  align-self: stretch;
+}
+
+.settingHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+// IP lookup progress and source: one muted line under the switches, across both columns.
+.geoipStatusRow {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: -6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.attributionLink {
+  color: var(--text-tertiary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 11.5px;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+/* ---------- Credential quota column & modal ---------- */
+
+.quotaCellButton {
+  @include button-reset;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 7px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.quotaCellTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quotaTrack {
+  width: 48px;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.quotaFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 360ms var(--ease-out-strong);
+}
+
+.quotaFillHigh {
+  background: var(--viz-success);
+}
+
+.quotaFillMedium {
+  background: var(--quota-medium-color);
+}
+
+.quotaFillLow {
+  background: var(--viz-failure);
+}
+
+.quotaPctHigh {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.quotaPctMedium {
+  font-weight: 650;
+  color: #d97706;
+}
+
+.quotaPctLow {
+  font-weight: 700;
+  color: var(--viz-failure);
+}
+
+.quotaResetSub,
+.quotaResetUrgent {
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.quotaResetSub {
+  color: var(--text-tertiary);
+}
+
+.quotaResetUrgent {
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+.quotaStatusIdle,
+.quotaStatusError {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quotaStatusIdle {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.quotaStatusError {
+  color: var(--viz-failure);
+  background: color-mix(in srgb, var(--viz-failure) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--viz-failure) 25%, transparent);
+}
+
+.quotaModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quotaModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.quotaModalIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quotaModalFile {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
