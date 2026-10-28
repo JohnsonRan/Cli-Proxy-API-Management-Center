@@ -8,7 +8,27 @@
 const ENC_PREFIX = 'enc::v1::';
 const SECRET_SALT = 'cli-proxy-api-webui::secure-storage';
 
+const UA_MIGRATION_MARKER = 'cpa_obfuscation_ua_migrated';
+const UA_MIGRATION_VERSION = 'v1';
+// Browser version numbers change on every update; keying on them made saved
+// values unreadable after an upgrade. Keep this pattern identical to the shim the
+// downstream core injected earlier so data it migrated stays readable.
+const BROWSER_VERSION_PATTERN =
+  /\b(Chrome|CriOS|Chromium|Edg|EdgA|EdgiOS|Firefox|FxiOS|Version|OPR|Brave|Vivaldi)\/\d+(?:\.\d+)*/g;
+const ENC_TOKEN_PATTERN = /enc::v1::[A-Za-z0-9+/=]+/g;
+
 let cachedKeyBytes: Uint8Array | null = null;
+
+/**
+ * Replace browser version numbers with 0 so the obfuscation key survives upgrades.
+ */
+export function canonicalUserAgent(userAgent: string): string {
+  return userAgent.replace(BROWSER_VERSION_PATTERN, '$1/0');
+}
+
+function keyBytesFor(host: string, userAgent: string): Uint8Array {
+  return encodeText(`${SECRET_SALT}|${host}|${userAgent}`);
+}
 
 function encodeText(text: string): Uint8Array {
   const encoder = new TextEncoder();
@@ -24,9 +44,7 @@ function getKeyBytes(): Uint8Array {
   if (cachedKeyBytes) return cachedKeyBytes;
 
   try {
-    const host = window.location.host;
-    const ua = navigator.userAgent;
-    cachedKeyBytes = encodeText(`${SECRET_SALT}|${host}|${ua}`);
+    cachedKeyBytes = keyBytesFor(window.location.host, canonicalUserAgent(navigator.userAgent));
   } catch (error) {
     console.warn('Obfuscation fallback to simple key:', error);
     cachedKeyBytes = encodeText(SECRET_SALT);
@@ -100,4 +118,61 @@ export function deobfuscateData(payload: string): string {
  */
 export function isObfuscated(value: string): boolean {
   return value?.startsWith(ENC_PREFIX) || false;
+}
+
+interface MigratableStorage {
+  readonly length: number;
+  key(index: number): string | null;
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+/**
+ * Re-key values obfuscated with the full, versioned User-Agent onto the
+ * canonical one. Runs once per browser profile; the marker is shared with the
+ * shim the downstream core injected earlier, so values it already migrated are
+ * left alone.
+ */
+export function migrateUserAgentObfuscationKey(
+  storage: MigratableStorage,
+  host: string,
+  userAgent: string
+): void {
+  const canonical = canonicalUserAgent(userAgent);
+  if (!userAgent || userAgent === canonical) return;
+  if (storage.getItem(UA_MIGRATION_MARKER) === UA_MIGRATION_VERSION) return;
+
+  const oldKey = keyBytesFor(host, userAgent);
+  const newKey = keyBytesFor(host, canonical);
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key) keys.push(key);
+  }
+  for (const key of keys) {
+    const value = storage.getItem(key);
+    if (!value || !value.includes(ENC_PREFIX)) continue;
+    const updated = value.replace(ENC_TOKEN_PATTERN, (token) => {
+      try {
+        const plain = xorBytes(fromBase64(token.slice(ENC_PREFIX.length)), oldKey);
+        return `${ENC_PREFIX}${toBase64(xorBytes(plain, newKey))}`;
+      } catch {
+        return token;
+      }
+    });
+    if (updated !== value) storage.setItem(key, updated);
+  }
+  storage.setItem(UA_MIGRATION_MARKER, UA_MIGRATION_VERSION);
+}
+
+/**
+ * Run the User-Agent key migration against this browser's localStorage.
+ * Call before anything reads obfuscated values.
+ */
+export function migrateStoredObfuscationKey(): void {
+  try {
+    migrateUserAgentObfuscationKey(localStorage, window.location.host, navigator.userAgent);
+  } catch (error) {
+    console.warn('Obfuscation key migration failed:', error);
+  }
 }
