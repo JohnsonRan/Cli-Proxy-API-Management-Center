@@ -188,6 +188,15 @@ export const formatMs = (ms: number): string => {
   return `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)} s`;
 };
 
+export type SpeedTone = 'good' | 'warn' | 'bad' | 'none';
+
+/** Traffic-light grade for one request's first token or output speed. */
+export const speedTone = (kind: 'ttft' | 'tps', value: number): SpeedTone => {
+  if (!(value > 0)) return 'none';
+  if (kind === 'tps') return value >= 50 ? 'good' : value >= 15 ? 'warn' : 'bad';
+  return value <= 3_000 ? 'good' : value <= 10_000 ? 'warn' : 'bad';
+};
+
 /** Output speed: "42.5 t/s" below 100, "180 t/s" above; '—' when not measured. */
 export const formatTps = (tps: number): string => {
   if (!(tps > 0)) return '—';
