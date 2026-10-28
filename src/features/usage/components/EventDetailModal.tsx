@@ -9,7 +9,13 @@ import type { UsageLabels } from '../hooks/useUsageLabels';
 import { RiskBadge } from './EventCells';
 import { ProviderBadge } from './Labels';
 import { RequestLogSection } from './RequestLogSection';
-import { eventTransport, formatDetailIsp, formatDetailLocation, riskHint } from '../logic';
+import {
+  eventTransport,
+  eventTtftMs,
+  formatDetailIsp,
+  formatDetailLocation,
+  riskHint,
+} from '../logic';
 import styles from '../UsagePage.module.scss';
 
 export function EventDetailModal({
@@ -24,6 +30,7 @@ export function EventDetailModal({
   const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   if (!event) return null;
+  const ttft = eventTtftMs(event);
 
   const copy = (text: string) => {
     void navigator.clipboard
@@ -86,7 +93,12 @@ export function EventDetailModal({
         `usage_stats.transport_${eventTransport(event.endpoint, event.stream, event.transport)}_hint`
       ),
     ],
-    [t('usage_stats.col_latency'), `${formatMs(event.latencyMs)} · TTFT ${formatMs(event.ttftMs)}`],
+    [
+      t('usage_stats.col_latency'),
+      ttft > 0
+        ? `${formatMs(event.latencyMs)} · TTFT ${formatMs(ttft)}`
+        : formatMs(event.latencyMs),
+    ],
     [t('usage_stats.col_speed'), formatTps(event.outputTps)],
     [
       t('usage_stats.col_tokens'),

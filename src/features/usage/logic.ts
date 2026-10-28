@@ -398,6 +398,14 @@ const average = (values: number[]): number => {
   return set.length ? set.reduce((a, b) => a + b, 0) / set.length : 0;
 };
 
+/**
+ * Time to first token where it means one, 0 otherwise. Mirrors the core's firstTokenCond:
+ * a non-streamed response (embeddings, rerank) arrives whole, so its first byte is the full
+ * latency, and a failed request's first byte is the error.
+ */
+export const eventTtftMs = (e: Pick<UsageEvent, 'stream' | 'failed' | 'ttftMs'>): number =>
+  e.stream && !e.failed && e.ttftMs > 0 ? e.ttftMs : 0;
+
 export const summarizeEventGroup = (events: UsageEvent[]): UsageEvent => {
   const head = events[0];
   const tokens = { ...head.tokens };
@@ -411,7 +419,7 @@ export const summarizeEventGroup = (events: UsageEvent[]): UsageEvent => {
     priced: events.some((e) => e.priced),
     cacheable: events.some((e) => e.cacheable) ? true : head.cacheable,
     latencyMs: average(events.map((e) => e.latencyMs)),
-    ttftMs: average(events.map((e) => e.ttftMs)),
+    ttftMs: average(events.map(eventTtftMs)),
     outputTps: average(events.map((e) => e.outputTps)),
     substituted: events.some((e) => e.substituted),
     risk: events.find((e) => e.risk)?.risk ?? '',
