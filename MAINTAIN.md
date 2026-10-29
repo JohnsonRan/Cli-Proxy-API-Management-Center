@@ -46,6 +46,8 @@ Re-run on 2026-10-27 before grouping WebSocket turns in the usage feeds (`patch/
 
 Re-run on 2026-10-28 before ungrading the first token of non-streamed requests (`patch/usage-store`), searching open and closed issues and pull requests in both repositories for `ttft non-stream`, `first token embedding`, `TPS embedding` and `首字`: no relevant results. Upstream has no usage page, so the change stays downstream.
 
+Re-run on 2026-10-29 before testing OpenAI Decisions models and honouring `use-max-completion-tokens` in the connectivity test (`patch/systemone-endpoint`), searching open and closed issues and pull requests for `decisions`, `max_completion_tokens`, `max_tokens` and `connectivity test`: no panel issue or PR covers either. Core issue [router-for-me/CLIProxyAPI#6586](https://github.com/router-for-me/CLIProxyAPI/issues/6586) (pass through `POST /v1/decisions`) is OPEN and [#6917](https://github.com/router-for-me/CLIProxyAPI/issues/6917) (ChatGPT OAuth with Decisions) is CLOSED; the route exists only in the downstream core. Upstream panel `main` (`64b4f5ae`) also sends a hard-coded `max_tokens` in the chat probe, but the fix sits on the probe block that `patch/embeddings-and-rerank` rewrites, so it is stacked here instead of carrying a separate patch plus a compatibility branch.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -60,14 +62,16 @@ Re-run on 2026-10-28 before ungrading the first token of non-streamed requests (
      - Complete localized translation keys across all 6 locales.
 
 2. **`patch/systemone-endpoint`**
-   - **Goal**: Mark TypeSafe System One decision models and test them against `/systemone` instead of `/chat/completions`.
+   - **Goal**: Test decision models against their own endpoint instead of `/chat/completions`: TypeSafe System One on `/systemone`, OpenAI Decisions on `/decisions`.
    - **Scope**:
      - Add `systemone?: boolean` to `ModelAlias` and `ModelEntryInput`; read, save and clear it like `embedding` and `rerank`.
      - Expose `[x] 标记为决策模型` in `ModelEntriesEditor.tsx` with a collapsed badge, localized in all 6 locales. Like `embedding` and `rerank`, the core treats the flag as metadata and routing does not read it.
      - Route the OpenAI-compatible connectivity test for flagged models to `<base-url>/systemone` with a minimal Noul question. Decision-only upstreams such as Command Code reject `/chat/completions` with 400. The flag is part of `modelsSignature`, so toggling it clears earlier test results.
+     - Route models whose output modalities include `decisions` (and are not flagged `systemone`) to `<base-url>/decisions` with a minimal predicate question, for OpenAI-compatible providers and codex keys; an empty codex base URL means `https://api.openai.com/v1`, matching the core. Other codex models stay on `/responses`. The modality is part of `modelsSignature`.
+     - Send `max_completion_tokens` instead of `max_tokens` in the chat probe when the model enables `use-max-completion-tokens`; newer OpenAI models reject `max_tokens` with 400. The flag is part of `modelsSignature`.
      - Tests in `tests/systemOneConnectivity.test.ts`.
    - **Stacked**: Branched from `patch/embeddings-and-rerank` and integrated right after it through a seam-diff (see below).
-   - **Cross-repo**: Needs the core patch `patch/systemone-endpoint` (`systemone` model field and `POST /v1/systemone`). Against a core without it the flag is dropped on save.
+   - **Cross-repo**: Needs the core patch `patch/systemone-endpoint` (`systemone` model field and `POST /v1/systemone`). Against a core without it the flag is dropped on save. The `/decisions` probe needs the core patch `patch/openai-decisions-endpoint` only for proxied use; the test itself calls the upstream directly.
 
 3. **`patch/fix-xai-quota-test`**
    - **Goal**: Keep the xai quota USD assertions independent of the runtime locale.
