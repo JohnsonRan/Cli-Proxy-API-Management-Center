@@ -398,7 +398,7 @@
     "use_siwc_label": "使用 SIWC（use_siwc）",
     "use_siwc_hint": "启用后使用已绑定的 SIWC 凭证。关闭仅停用 SIWC，不会删除绑定数据；启用前请先完成绑定。",
     "websockets_label": "WebSockets（websockets）",
-    "websockets_hint": "为该凭证开启 Responses API 的 websocket 传输。",
+    "websockets_hint": "为该凭证开启 Responses API 的 websocket 传输。对 Codex 凭证，HTTP/SSE 客户端也会走上游 WebSocket，且优先于全局设置。",
     "using_api_label": "使用官方 API（using_api）",
     "using_api_hint": "开启后使用 xAI 官方 API；关闭时使用 Grok CLI chat-proxy。",
     "policy_alias_name": "模型别名",
@@ -1237,6 +1237,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "流启动缓冲超时",
           "hint": "可选的缓冲时间上限，例如 20s。默认 0，表示不限制时间，但仍受帧数和字节数预算限制。仅在收到上游帧时检查，并非所有网络卡死场景的硬截止时间；响应头仍可能等待转换后的输出。"
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "HTTP 客户端使用 WebSocket 上游",
+          "hint": "即使客户端通过 HTTP/SSE 连接，Codex OAuth 凭证也走上游 WebSocket 传输，遇到 426 自动回退 HTTP。/responses/compact 和图片请求仍走 HTTP。凭证自己的 WebSockets 设置优先于此项。默认关闭。"
         },
         "codexOptimizeMultiAgentV2": {
           "label": "多代理 v2 优化",
