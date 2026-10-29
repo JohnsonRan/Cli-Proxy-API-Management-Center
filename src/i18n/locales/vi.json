@@ -358,6 +358,8 @@
     "note_placeholder": "Nhập ghi chú, ví dụ: Tài khoản của John",
     "note_hint": "Tùy chọn. Dùng để mô tả mục đích hoặc chủ sở hữu của credential này; để trống nếu không cần.",
     "excluded_models_label": "Model bị loại trừ (excluded_models)",
+    "allowed_models_label": "Model được phép (allowed_models)",
+    "allowed_models_hint": "Khi được đặt, thông tin xác thực này chỉ phục vụ các model khớp (hỗ trợ ký tự đại diện '*'); danh sách loại trừ vẫn áp dụng. Quy tắc so khớp tên model gốc, không gồm tiền tố hay bí danh. Để trống nghĩa là không giới hạn.",
     "headers_label": "Header tùy chỉnh (headers)",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_hint": "Nhập header HTTP tùy chỉnh dưới dạng đối tượng JSON, ví dụ {\"X-My-Header\": \"value\"}",
