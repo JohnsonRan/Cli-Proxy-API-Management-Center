@@ -86,7 +86,18 @@ describe('OpenAI-compatible System One connectivity test', () => {
     );
 
     expect(captured?.url).toBe('https://api.commandcode.ai/provider/v1/chat/completions');
-    expect(JSON.parse(captured?.data ?? '{}').messages).toBeDefined();
+    const body = JSON.parse(captured?.data ?? '{}');
+    expect(body.messages).toBeDefined();
+    expect(body.max_tokens).toBe(5);
+    expect(body.max_completion_tokens).toBeUndefined();
+  });
+
+  test('chat probe honours use-max-completion-tokens', async () => {
+    const { captured } = await runTest([{ name: 'gpt-6', useMaxCompletionTokens: true }]);
+
+    const body = JSON.parse(captured?.data ?? '{}');
+    expect(body.max_completion_tokens).toBe(5);
+    expect(body.max_tokens).toBeUndefined();
   });
 });
 
@@ -124,4 +135,7 @@ test('OpenAI-compatible systemone flag is read, saved, and can be cleared', asyn
 test('a System One flag change invalidates earlier connectivity results', () => {
   const base = modelsSignature([{ name: 'typesafe/jev', alias: 'jev' }]);
   expect(modelsSignature([{ name: 'typesafe/jev', alias: 'jev', systemone: true }])).not.toBe(base);
+  expect(
+    modelsSignature([{ name: 'typesafe/jev', alias: 'jev', useMaxCompletionTokens: true }])
+  ).not.toBe(base);
 });

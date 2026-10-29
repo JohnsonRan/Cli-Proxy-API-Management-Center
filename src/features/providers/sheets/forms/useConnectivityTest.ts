@@ -61,6 +61,7 @@ export const modelsSignature = (models: ModelEntryInput[]): string =>
         it.embedding ? 'e' : '',
         it.rerank ? 'r' : '',
         it.systemone ? 's' : '',
+        it.useMaxCompletionTokens ? 'm' : '',
       ].join(':')
     )
     .join('|');
@@ -264,7 +265,10 @@ export function useConnectivityTest(
           model,
           messages: [{ role: 'user', content: 'Hi' }],
           stream: false,
-          max_tokens: 5,
+          // Newer OpenAI models reject max_tokens with 400.
+          ...(selectedModelEntry?.useMaxCompletionTokens
+            ? { max_completion_tokens: 5 }
+            : { max_tokens: 5 }),
         };
       }
 
