@@ -1,0 +1,378 @@
+// Follows the usage page: title with a mono meta line, a control bar, stat cards and
+// headed panels.
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 30px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.meta {
+  margin: 0;
+  font-family: $font-mono;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+
+  &::before {
+    content: '▍';
+    color: var(--success-color);
+    margin-right: 1px;
+  }
+}
+
+/* ---------- Control bar ---------- */
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+}
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+
+  :global(.form-group) {
+    gap: 4px;
+    margin-bottom: 0;
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+  }
+
+  // Match the Select trigger so text inputs and dropdowns share one height.
+  :global(.input) {
+    height: 40px;
+    padding-block: 0;
+    font-size: 13px;
+  }
+}
+
+.modelControl {
+  flex: 2 1 200px;
+  min-width: 0;
+}
+
+.selectControl {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.effortControl {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.runControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  margin-left: auto;
+
+  // Run and cancel swap in place; a shared width keeps the fields from reflowing.
+  :global(.btn) {
+    min-width: 96px;
+  }
+}
+
+.toolbarNote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.errorBanner {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--danger-color);
+  background: var(--bg-error-light);
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Stat cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 15px 16px 12px;
+}
+
+.statLabelGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.metricDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dotPrimary {
+  background: var(--primary-color);
+}
+
+.dotGood {
+  background: var(--success-color);
+}
+
+.dotWarn {
+  background: var(--amber-color);
+}
+
+.dotBad {
+  background: var(--danger-color);
+}
+
+.dotMuted {
+  background: var(--text-tertiary);
+}
+
+.statLabel {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.statValue {
+  min-height: 32px;
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.statSub {
+  min-height: 16px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+/* ---------- Panels ---------- */
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+  min-width: 0;
+
+  :global(th) {
+    white-space: nowrap;
+  }
+}
+
+.panelHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.panelDesc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.empty {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+/* ---------- Table cells ---------- */
+
+.rankName {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rank {
+  min-width: 14px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.rankText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cellStrong {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.cellSub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: $font-mono;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.share {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 72px;
+}
+
+.shareText {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.shareTrack {
+  width: 72px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.shareBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--success-color);
+  transition: width var(--dur-hover) var(--ease-out-strong);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.tonePrimary {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.toneGood {
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.toneWarn {
+  font-weight: 600;
+  color: var(--amber-color);
+}
+
+.toneBad {
+  font-weight: 600;
+  color: var(--danger-color);
+}
+
+.toneMuted {
+  color: var(--text-secondary);
+}
+
+.errorText {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--danger-color);
+  overflow-wrap: anywhere;
+}
+
+.footnote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
