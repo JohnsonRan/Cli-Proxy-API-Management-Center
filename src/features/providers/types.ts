@@ -141,6 +141,8 @@ export interface ModelEntryInput extends ModelOptionsInput {
   alias?: string;
   priority?: number;
   image?: boolean;
+  embedding?: boolean;
+  rerank?: boolean;
   /** Original backend value, preserved until the standard-level selector is changed. */
   thinkingJson?: string;
   thinkingLevels?: ThinkingLevel[];
