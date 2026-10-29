@@ -11,7 +11,9 @@ import {
   buildOpenAIEmbeddingsEndpoint,
   buildRerankEndpoint,
   buildSystemOneEndpoint,
+  buildDecisionsEndpoint,
 } from '@/components/providers/utils';
+import { readOutputModalities } from '../../modelOptions';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ApiKeyEntryInput, ModelEntryInput, ProviderBrand } from '../../types';
@@ -40,6 +42,17 @@ const requestFailureMessage = (err: unknown, messages: ConnectivityErrorMessages
   return isTimeout ? messages.timeout(DEFAULT_TIMEOUT_MS / 1000) : raw || messages.requestFailed;
 };
 
+const findModelEntry = (model: string, models: ModelEntryInput[]) =>
+  models.find((m) => (m.name ?? '').trim() === model || (m.alias ?? '').trim() === model);
+
+// OpenAI Decisions models are marked by the "decisions" output modality.
+const isDecisionsModel = (entry: ModelEntryInput | undefined): boolean =>
+  entry?.systemone !== true && (readOutputModalities(entry ?? {})?.includes('decisions') ?? false);
+
+const DECISIONS_PROBE_QUESTIONS = [
+  { type: 'predicate', name: 'greeting', instructions: 'Is this a greeting?' },
+];
+
 const pickModel = (testModel: string | undefined, models: ModelEntryInput[]): string => {
   const trimmed = (testModel ?? '').trim();
   if (trimmed) return trimmed;
@@ -62,6 +75,7 @@ export const modelsSignature = (models: ModelEntryInput[]): string =>
         it.rerank ? 'r' : '',
         it.systemone ? 's' : '',
         it.useMaxCompletionTokens ? 'm' : '',
+        isDecisionsModel(it) ? 'd' : '',
       ].join(':')
     )
     .join('|');
@@ -223,9 +237,7 @@ export function useConnectivityTest(
         return false;
       }
 
-      const selectedModelEntry = models.find(
-        (m) => (m.name ?? '').trim() === model || (m.alias ?? '').trim() === model
-      );
+      const selectedModelEntry = findModelEntry(model, models);
       const isSystemOne = selectedModelEntry?.systemone === true;
       const isEmbedding =
         selectedModelEntry?.embedding === true ||
@@ -246,6 +258,9 @@ export function useConnectivityTest(
             greeting: { type: 'noul', instructions: 'Is this a greeting?' },
           },
         };
+      } else if (isDecisionsModel(selectedModelEntry)) {
+        endpoint = buildDecisionsEndpoint(trimmedBase);
+        requestPayload = { model, input: 'Hello', questions: DECISIONS_PROBE_QUESTIONS };
       } else if (isEmbedding) {
         endpoint = buildOpenAIEmbeddingsEndpoint(trimmedBase);
         requestPayload = {
@@ -356,19 +371,24 @@ export function useConnectivityTest(
   const runCodex = useCallback(async (): Promise<void> => {
     if (brand !== 'codex' && brand !== 'meta' && brand !== 'xai') return;
 
+    const model = pickModel(testModel, models);
+    // Only codex keys forward /decisions; an empty base URL means api.openai.com/v1.
+    const isDecisions = brand === 'codex' && isDecisionsModel(findModelEntry(model, models));
+
     const trimmedBase = baseUrl.trim();
-    if (!trimmedBase) {
+    if (!trimmedBase && !isDecisions) {
       setCodexStatus({ state: 'error', message: messages.baseUrlRequired });
       return;
     }
 
-    const endpoint = buildCodexResponsesEndpoint(trimmedBase);
+    const endpoint = isDecisions
+      ? buildDecisionsEndpoint(trimmedBase)
+      : buildCodexResponsesEndpoint(trimmedBase);
     if (!endpoint) {
       setCodexStatus({ state: 'error', message: messages.endpointInvalid });
       return;
     }
 
-    const model = pickModel(testModel, models);
     if (!model) {
       setCodexStatus({ state: 'error', message: messages.modelRequired });
       return;
@@ -408,11 +428,11 @@ export function useConnectivityTest(
           method: 'POST',
           url: endpoint,
           header: headerObj,
-          data: JSON.stringify({
-            model,
-            input: 'Hi',
-            stream: false,
-          }),
+          data: JSON.stringify(
+            isDecisions
+              ? { model, input: 'Hello', questions: DECISIONS_PROBE_QUESTIONS }
+              : { model, input: 'Hi', stream: false }
+          ),
         },
         { timeout: DEFAULT_TIMEOUT_MS }
       );

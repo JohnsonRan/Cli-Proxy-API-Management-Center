@@ -2250,7 +2250,7 @@
       "modelRerank": "Пометить как rerank-модель",
       "modelRerankHint": "Проверка соединения вызывает /rerank; маршрутизацию не ограничивает",
       "modelSystemOne": "Пометить как модель решений",
-      "modelSystemOneHint": "TypeSafe System One: проверка соединения вызывает /systemone; маршрутизацию не ограничивает",
+      "modelSystemOneHint": "TypeSafe System One: проверка соединения вызывает /systemone; маршрутизацию не ограничивает. Для моделей OpenAI Decisions вместо этого укажите выходную модальность decisions",
       "showAllEntries": "Показать все ({{count}})",
       "showFewerEntries": "Показать меньше",
       "proxyBadge": "Прокси",

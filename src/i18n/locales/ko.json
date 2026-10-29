@@ -2256,7 +2256,7 @@
       "modelRerank": "재순위화(Rerank) 모델로 표시",
       "modelRerankHint": "연결 테스트에서 /rerank를 호출하며 라우팅은 제한하지 않습니다.",
       "modelSystemOne": "결정 모델로 표시",
-      "modelSystemOneHint": "TypeSafe System One: 연결 테스트에서 /systemone을 호출하며 라우팅은 제한하지 않습니다.",
+      "modelSystemOneHint": "TypeSafe System One: 연결 테스트에서 /systemone을 호출하며 라우팅은 제한하지 않습니다. OpenAI Decisions 모델은 대신 출력 모달리티를 decisions로 설정하세요.",
       "showAllEntries": "전체 표시 ({{count}})",
       "showFewerEntries": "간략히 표시",
       "proxyBadge": "프록시",

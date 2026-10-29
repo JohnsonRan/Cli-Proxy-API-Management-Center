@@ -2132,7 +2132,7 @@
       "modelRerank": "Đánh dấu là model rerank",
       "modelRerankHint": "Kiểm thử kết nối gọi /rerank; không giới hạn định tuyến",
       "modelSystemOne": "Đánh dấu là model quyết định",
-      "modelSystemOneHint": "TypeSafe System One: kiểm thử kết nối gọi /systemone; không giới hạn định tuyến",
+      "modelSystemOneHint": "TypeSafe System One: kiểm thử kết nối gọi /systemone; không giới hạn định tuyến. Với model OpenAI Decisions, hãy đặt phương thức đầu ra là decisions",
       "showAllEntries": "Hiện tất cả ({{count}})",
       "showFewerEntries": "Ẩn bớt",
       "proxyBadge": "Proxy",
