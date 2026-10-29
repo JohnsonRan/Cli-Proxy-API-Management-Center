@@ -28,6 +28,7 @@ import {
   mergeSelectedOptions,
   nextSort,
   parseUsagePrefs,
+  popoverShift,
   sortRows,
   toCsv,
   parseDraftRows,
@@ -472,6 +473,12 @@ describe('usage analysis and pricing helpers', () => {
     const merged = mergeSelectedOptions(multiOpts, ['gpt-5', 'unknown-model']);
     expect(merged).toHaveLength(3);
     expect(merged[0]).toEqual({ value: 'unknown-model', label: 'unknown-model' });
+
+    // Fits: no shift. Overflows right: slide left just enough. Wider than the screen: pin left.
+    expect(popoverShift(20, 260, 640)).toBe(0);
+    expect(popoverShift(500, 260, 640)).toBe(-128);
+    expect(popoverShift(285, 600, 638)).toBe(-255);
+    expect(popoverShift(285, 700, 638)).toBe(-277);
   });
 
   test('keeps URL-seeded or stale selected options visible in filter selects', () => {
