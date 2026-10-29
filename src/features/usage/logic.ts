@@ -101,6 +101,21 @@ export interface MultiSelectOption {
   requests?: number;
 }
 
+/**
+ * Horizontal shift (px, <= 0) that keeps a popover anchored at `anchorLeft` within
+ * `margin` of both viewport edges; the left edge wins when it cannot fit.
+ */
+export const popoverShift = (
+  anchorLeft: number,
+  width: number,
+  viewportWidth: number,
+  margin = 8
+): number => {
+  const overflow = anchorLeft + width - (viewportWidth - margin);
+  if (overflow <= 0) return 0;
+  return -Math.max(0, Math.min(overflow, anchorLeft - margin));
+};
+
 export const filterMultiSelectOptions = (
   options: MultiSelectOption[],
   search: string

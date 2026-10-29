@@ -2,7 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useTranslation } from 'react-i18next';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { IconChevronDown, IconSearch, IconX } from '@/components/ui/icons';
-import { filterMultiSelectOptions, mergeSelectedOptions, type MultiSelectOption } from '../logic';
+import {
+  filterMultiSelectOptions,
+  mergeSelectedOptions,
+  popoverShift,
+  type MultiSelectOption,
+} from '../logic';
 import styles from '../UsagePage.module.scss';
 
 export interface MultiSelectFilterProps {
@@ -27,16 +32,16 @@ export function MultiSelectFilter({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [alignRight, setAlignRight] = useState(false);
+  const [shift, setShift] = useState(0);
 
-  // The popover grows with its widest row, so open it leftwards when it would leave the viewport.
+  // The popover grows with its widest row, so slide it left just enough to stay on screen.
   useLayoutEffect(() => {
     if (!isOpen) return;
     const wrap = wrapRef.current;
     const popover = popoverRef.current;
     if (!wrap || !popover) return;
     const left = wrap.getBoundingClientRect().left;
-    setAlignRight(left + popover.offsetWidth > document.documentElement.clientWidth - 8);
+    setShift(popoverShift(left, popover.offsetWidth, document.documentElement.clientWidth));
   }, [isOpen, options]);
 
   // Close popover on outside click.
@@ -116,7 +121,8 @@ export function MultiSelectFilter({
       {isOpen && (
         <div
           ref={popoverRef}
-          className={`${styles.multiSelectPopover} ${alignRight ? styles.multiSelectPopoverRight : ''}`}
+          className={styles.multiSelectPopover}
+          style={{ left: shift }}
           role="dialog"
           aria-label={label}
         >
