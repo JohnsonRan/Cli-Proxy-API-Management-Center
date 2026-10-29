@@ -48,6 +48,8 @@ Re-run on 2026-10-28 before ungrading the first token of non-streamed requests (
 
 Re-run on 2026-10-29 before testing OpenAI Decisions models and honouring `use-max-completion-tokens` in the connectivity test (`patch/systemone-endpoint`), searching open and closed issues and pull requests for `decisions`, `max_completion_tokens`, `max_tokens` and `connectivity test`: no panel issue or PR covers either. Core issue [router-for-me/CLIProxyAPI#6586](https://github.com/router-for-me/CLIProxyAPI/issues/6586) (pass through `POST /v1/decisions`) is OPEN and [#6917](https://github.com/router-for-me/CLIProxyAPI/issues/6917) (ChatGPT OAuth with Decisions) is CLOSED; the route exists only in the downstream core. Upstream panel `main` (`64b4f5ae`) also sends a hard-coded `max_tokens` in the chat probe, but the fix sits on the probe block that `patch/embeddings-and-rerank` rewrites, so it is stacked here instead of carrying a separate patch plus a compatibility branch.
 
+Re-run on 2026-10-30 before keeping the usage filter popover on screen on phones (`patch/usage-store`), searching open and closed issues and pull requests for `filter popover mobile`, `dropdown off screen` and `下拉 被遮挡`: no results. Upstream has no usage page, so the fix stays downstream.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
