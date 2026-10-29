@@ -69,6 +69,11 @@ const modalities = (value: string | undefined) => {
   return parts?.length ? parts : undefined;
 };
 
+export const readOutputModalities = (entry: ModelOptionsInput): string[] | undefined =>
+  !entry.outputModalitiesTouched && entry.originalOutputModalities !== undefined
+    ? entry.originalOutputModalities
+    : modalities(entry.outputModalitiesText);
+
 export function buildModelOptions(entry: ModelEntryInput): Partial<ModelAlias> {
   let thinking: Record<string, unknown> | undefined;
   if (entry.thinkingEnabled !== false) {
@@ -108,10 +113,7 @@ export function buildModelOptions(entry: ModelEntryInput): Partial<ModelAlias> {
       !entry.inputModalitiesTouched && entry.originalInputModalities !== undefined
         ? entry.originalInputModalities
         : modalities(entry.inputModalitiesText),
-    outputModalities:
-      !entry.outputModalitiesTouched && entry.originalOutputModalities !== undefined
-        ? entry.originalOutputModalities
-        : modalities(entry.outputModalitiesText),
+    outputModalities: readOutputModalities(entry),
     useMaxCompletionTokens: entry.useMaxCompletionTokens,
     thinking,
   };
