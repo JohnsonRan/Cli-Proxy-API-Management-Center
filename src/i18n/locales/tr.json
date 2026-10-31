@@ -1595,6 +1595,10 @@
     "search_clear": "Aramayı Temizle",
     "title": "Kota Yönetimi",
     "description": "Antigravity, Codex, Claude, Kimi ve xAI Kimlik Bilgileri için OAuth Kota Durumunu İzle.",
+    "upstream_title": "Yukarı Akış Kotası",
+    "upstream_desc": "Özel Temel URL'li Sağlayıcı Anahtarları, Yukarı Akış Proxy'lerinin Kendileriyle Paylaştığı Kotayı Okuyabilir. Sen Kontrol Edene Kadar Hiçbir İstek Gönderilmez.",
+    "upstream_idle": "Yukarı Akış Kotasını Kontrol Etmek için Tıkla",
+    "upstream_loading": "Yukarı Akış Kotası Okunuyor…",
     "refresh_all_credentials": "Tüm Kimlik Bilgilerini Yenile",
     "sort_label": "Sırala",
     "sort_default": "Varsayılan",
@@ -2208,6 +2212,43 @@
         "authIndex": "Auth Dizini",
         "excludedModels": "Hariç Tutulan Modeller",
         "apiKeyEntries": "API Anahtarı Girdileri"
+      }
+    },
+    "upstreamQuota": {
+      "title": "Yukarı Akış Kotası",
+      "titleForKey": "Yukarı Akış Kotası · {{key}}",
+      "check": "Yukarı Akış Kotasını Kontrol Et",
+      "refresh": "Yenile",
+      "unsupported": "Bu Yukarı Akış Kota Paylaşmıyor (GET /v1/usage Kullanılamıyor).",
+      "noneShared": "Yukarı Akış Bu Anahtarla Hiçbir Hesap Paylaşmıyor.",
+      "failed": "Yukarı Akış Kotası Okunamadı",
+      "noData": "Bildirilen Kota Verisi Yok.",
+      "unknown": "Bilinmiyor",
+      "remainingOf": "{{limit}} Üzerinden {{remaining}} Kaldı",
+      "usedAmount": "{{used}} Kullanıldı",
+      "observedAt": "Gözlem: {{time}}",
+      "unlimited": "Sınırsız",
+      "via": "{{name}} Üzerinden",
+      "windows": {
+        "five_hour": "5 Saatlik",
+        "weekly": "Haftalık",
+        "monthly": "Aylık",
+        "seven_day": "7 Günlük",
+        "seven_day_opus": "7 Günlük Opus",
+        "seven_day_sonnet": "7 Günlük Sonnet",
+        "seven_day_oauth_apps": "7 Günlük OAuth Uygulamaları",
+        "seven_day_cowork": "7 Günlük Cowork",
+        "seven_day_fable": "7 Günlük Fable",
+        "code_review_five_hour": "Kod İncelemesi 5 Saatlik",
+        "code_review_weekly": "Kod İncelemesi Haftalık",
+        "code_review_monthly": "Kod İncelemesi Aylık"
+      },
+      "balances": {
+        "credits": "Krediler",
+        "rate_limit_resets": "Hız Sınırı Sıfırlamaları",
+        "extra_usage": "Ek Kullanım",
+        "on_demand": "İsteğe Bağlı",
+        "prepaid": "Ön Ödemeli Bakiye"
       }
     },
     "form": {
