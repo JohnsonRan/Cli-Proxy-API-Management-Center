@@ -1410,6 +1410,8 @@
           "usage_statistics_enabled_desc": "İstek Kullanım İstatistiklerini Bellekte Topla",
           "redis_usage_retention": "Redis Kullanım Kuyruğu Tutma (Saniye)",
           "redis_usage_retention_hint": "RESP LPOP/RPOP Kullanım Çıktısı için Bellek İçi Tutma. En Fazla 3600 Saniye",
+          "quota_api_cache_ttl": "Kota Önbelleği (Saniye)",
+          "quota_api_cache_ttl_hint": "Yukarı Akış Kota Sonuçlarının Ne Kadar Süre Yeniden Kullanılacağı. Boş veya 0 Değeri 300 Saniyeyi Kullanır; 30'un Altındaki Değerler 30'a Yükseltilir.",
           "antigravity_sensitive_words": "Hassas Sözcük Gizleme",
           "antigravity_sensitive_words_desc": "Yukarı Akıştaki Tam Anahtar Sözcük Eşleşmesini Azaltmak için Antigravity Sistem Yönergelerindeki Eşleşen Sözcüklere Sıfır Genişlikli Karakterler Ekle",
           "antigravity_sensitive_words_label": "OAuth Hassas Sözcükler (oauth.providers.antigravity.sensitive-words)",
@@ -2532,6 +2534,25 @@
       "error_prefix_required": "Bir Anahtar Öneki Gir.",
       "error_providers_required": "En Az Bir Sağlayıcı Ekle; Arka Uç Sağlayıcısız Kuralı Yok Sayar.",
       "error_prefix_duplicate": "Bu Öneki Başka Bir Kural Zaten Kullanıyor; Yalnızca İlki Uygulanır."
+    },
+    "quota_credentials": {
+      "label": "Kota Görünürlüğü (GET /v1/usage)",
+      "hint": "Bu Anahtar, GET /v1/usage Aracılığıyla Seçili OAuth Kimlik Bilgilerinin ve Seçili Yukarı Akış Proxy'lerinin (Kendi GET /v1/usage Yanıtı Aktarılan, Özel Temel URL'li Sağlayıcı Anahtarları) Kota Özetini Okuyabilir. Varsayılan Olarak Hiçbiri Seçili Değildir; Seçimi Olmayan Anahtar Boş Liste Alır.",
+      "tag": "Kota: {{n}} Kimlik Bilgisi",
+      "loading": "Kimlik Bilgileri Yükleniyor…",
+      "load_failed": "Kimlik Bilgileri Yüklenemedi.",
+      "retry": "Yeniden Dene",
+      "empty": "Codex, Claude, Antigravity, xAI veya Command Code OAuth Kimlik Bilgisi ya da Özel Temel URL'li Sağlayıcı Anahtarı Yok.",
+      "missing": "Kaldırıldı",
+      "disabled": "Devre Dışı",
+      "own_key": "Bu Proxy'nin Kendi Anahtarı; Kendine Geri Dönebilir",
+      "trigger_empty": "Kimlik Bilgisi Yok (Boş Liste)",
+      "trigger_summary": "{{selected}} / {{total}} Seçili",
+      "search_placeholder": "Kimlik Bilgisi, Sağlayıcı veya Kimlik Ara…",
+      "no_results": "“{{query}}” ile Eşleşen Kimlik Bilgisi Yok",
+      "select_all": "Tümünü Seç",
+      "clear": "Temizle",
+      "chip_remove": "{{name}} Öğesini Kaldır"
     }
   }
 }
