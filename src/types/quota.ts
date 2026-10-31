@@ -430,6 +430,24 @@ export interface KimiQuotaState {
   errorStatus?: number;
 }
 
+/** Command Code rows reuse the Kimi row shape: raw used/limit counts plus a reset instant. */
+export type CommandCodeQuotaRow = KimiQuotaRow;
+
+export interface CommandCodeQuotaData {
+  rows: CommandCodeQuotaRow[];
+  /** Plan display name (Go, GOAT, Pro, ...); null when the plan is unknown. */
+  plan: string | null;
+  /** Remaining credits in USD: monthly plan + purchased + free. */
+  creditsLeft: number | null;
+}
+
+export interface CommandCodeQuotaState extends Partial<CommandCodeQuotaData> {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  rows: CommandCodeQuotaRow[];
+  error?: string;
+  errorStatus?: number;
+}
+
 // xAI/Grok API payload types
 export interface XaiBillingCent {
   val?: number | string;

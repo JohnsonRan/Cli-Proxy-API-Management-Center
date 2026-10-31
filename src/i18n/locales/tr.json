@@ -646,6 +646,24 @@
     "limit_index": "Sınır #{{index}}",
     "reset_hint": "{{hint}} Sonra Sıfırlanır"
   },
+  "commandcode_quota": {
+    "title": "Command Code Kotası",
+    "empty_title": "Command Code Kimlik Dosyası Yok",
+    "empty_desc": "Kalan Kredileri ve Kullanım Pencerelerini Görmek için Command Code'a Giriş Yap.",
+    "stale_request": "Bağlantı veya Kimlik Bilgisi Değişti. Lütfen Yeniden Dene.",
+    "idle": "Kotayı Yenilemek için Buraya Tıkla",
+    "loading": "Kota Yükleniyor...",
+    "load_failed": "Kota Yüklenemedi: {{message}}",
+    "missing_auth_index": "Kimlik Dosyasında auth_index Eksik",
+    "empty_data": "Kullanılabilir Kota Verisi Yok",
+    "refresh_button": "Kotayı Yenile",
+    "fetch_all": "Tümünü Getir",
+    "five_hour": "5 Saatlik Pencere",
+    "weekly": "Haftalık Pencere",
+    "monthly": "Aylık Plan Kredileri",
+    "plan": "Plan: {{plan}}",
+    "credits_left": "Kalan Kredi: {{amount}}"
+  },
   "xai_quota": {
     "title": "Grok Kotası",
     "empty_title": "xAI/Grok Kimlik Dosyası Yok",
@@ -992,7 +1010,20 @@
     "restart_login": "Baştan Başla",
     "success_saved_hint": "Kimlik Bilgisi Kaydedildi. Kimlik Dosyalarında Yönet.",
     "sign_up_prompt": "Henüz Hesap Yok Mu?",
-    "copied": "Kopyalandı"
+    "copied": "Kopyalandı",
+    "commandcode_oauth_title": "Command Code Girişi",
+    "commandcode_oauth_button": "Command Code Girişini Başlat",
+    "commandcode_oauth_hint": "Tarayıcıda Command Code'a (commandcode.ai) Giriş Yap ve API Anahtarını Kimlik Doğrulama Dosyası Olarak Kaydet. Uzak Sunucu: Studio Anahtarı http://127.0.0.1:54546/callback Adresine Gönderir; Tarayıcın Bunu Sunucuya İletemez, Bu Yüzden Aşağıdan Gönder. Claude Modelleri ve Go Planı Sunulmaz.",
+    "commandcode_callback_hint": "Sayfa 127.0.0.1:54546 Adresine Ulaşamazsa DevTools → Network Bölümünü Aç, Geri Çağırma İsteğini Seç ve Yükündeki apiKey Değerini (veya Yük Kaynağını) Yapıştır. Parametreli Tam Geri Çağırma URL'si de Çalışır.",
+    "commandcode_callback_placeholder": "API Anahtarı, apiKey=…&state=… Yükü veya Geri Çağırma URL'si",
+    "commandcode_callback_invalid": "API Anahtarını, Geri Çağırma Yükünü veya apiKey İçeren Bir Geri Çağırma URL'sini Gir.",
+    "commandcode_copy_link": "Bağlantıyı Kopyala",
+    "commandcode_open_link": "Bağlantıyı Aç",
+    "commandcode_oauth_status_waiting": "Command Code Yetkilendirmesi Bekleniyor...",
+    "commandcode_oauth_status_success": "Command Code Girişi Başarılı!",
+    "commandcode_oauth_status_error": "Command Code Girişi Başarısız:",
+    "commandcode_oauth_start_error": "Command Code Girişi Başlatılamadı:",
+    "commandcode_oauth_polling_error": "Giriş Durumu Kontrol Edilemedi:"
   },
   "stats": {
     "success": "Başarılı",
