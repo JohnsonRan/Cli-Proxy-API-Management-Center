@@ -403,7 +403,7 @@
     "use_siwc_label": "SIWC Kullan (use_siwc)",
     "use_siwc_hint": "Etkinleştirildiğinde Bağlı SIWC Kimlik Bilgisini Kullanır. Kapatmak Yalnızca SIWC'yi Devre Dışı Bırakır ve Bağlama Verilerini Korur. Etkinleştirmeden Önce Bağlamayı Tamamla.",
     "websockets_label": "WebSockets (websockets)",
-    "websockets_hint": "Bu Kimlik Bilgisi için Responses API WebSocket Taşımasını Etkinleştir.",
+    "websockets_hint": "Bu Kimlik Bilgisi için Responses API WebSocket Taşımasını Etkinleştir. Codex Kimlik Bilgilerinde Bu Ayar HTTP/SSE İstemcilerini de Yukarı Akış WebSocket'ine Köprüler ve Genel Ayarı Geçersiz Kılar.",
     "using_api_label": "Resmi API Kullan (using_api)",
     "using_api_hint": "Etkinse Resmi xAI API Kullanılır. Devre Dışıysa Grok CLI Chat-Proxy Kullanılır.",
     "policy_alias_name": "Takma Ad",
@@ -1231,6 +1231,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "Akış Başlangıcı Zaman Aşımı",
           "hint": "İsteğe Bağlı Tamponlama Süre Sınırı. Ör. 20s. Varsayılan: 0 (Süre Sınırsız. Çerçeve ve Bayt Bütçeleri Yine Uygulanır). Yukarı Akış Çerçeveleri Geldikçe Kontrol Edilir. Her Ağ Durması için Sert Bir Son Tarih Değildir. Üst Bilgiler Çevrilen Çıktıyı Yine Bekleyebilir."
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "HTTP İstemcileri için WebSocket Yukarı Akışı",
+          "hint": "İstemci HTTP/SSE ile bağlansa bile Codex OAuth Kimlik Bilgilerini Yukarı Akış WebSocket Taşıması Üzerinden Yönlendir; 426 Yanıtında HTTP'ye Geri Döner. /responses/compact ve Görsel İstekleri HTTP'de Kalır. Kimlik Bilgisinin Kendi WebSockets Ayarı Bunu Geçersiz Kılar. Varsayılan Olarak Kapalı."
         },
         "codexOptimizeMultiAgentV2": {
           "label": "Çoklu Ajan v2 İyileştir",
