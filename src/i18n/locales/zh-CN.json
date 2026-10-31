@@ -1483,6 +1483,10 @@
           "bootstrap_hint": "流式传输首包前的重试次数；设为 0、负整数或留空表示禁用启动重试",
           "nonstream_keepalive": "非流式 Keepalive 间隔 (秒)",
           "nonstream_keepalive_hint": "非流式响应时每隔 N 秒发送空行；设置为 0、负整数或留空表示禁用保活",
+          "codex_app_keepalive_seconds": "Codex 应用层保活间隔（秒）",
+          "codex_app_keepalive_hint": "官方 Codex 客户端走 /v1/responses SSE 时，上游静默这么久后发送 codex.client.keepalive 事件；SSE 注释无法重置 Codex 的流空闲超时。留空、0 或负数使用默认 30 秒。",
+          "disable_codex_app_keepalive": "禁用 Codex 应用层保活",
+          "disable_codex_app_keepalive_hint": "不再向 Codex 客户端发送 codex.client.keepalive 事件。普通 SSE 保活注释不受影响。",
           "disabled": "已禁用"
         },
         "payload": {

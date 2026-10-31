@@ -1485,6 +1485,10 @@
           "bootstrap_hint": "İlk Bayttan Önceki Yeniden Denemeler. 0, Negatif Tam Sayı veya Boş Alan Başlangıç Yeniden Denemelerini Kapatır",
           "nonstream_keepalive": "Akış Dışı Canlı Tutma Aralığı (Saniye)",
           "nonstream_keepalive_hint": "Akış Dışı Yanıtlar için Her N Saniyede Boş Satır Gönder. 0, Negatif Tam Sayı veya Boş Alan Canlı Tutmayı Kapatır",
+          "codex_app_keepalive_seconds": "Codex Uygulaması Canlı Tutma Aralığı (Saniye)",
+          "codex_app_keepalive_hint": "/v1/responses SSE Kullanan Resmi Codex İstemcileri, Yukarı Akış Bu Süre Boyunca Sessiz Kalınca codex.client.keepalive Olayı Alır; SSE Yorumları Codex'in Akış Boşta Kalma Zaman Aşımını Sıfırlamaz. Boş, 0 veya Negatif Değer Varsayılan 30 Saniyeyi Kullanır.",
+          "disable_codex_app_keepalive": "Codex Uygulaması Canlı Tutmayı Kapat",
+          "disable_codex_app_keepalive_hint": "Codex İstemcilerine codex.client.keepalive Olayı Göndermeyi Durdur. Normal SSE Canlı Tutma Yorumları Etkilenmez.",
           "disabled": "Devre Dışı"
         },
         "payload": {
