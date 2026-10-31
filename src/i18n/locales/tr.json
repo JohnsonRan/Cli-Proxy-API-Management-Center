@@ -430,6 +430,8 @@
     "note_placeholder": "Bir Not Gir, Ör.: John'un Hesabı",
     "note_hint": "İsteğe Bağlı. Bu Kimlik Bilgisinin Amacını veya Sahibini Anlatmak için Kullanılır. Atlamak için Boş Bırak.",
     "excluded_models_label": "Hariç Tutulan Modeller (excluded_models)",
+    "allowed_models_label": "İzin Verilen Modeller (allowed_models)",
+    "allowed_models_hint": "Ayarlanırsa Bu Kimlik Bilgisi Yalnızca Eşleşen Modellere Hizmet Verir ('*' Joker); Hariç Tutulan Modeller Yine de Uygulanır. Kurallar Önek veya Takma Ad Olmadan Yukarı Akış Model Adlarıyla Eşleşir. Boş Bırakılırsa Kısıtlama Yoktur.",
     "headers_label": "Özel Üst Bilgiler (headers)",
     "headers_placeholder": "{\n\"Header-Name\": \"value\"\n}",
     "headers_hint": "Özel HTTP Üst Bilgilerini JSON Nesnesi Olarak Gir. Ör. {\"X-My-Header\": \"value\"}",
