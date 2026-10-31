@@ -122,6 +122,9 @@ export function ProviderResourceTable({
         renderMetric('keys', t('providersPage.table.metrics.keys'), r.apiKeyEntryCount),
         renderMetric('headers', t('providersPage.table.metrics.headers'), r.headerCount)
       );
+      if (r.flags.autoDiscoverModels) {
+        items.push(renderFlagTag('auto-discover', t('providersPage.table.autoDiscoverTag')));
+      }
     } else {
       items.push(
         renderMetric('models', t('providersPage.table.metrics.models'), r.modelCount),

@@ -2163,6 +2163,7 @@
         "headers": "請求標頭"
       },
       "websocketsTag": "WebSockets",
+      "autoDiscoverTag": "自動探索",
       "cloakTag": "Cloak",
       "cliProfileTag": "CLI 指紋",
       "empty": "尚未新增設定,點擊右上角新增。",
@@ -2292,6 +2293,8 @@
       "addHeader": "新增請求標頭",
       "excludedSection": "排除模型",
       "excludedDisabledNote": "「*」表示整個 provider 已停用，請改用上方的「已停用」開關。",
+      "autoDiscoverModels": "自動探索模型（auto-discover-models）",
+      "autoDiscoverModelsHint": "後端拉取該供應商的 /models 清單，附加在下方自訂模型之後，自訂模型優先。超過 30 分鐘的清單會在背景重新整理，重新整理失敗時保留上次結果。不需要的模型可在「排除模型」中隱藏。",
       "cloakSection": "Cloak 設定",
       "cloakMode": "模式",
       "cloakStrict": "嚴格模式",

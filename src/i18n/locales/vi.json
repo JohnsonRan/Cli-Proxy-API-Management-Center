@@ -2013,6 +2013,7 @@
         "headers": "Header"
       },
       "websocketsTag": "WebSocket",
+      "autoDiscoverTag": "Tự động phát hiện",
       "cloakTag": "Cloak",
       "empty": "Chưa có tài nguyên nào, nhấn \"Mới\" để thêm.",
       "filterPlaceholder": "Tìm key, URL, tiền tố…",
@@ -2142,6 +2143,8 @@
       "addHeader": "Thêm header",
       "excludedSection": "Model bị loại trừ",
       "excludedDisabledNote": "“*” nghĩa là toàn bộ provider bị tắt — hãy dùng công tắc Đã tắt ở trên thay thế.",
+      "autoDiscoverModels": "Tự động phát hiện mô hình (auto-discover-models)",
+      "autoDiscoverModelsHint": "Backend lấy danh sách /models của nhà cung cấp này và thêm vào sau các mô hình tùy chỉnh bên dưới, vốn được ưu tiên. Danh sách cũ hơn 30 phút được làm mới ở nền; nếu làm mới thất bại thì giữ danh sách trước. Ẩn mô hình không cần trong mục Mô hình bị loại trừ.",
       "cloakSection": "Cài đặt Cloak",
       "cloakMode": "Chế độ",
       "cloakStrict": "Chế độ nghiêm ngặt",
