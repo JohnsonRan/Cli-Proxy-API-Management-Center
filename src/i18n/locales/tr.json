@@ -2109,6 +2109,7 @@
         "headers": "Üst Bilgiler"
       },
       "websocketsTag": "WebSockets",
+      "autoDiscoverTag": "Otomatik Keşif",
       "cloakTag": "Cloak",
       "cliProfileTag": "CLI Profili",
       "empty": "Henüz Kaynak Yok. Eklemek için \"Yeni\" Seçeneğine Tıkla.",
@@ -2238,6 +2239,8 @@
       "addHeader": "Üst Bilgi Ekle",
       "excludedSection": "Hariç Tutulan Modeller",
       "excludedDisabledNote": "“*” Sağlayıcının Tümünün Devre Dışı Olduğu Anlamına Gelir. Bunun Yerine Yukarıdaki Devre Dışı Anahtarını Kullan.",
+      "autoDiscoverModels": "Modelleri Otomatik Keşfet (auto-discover-models)",
+      "autoDiscoverModelsHint": "Arka Uç Bu Sağlayıcının /models Listesini Alır ve Aşağıdaki Özel Modellerin Altına Ekler; Özel Modeller Önceliğini Korur. 30 Dakikadan Eski Listeler Arka Planda Yenilenir; Yenileme Başarısız Olursa Son Liste Korunur. İstemediğin Modelleri Hariç Tutulan Modeller Altında Gizle.",
       "cloakSection": "Cloak Ayarları",
       "cloakMode": "Mod",
       "cloakStrict": "Sıkı Mod",
