@@ -2459,7 +2459,7 @@
     "stat_named_desc": "Sunucu Yapılandırmasında Adı Olan Anahtarlar",
     "name_hint": "Sunucu Yapılandırmasına (access.api-keys) Kaydedilir ve Tüm Panellerde Paylaşılır. Adı Kaldırmak için Bu Alanı Temizle.",
     "stat_restricted": "Kısıtlı Anahtarlar",
-    "stat_restricted_desc": "Model Kapsamı Sınırlı Anahtarlar",
+    "stat_restricted_desc": "Model Kurallarıyla veya Sağlayıcı Kapsamıyla Sınırlı Anahtarlar",
     "table_name": "Etiket / Not",
     "table_key": "API Anahtarı",
     "table_models": "Model Kapsamı",
@@ -2501,6 +2501,26 @@
     "empty_search_desc": "Farklı Bir Anahtar Sözcükle Aramayı Dene.",
     "delete_modal_title": "İstemci API Anahtarını Sil",
     "delete_modal_confirm": "Bu API Anahtarını Silmek İstediğinden Emin Misin? Bu Anahtarı Kullanan İstemciler Erişimi Hemen Kaybeder.",
-    "delete_btn": "Anahtarı Sil"
+    "delete_btn": "Anahtarı Sil",
+    "scopes": {
+      "title": "Sağlayıcı Kapsamları",
+      "description": "client.key-scopes: Anahtarları Önekle Listelenen Sağlayıcıların Kimlik Bilgileriyle Sınırla",
+      "hint": "Bir Önekle Başlayan Anahtar Yalnızca O Sağlayıcıları Görür ve Kullanabilir; En Uzun Eşleşen Önek Geçerli Olur ve Tam Anahtar da Önek Olarak Çalışır. Diğer Modeller için İstekler 400 model_not_found Alır; Codex Web Araması ve Ses için Listede codex Olmalı. Sağlayıcı Anahtarlarını (claude, codex, gemini, xai, …), Bir openai-compatibility Girdisi Adını veya Bir Yürütücü Eklenti Kimliğini Kullan; anthropic, openai, chatgpt, muse ve grok Takma Addır. Hiçbir Kuralla Eşleşmeyen Anahtarlar Kısıtlanmaz. Home Modunda Uygulanmaz.",
+      "empty": "Kural Yok: Her İstemci Anahtarı Her Sağlayıcıyı Kullanabilir.",
+      "prefix_label": "Anahtar Öneki",
+      "providers_label": "Sağlayıcılar",
+      "providers_placeholder": "Bir Sağlayıcı Yaz ve Enter'a Bas",
+      "add_rule": "Kural Ekle",
+      "remove_rule": "Kuralı Kaldır",
+      "remove_provider": "{{provider}} Sağlayıcısını Kaldır",
+      "save": "Kapsamları Kaydet",
+      "reset": "Değişiklikleri At",
+      "tag": "Yalnızca {{providers}}",
+      "matched_prefix": "Eşleşen Anahtar Öneki: {{prefix}}",
+      "modal_note": "Bu Anahtar “{{prefix}}” Sağlayıcı Kapsamıyla Eşleşiyor ve Yalnızca Şunları Kullanabilir: {{providers}}.",
+      "error_prefix_required": "Bir Anahtar Öneki Gir.",
+      "error_providers_required": "En Az Bir Sağlayıcı Ekle; Arka Uç Sağlayıcısız Kuralı Yok Sayar.",
+      "error_prefix_duplicate": "Bu Öneki Başka Bir Kural Zaten Kullanıyor; Yalnızca İlki Uygulanır."
+    }
   }
 }

@@ -2459,7 +2459,7 @@
     "stat_named_desc": "Keys with a name in the server config",
     "name_hint": "Saved in the server config (access.api-keys) and shared by every panel. Clear this field to remove the name.",
     "stat_restricted": "Restricted Keys",
-    "stat_restricted_desc": "Keys with a limited model scope",
+    "stat_restricted_desc": "Keys limited by model rules or a provider scope",
     "table_name": "Label / Remark",
     "table_key": "API Key",
     "table_models": "Model scope",
@@ -2501,6 +2501,26 @@
     "empty_search_desc": "Try searching with a different keyword.",
     "delete_modal_title": "Delete Client API Key",
     "delete_modal_confirm": "Are you sure you want to delete this API key? Clients relying on this key will immediately lose access.",
-    "delete_btn": "Delete Key"
+    "delete_btn": "Delete Key",
+    "scopes": {
+      "title": "Provider scopes",
+      "description": "client.key-scopes: limit keys by prefix to the credentials of listed providers",
+      "hint": "A key that starts with a prefix only sees and can only use those providers; the longest matching prefix wins and a full key also works as a prefix. Requests for other models get 400 model_not_found, and Codex web search and voice need codex in the list. Use provider keys (claude, codex, gemini, xai, …), an openai-compatibility entry name or an executor plugin ID; anthropic, openai, chatgpt, muse and grok are aliases. Keys matching no rule are unrestricted. Not applied in Home mode.",
+      "empty": "No rules: every client key can use every provider.",
+      "prefix_label": "Key prefix",
+      "providers_label": "Providers",
+      "providers_placeholder": "Type a provider and press Enter",
+      "add_rule": "Add rule",
+      "remove_rule": "Remove rule",
+      "remove_provider": "Remove {{provider}}",
+      "save": "Save scopes",
+      "reset": "Discard",
+      "tag": "Only {{providers}}",
+      "matched_prefix": "Matched key prefix: {{prefix}}",
+      "modal_note": "This key matches the provider scope “{{prefix}}” and can only use: {{providers}}.",
+      "error_prefix_required": "Enter a key prefix.",
+      "error_providers_required": "Add at least one provider; the backend ignores a rule without providers.",
+      "error_prefix_duplicate": "Another rule already uses this prefix; only the first one applies."
+    }
   }
 }
