@@ -49,7 +49,8 @@ export interface TimelineResetCreditMark extends TimelineResetCredit {
 export interface TimelineLane {
   name: string;
   displayName: string;
-  provider: QuotaProviderType;
+  /** Colour key; upstream lanes carry the shared account's provider, not a quota adapter. */
+  provider: string;
   /** Instant a window boundary falls on; all other boundaries derive from it. */
   anchorMs: number | null;
   /** Window length in hours. */
