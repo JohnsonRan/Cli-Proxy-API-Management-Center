@@ -405,7 +405,7 @@
     "use_siwc_label": "SIWC 사용 (use_siwc)",
     "use_siwc_hint": "활성화하면 연결된 SIWC 자격 증명을 사용합니다. 끄면 SIWC만 비활성화되며 연결 데이터는 유지됩니다. 활성화하기 전에 연결을 완료하세요.",
     "websockets_label": "WebSockets (websockets)",
-    "websockets_hint": "이 자격 증명에 대해 Responses API WebSocket 전송을 활성화합니다.",
+    "websockets_hint": "이 자격 증명에 대해 Responses API WebSocket 전송을 활성화합니다. Codex 자격 증명에서는 HTTP/SSE 클라이언트도 업스트림 WebSocket으로 연결하며 전역 설정보다 우선합니다.",
     "using_api_label": "공식 API 사용 (using_api)",
     "using_api_hint": "활성화 시 공식 xAI API를 사용하고, 비활성화 시 Grok CLI chat-proxy를 사용합니다.",
     "policy_alias_name": "별칭",
@@ -1247,6 +1247,10 @@
         "codexStreamBootstrapTimeout": {
           "label": "스트림 부트스트랩 타임아웃",
           "hint": "선택적 버퍼링 시간 제한입니다(예: 20s). 기본값: 0(무제한 시간, 프레임 및 바이트 예산은 여전히 적용됨). 업스트림 프레임이 도착할 때 확인되며, 모든 네트워크 지연 상황에 대한 엄격한 마감 시간은 아닙니다. 헤더는 변환된 출력을 기다릴 수 있습니다."
+        },
+        "codexEnableWebsocketUpstream": {
+          "label": "HTTP 클라이언트용 WebSocket 업스트림",
+          "hint": "클라이언트가 HTTP/SSE로 연결해도 Codex OAuth 자격 증명을 업스트림 WebSocket 전송으로 보내며, 426이면 HTTP로 대체합니다. /responses/compact와 이미지 요청은 HTTP를 유지합니다. 자격 증명별 WebSockets 설정이 이 값보다 우선합니다. 기본값은 비활성화입니다."
         },
         "codexOptimizeMultiAgentV2": {
           "label": "멀티 에이전트 v2 최적화",
