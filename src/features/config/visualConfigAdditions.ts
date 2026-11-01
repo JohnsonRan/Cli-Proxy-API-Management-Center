@@ -26,6 +26,13 @@ export const ADDITION_FIELDS = [
     path: 'routing.cooldown.transient-error-cooldown-seconds'.split('.'),
     kind: 'integer',
   },
+  // Client GET /v1/usage quota cache, rendered in the logging section.
+  // Empty or 0 keeps the 300s default; core raises values below 30s to 30s.
+  {
+    key: 'quotaApiCacheTtlSeconds',
+    path: 'observability.quota-api.cache-ttl-seconds'.split('.'),
+    kind: 'integer',
+  },
   {
     key: 'videoResultAuthCacheTTL',
     path: 'multimedia.video-result-auth-cache-ttl'.split('.'),
@@ -313,6 +320,7 @@ export function validateVisualAdditions(
   const errors: VisualConfigValidationErrors = {
     transientErrorCooldownSeconds: undefined,
     videoResultAuthCacheTTL: undefined,
+    quotaApiCacheTtlSeconds: undefined,
     claudeHeaderTimezone: undefined,
     codexStreamBootstrapTimeout: undefined,
     antigravityConnectionPoolIdleTimeout: undefined,
