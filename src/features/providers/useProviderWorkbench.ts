@@ -143,6 +143,7 @@ const buildModelAliases = (
         entry.image = m.image === true;
         entry.embedding = m.embedding === true;
         entry.rerank = m.rerank === true;
+        entry.systemone = m.systemone === true;
       }
       return entry;
     })
