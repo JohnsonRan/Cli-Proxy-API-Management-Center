@@ -55,6 +55,7 @@ export type PrefixProxyEditorField =
   | 'useSiwc'
   | 'note'
   | 'excludedModelsText'
+  | 'allowedModelsText'
   | 'headersText';
 
 export type PrefixProxyEditorFieldValue = string | boolean | CredentialPolicyValue;
@@ -88,6 +89,8 @@ export type PrefixProxyEditorState = {
   noteTouched: boolean;
   excludedModelsText: string;
   excludedModelsTouched: boolean;
+  allowedModelsText: string;
+  allowedModelsTouched: boolean;
   headersText: string;
   headersTouched: boolean;
   headersError: string | null;
@@ -175,6 +178,9 @@ const readExcludedModels = (value: Record<string, unknown>): string[] =>
   normalizeExcludedModels(
     value.excluded_models !== undefined ? value.excluded_models : value['excluded-models']
   );
+
+const readAllowedModels = (value: Record<string, unknown>): string[] =>
+  normalizeExcludedModels(value.allowed_models);
 
 const getExcludedModelsField = (
   value: Record<string, unknown>
@@ -363,6 +369,13 @@ export const buildAuthFileFieldsPatch = (
     }
   }
 
+  if (editor.allowedModelsTouched) {
+    const nextAllowedModels = parseExcludedModelsText(editor.allowedModelsText);
+    if (JSON.stringify(nextAllowedModels) !== JSON.stringify(readAllowedModels(original))) {
+      patch.allowed_models = nextAllowedModels;
+    }
+  }
+
   if (supportsAuthFileWebsockets(editor.providerKey) && editor.websocketsTouched) {
     const originalWebsockets = readAuthFileWebsockets(original);
     const nextWebsockets = Boolean(editor.websockets);
@@ -462,6 +475,9 @@ const buildPrefixProxyUpdatedText = (
   if (patch['excluded-models'] !== undefined) {
     next['excluded-models'] = patch['excluded-models'];
   }
+  if (patch.allowed_models !== undefined) {
+    next.allowed_models = patch.allowed_models;
+  }
 
   applyCredentialPolicyPatch(next, patch);
   applyHeadersPatch(next, patch.headers);
@@ -558,6 +574,8 @@ export function useAuthFilesPrefixProxyEditor(
       noteTouched: false,
       excludedModelsText: '',
       excludedModelsTouched: false,
+      allowedModelsText: '',
+      allowedModelsTouched: false,
       headersText: '',
       headersTouched: false,
       headersError: null,
@@ -609,6 +627,7 @@ export function useAuthFilesPrefixProxyEditor(
       const usingApi = supportsAuthFileUsingApi(providerKey) ? readAuthFileUsingApi(json) : false;
       const note = typeof json.note === 'string' ? json.note : '';
       const excludedModelsText = readExcludedModels(json).join('\n');
+      const allowedModelsText = readAllowedModels(json).join('\n');
       const headers = json.headers;
       let headersText = '';
       let headersError: string | null = null;
@@ -646,6 +665,8 @@ export function useAuthFilesPrefixProxyEditor(
           noteTouched: false,
           excludedModelsText,
           excludedModelsTouched: false,
+          allowedModelsText,
+          allowedModelsTouched: false,
           headersText,
           headersTouched: false,
           headersError,
@@ -715,6 +736,9 @@ export function useAuthFilesPrefixProxyEditor(
           excludedModelsText: String(value),
           excludedModelsTouched: true,
         };
+      }
+      if (field === 'allowedModelsText') {
+        return { ...prev, allowedModelsText: String(value), allowedModelsTouched: true };
       }
       if (field === 'headersText') {
         const headersText = String(value);

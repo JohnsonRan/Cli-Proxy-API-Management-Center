@@ -430,6 +430,8 @@
     "note_placeholder": "Enter a note, e.g.: John's account",
     "note_hint": "Optional. Used to describe the purpose or owner of this credential; leave empty to omit.",
     "excluded_models_label": "Excluded models (excluded_models)",
+    "allowed_models_label": "Allowed models (allowed_models)",
+    "allowed_models_hint": "When set, this credential serves only the matching models ('*' wildcard); excluded models still apply. Rules match upstream model names, without prefix or alias. Empty means unrestricted.",
     "headers_label": "Custom Headers (headers)",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_hint": "Enter custom HTTP headers as a JSON object, e.g., {\"X-My-Header\": \"value\"}",
