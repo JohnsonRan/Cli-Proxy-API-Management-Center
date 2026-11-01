@@ -10,6 +10,7 @@ import type {
   CodexQuotaState,
   DevinQuotaState,
   KimiQuotaState,
+  CommandCodeQuotaState,
   MetaQuotaState,
   PluginQuotaState,
   XaiQuotaState,
@@ -25,6 +26,7 @@ interface QuotaStoreState {
   codexQuota: Record<string, CodexQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
+  commandcodeQuota: Record<string, CommandCodeQuotaState>;
   metaQuota: Record<string, MetaQuotaState>;
   pluginQuota: Record<string, PluginQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
@@ -33,6 +35,7 @@ interface QuotaStoreState {
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
+  setCommandcodeQuota: (updater: QuotaUpdater<Record<string, CommandCodeQuotaState>>) => void;
   setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setPluginQuota: (updater: QuotaUpdater<Record<string, PluginQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
@@ -54,6 +57,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
   codexQuota: {},
   devinQuota: {},
   kimiQuota: {},
+  commandcodeQuota: {},
   metaQuota: {},
   pluginQuota: {},
   xaiQuota: {},
@@ -103,6 +107,10 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
     set((state) => ({
       kimiQuota: resolveUpdater(updater, state.kimiQuota),
     })),
+  setCommandcodeQuota: (updater) =>
+    set((state) => ({
+      commandcodeQuota: resolveUpdater(updater, state.commandcodeQuota),
+    })),
   setMetaQuota: (updater) =>
     set((state) => ({ metaQuota: resolveUpdater(updater, state.metaQuota) })),
   setPluginQuota: (updater) =>
@@ -138,6 +146,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
           codexQuota: omitNames(state.codexQuota),
           devinQuota: omitNames(state.devinQuota),
           kimiQuota: omitNames(state.kimiQuota),
+          commandcodeQuota: omitNames(state.commandcodeQuota),
           metaQuota: omitNames(state.metaQuota),
           pluginQuota: omitNames(state.pluginQuota),
           xaiQuota: omitNames(state.xaiQuota),
@@ -151,6 +160,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
         codexQuota: {},
         devinQuota: {},
         kimiQuota: {},
+        commandcodeQuota: {},
         metaQuota: {},
         pluginQuota: {},
         xaiQuota: {},
