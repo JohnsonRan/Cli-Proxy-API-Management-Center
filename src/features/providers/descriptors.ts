@@ -12,6 +12,8 @@ export interface ProviderDescriptor {
   supportsModels: boolean;
   supportsHeaders: boolean;
   supportsExcludedModels: boolean;
+  /** Backend fetches the provider's /models list itself (auto-discover-models). */
+  supportsAutoDiscoverModels: boolean;
   supportsPriority: boolean;
   supportsRequestScopedErrors: boolean;
   supportsTestModel: boolean;
@@ -36,6 +38,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: false,
@@ -56,6 +59,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: false,
@@ -76,6 +80,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: true,
@@ -96,6 +101,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: false,
@@ -116,6 +122,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: true,
@@ -136,6 +143,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: false,
@@ -156,6 +164,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: true,
     supportsHeaders: true,
     supportsExcludedModels: true,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: false,
     supportsWebsockets: false,
@@ -175,7 +184,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsPrefix: true,
     supportsModels: true,
     supportsHeaders: true,
-    supportsExcludedModels: false,
+    supportsExcludedModels: true,
+    supportsAutoDiscoverModels: true,
     supportsPriority: true,
     supportsTestModel: true,
     supportsWebsockets: false,
@@ -196,6 +206,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: false,
     supportsHeaders: false,
     supportsExcludedModels: false,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: false,
     supportsWebsockets: false,
@@ -216,6 +227,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: false,
     supportsHeaders: false,
     supportsExcludedModels: false,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: false,
     supportsWebsockets: false,
@@ -236,6 +248,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: false,
     supportsHeaders: false,
     supportsExcludedModels: false,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: false,
     supportsWebsockets: false,
@@ -256,6 +269,7 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsModels: false,
     supportsHeaders: false,
     supportsExcludedModels: false,
+    supportsAutoDiscoverModels: false,
     supportsPriority: true,
     supportsTestModel: false,
     supportsWebsockets: false,
