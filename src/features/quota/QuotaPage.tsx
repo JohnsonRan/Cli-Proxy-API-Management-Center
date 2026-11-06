@@ -131,6 +131,7 @@ export function QuotaPage() {
   const codexQuota = useQuotaStore((state) => state.codexQuota);
   const devinQuota = useQuotaStore((state) => state.devinQuota);
   const kimiQuota = useQuotaStore((state) => state.kimiQuota);
+  const commandcodeQuota = useQuotaStore((state) => state.commandcodeQuota);
   const metaQuota = useQuotaStore((state) => state.metaQuota);
   const pluginQuota = useQuotaStore((state) => state.pluginQuota);
   const xaiQuota = useQuotaStore((state) => state.xaiQuota);
@@ -141,6 +142,7 @@ export function QuotaPage() {
         antigravity: antigravityQuota,
         claude: claudeQuota,
         codex: codexQuota,
+        commandcode: commandcodeQuota,
         devin: devinQuota,
         kimi: kimiQuota,
         meta: metaQuota,
@@ -151,6 +153,7 @@ export function QuotaPage() {
       antigravityQuota,
       claudeQuota,
       codexQuota,
+      commandcodeQuota,
       devinQuota,
       kimiQuota,
       metaQuota,
