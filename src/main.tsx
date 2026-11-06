@@ -2,7 +2,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@/styles/global.scss';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
+import { migrateStoredObfuscationKey } from '@/utils/encryption';
 import App from './App.tsx';
+
+// Before any store reads obfuscated values.
+migrateStoredObfuscationKey();
 
 document.title = 'CLI Proxy API Management Center';
 document.documentElement.setAttribute('translate', 'no');
