@@ -129,6 +129,13 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['client', 'codex', 'optimize-multi-agent-v2'],
   },
   {
+    fieldId: 'codexEnableWebsocketUpstream',
+    sectionId: 'advanced',
+    labelKey: L('additions.codexEnableWebsocketUpstream.label'),
+    hintKey: L('additions.codexEnableWebsocketUpstream.hint'),
+    yamlKeys: ['oauth', 'providers', 'codex', 'enable-websocket-upstream'],
+  },
+  {
     fieldId: 'codexOrphanDelegationCompatibility',
     sectionId: 'advanced',
     labelKey: L('additions.codexOrphanDelegationCompatibility.label'),
