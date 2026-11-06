@@ -9,14 +9,8 @@ interface ProviderCategoryListProps {
   onSelect: (brand: ProviderBrand) => void;
 }
 
-const QUICK_FILL_BRAND_ORDER: readonly ProviderBrand[] = ['fennoAI', 'qiniuCloud', 'aiCodeMirror'];
-
-const QUICK_FILL_BRANDS: ReadonlySet<ProviderBrand> = new Set(QUICK_FILL_BRAND_ORDER);
-
 export function ProviderCategoryList({ groups, activeBrand, onSelect }: ProviderCategoryListProps) {
   const { t } = useTranslation();
-
-  const providerGroups = groups.filter((g) => !QUICK_FILL_BRANDS.has(g.id) || g.resources.length > 0);
 
   const renderGroups = (items: ProviderGroup[]) => (
     <div className={styles.list}>
@@ -104,7 +98,7 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
     <div className={styles.stack}>
       <aside className={styles.aside}>
         <p className={styles.eyebrow}>{t('providersPage.categories.title')}</p>
-        {renderGroups(providerGroups)}
+        {renderGroups(groups)}
       </aside>
     </div>
   );

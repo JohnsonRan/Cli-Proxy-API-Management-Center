@@ -17,9 +17,8 @@ describe('removed quick-access providers', () => {
     for (const [brand] of retiredEndpoints) {
       expect(ids).not.toContain(brand);
     }
-    for (const brand of ['apikeyFun', 'fennoAI', 'qiniuCloud', 'kimi']) {
-      expect(ids).toContain(brand);
-    }
+    // Downstream: the promotional brands are covered by tests/downstreamNoPromotions.test.ts.
+    expect(ids).toContain('kimi');
   });
 
   for (const [name, baseUrl] of retiredEndpoints) {
