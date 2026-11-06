@@ -52,6 +52,8 @@ Re-run on 2026-10-31 after upstream added the Turkish locale (`tr.json`, [#506](
 
 Re-run on 2026-10-30 before keeping the usage filter popover on screen on phones (`patch/usage-store`), searching open and closed issues and pull requests for `filter popover mobile`, `dropdown off screen` and `下拉 被遮挡`: no results. Upstream has no usage page, so the fix stays downstream.
 
+Re-run on 2026-11-06 after upstream added the AIcodemirror sponsor provider (`953fb244`), before widening `patch/remove-promotional-sections` to every promotion, searching open and closed issues and pull requests for `sponsor`, `affiliate`, `aff=`, `advertisement`, `ads`, `广告`, `推广`, `赞助`, `aicodemirror`, `bestproxy`, `quick fill`, `快速接入` and `double11`. The hits add promotions rather than remove them ([#394](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/394) APIMart sponsor links, MERGED; [#447](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/447) Kimi sign-up link, CLOSED); [#374](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/374) (CLOSED) is a Quick Fill key-exposure report, not an opt-out. Upstream has no way to disable promotions, so their removal stays downstream. Upstream did drop the APIMart README sections itself (`64b4f5ae`); `ci`'s README copies now follow that.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -85,12 +87,18 @@ Re-run on 2026-10-30 before keeping the usage filter popover on screen on phones
    - **Note**: No other patch touches this file, so its position in the integration order does not matter.
 
 4. **`patch/remove-promotional-sections`**
-   - **Goal**: Remove commercial affiliate links and sponsor quick-fill ad sections.
+   - **Goal**: Remove every upstream promotion: sponsor brands, affiliate/referral links, campaign cards and sponsor rows. This is the owning branch for the no-promotions policy (see Downstream Policy).
    - **Scope**:
      - Remove `quickStartNavItem` (APIKEY.FUN) from `MainLayout.tsx` sidebar.
-     - Remove `quickFillGroups` ("快速接入") sponsor group from `ProviderCategoryList.tsx`.
-     - Drop the `apikeyFun` route hint in `ProviderSheet.tsx`; that brand is reached through `/ai-providers/apikeyFun` like every other brand.
+     - Remove the `quickFillGroups` ("快速接入") sponsor group from `ProviderCategoryList.tsx`.
+     - Drop the promotional brands (`apikeyFun`, `fennoAI`, `qiniuCloud`, `aiCodeMirror`) from `PROVIDER_BRAND_ORDER` and from the generic-group exclusion filters in `useProviderWorkbench.ts`, so a config on one of their endpoints still shows and stays editable in the generic Gemini/Codex/Claude/OpenAI-compatible group. The brand modules stay (Kimi shares the sponsor plumbing), but their affiliate URLs and `affiliateUrl` definitions are deleted.
+     - Delete `SponsorCampaignCard` (APIKEY.FUN double-11) and `SponsorQuickStartPanel` and stop mounting them in `ProvidersWorkbenchPage.tsx`; drop the sponsor registration/dashboard links in `ProviderResourcePanel.tsx`. **Note**: an upstream edit to a deleted promo file shows up as a modify/delete conflict on this squash; keep the deletion.
+     - Kimi stays as a real vendor: `KIMI_*_AFFILIATE_URL` keep their names but point at the plain `platform.kimi.com/` and `platform.kimi.ai/` pages, and the `kimiPromo` recharge line is no longer rendered.
+     - Empty `SPONSORS` in `src/features/config/sponsors.ts` (BestProxy row under the proxy URL field).
+     - Drop the `apikeyFun` route hint in `ProviderSheet.tsx`.
      - Leave `MainRoutes.tsx` untouched: `patch/extract-client-api-keys` owns the `/quick-start` and `/api-keys` route lines.
+     - Unrendered sponsor locale keys are left in place to avoid conflicts with the many patches that edit the locale files.
+   - **Guard**: `tests/downstreamNoPromotions.test.ts` asserts each removal and scans all of `src/` plus `index.html` for affiliate/referral/tracking query parameters (`aff=`, `invitecode=`, `ref=`, `utm_*=`, `keyword=`, ...) and `rel="sponsored"`. A new upstream promotion therefore fails `bun test` in the sync. Fix it by removing the promotion on this branch, never by widening the allowlist. The scan cannot recognise bare short links (Qiniu used `s.qiniu.com/...`), so still read upstream diffs touching `sponsor*`, `*AFFILIATE*`, `quickFill`, campaign or README sponsor sections.
 
 5. **`patch/extract-client-api-keys`**
    - **Goal**: Move Client API Keys (`access.api-keys`) out of the Config panel into a dedicated navigation page.
@@ -382,5 +390,6 @@ git push --force-with-lease origin HEAD:main
 ## Downstream Policy
 
 - **No upstream pull requests.** This fork never opens pull requests against the upstream repository. Patches are maintained downstream indefinitely and are retired only when upstream lands an equivalent implementation on its own, detected by re-running the rebuild and finding that a patch has become empty or conflicting.
+- **No promotions, ever.** (Owner decision, 2026-11-06.) Whatever promotion upstream adds is removed downstream: sponsor or partner provider brands, affiliate/referral/invite links, recharge or campaign cards, sponsor rows, and README sponsor sections. A legitimate vendor that upstream wires up with an affiliate link (Kimi) stays, minus the affiliate code and promo copy. Product code goes on `patch/remove-promotional-sections`; README sponsor sections are removed on `ci`, whose `README.md` replaces upstream's on every sync (`README_CN.md` merges normally, so keep `ci`'s copy close to upstream). When the guard test or a conflict on that patch fails the sync, extend the patch; do not skip the guard.
 - **`main` is intentionally unprotected.** The scheduled sync rebuilds and force-pushes `main`, so neither `main` branch carries branch protection. Safety comes from `--force-with-lease`, the `upstream-sync-main` concurrency group, fail-closed conflict handling, and validation before the push. Protect the `patch/*` and `ci` branches against deletion instead; `main` is a derived artifact that nothing else may be based on.
 - **Keep `ci`'s workflow files equal to the integrated ones.** Without a `SYNC_WORKFLOW_TOKEN` secret the sync pushes with `GITHUB_TOKEN`, which GitHub refuses (`refusing to allow a GitHub App to create or update workflow ... without workflows permission`) when the rebuilt `main` carries a workflow file whose content the repository does not already have. A blob already pushed on `ci` by a maintainer passes, so when upstream edits `.github/workflows/ci.yml` or `release.yml` (for example a Bun pin bump, as upstream `f2e27103` did on 2026-10-27), apply the same edit to `ci` first: `git merge-tree --write-tree upstream/main origin/ci` must give each workflow file the same blob as `origin/ci`. Adding a `SYNC_WORKFLOW_TOKEN` (PAT with Contents and Workflows write) removes this step.
