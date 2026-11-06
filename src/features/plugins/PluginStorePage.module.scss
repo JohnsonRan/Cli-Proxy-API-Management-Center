@@ -227,12 +227,6 @@
     padding-right: 36px;
   }
 
-  :global(.btn > span) {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   @include mobile {
     flex-direction: column;
     align-items: stretch;
@@ -552,12 +546,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm;
-
-  :global(.btn > span) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
 }
 
 .cardLinks {
