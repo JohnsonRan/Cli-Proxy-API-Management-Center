@@ -159,6 +159,7 @@ const modelsFromConfig = (models: ModelAlias[] | undefined): ModelEntryInput[] =
         image: model.image === true,
         embedding: model.embedding === true,
         rerank: model.rerank === true,
+        systemone: model.systemone === true,
         thinkingJson: model.thinking ? JSON.stringify(model.thinking, null, 2) : '',
         ...readModelOptions(model),
       }))

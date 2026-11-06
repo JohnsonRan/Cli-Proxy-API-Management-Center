@@ -80,6 +80,21 @@ export const buildRerankEndpoint = (baseUrl: string): string => {
   return `${trimmed}/rerank`;
 };
 
+export const buildSystemOneEndpoint = (baseUrl: string): string => {
+  const trimmed = normalizeUpstreamBaseUrl(baseUrl);
+  if (!trimmed) return '';
+  if (trimmed.endsWith('/systemone')) {
+    return trimmed;
+  }
+  return `${trimmed}/systemone`;
+};
+
+// The backend forwards /v1/decisions to <base-url>/decisions, defaulting codex keys to OpenAI.
+export const buildDecisionsEndpoint = (baseUrl: string): string => {
+  const trimmed = normalizeUpstreamBaseUrl(baseUrl, 'https://api.openai.com/v1');
+  return trimmed.endsWith('/decisions') ? trimmed : `${trimmed}/decisions`;
+};
+
 export const buildCodexResponsesEndpoint = (baseUrl: string): string => {
   const trimmed = normalizeUpstreamBaseUrl(baseUrl);
   if (!trimmed) return '';
