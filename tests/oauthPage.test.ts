@@ -12,7 +12,12 @@ import ru from '@/i18n/locales/ru.json';
 import ko from '@/i18n/locales/ko.json';
 import vi from '@/i18n/locales/vi.json';
 import { OAuthPage } from '@/features/oauth/OAuthPage';
-import { resolveCallbackUrl, XAI_CALLBACK_URL } from '@/features/oauth/callbackUrl';
+import { OAuthFlowDialog } from '@/features/oauth/components/OAuthFlowDialog';
+import {
+  COMMANDCODE_CALLBACK_URL,
+  resolveCallbackUrl,
+  XAI_CALLBACK_URL,
+} from '@/features/oauth/callbackUrl';
 import { resolveFlowView, splitAuthUrl } from '@/features/oauth/flowView';
 import { buildPluginOAuthProviderCards, OAUTH_PROVIDERS } from '@/features/oauth/providers';
 import {
@@ -48,6 +53,60 @@ describe('OAuth dialog view resolution', () => {
 });
 
 describe('manual callback input', () => {
+  test.each(['commandcode', 'codex'])(
+    'renders the %s callback with appropriate masking',
+    async (providerId) => {
+      const i18n = createInstance();
+      await i18n.init({ lng: 'en', resources: { en: { translation: en } } });
+      const noop = () => {};
+      const markup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(OAuthFlowDialog, {
+            open: true,
+            providerId,
+            heading: { title: providerId, caption: 'Login', icon: '' },
+            state: {
+              status: 'waiting',
+              url: 'https://example.test/login',
+              callbackUrl: 'synthetic-callback',
+            },
+            text: (suffix) => i18n.t(`auth_login.${providerId}_${suffix}`),
+            supportsCallback: true,
+            onStart: noop,
+            onCancel: noop,
+            onCallbackChange: noop,
+            onCallbackSubmit: noop,
+            onViewAuthFiles: noop,
+            onClose: noop,
+          })
+        )
+      );
+      const input = markup.match(/<input\b[^>]*>/)?.[0];
+      expect(input).toBeDefined();
+      expect(input).toContain(`type="${providerId === 'commandcode' ? 'password' : 'text'}"`);
+      expect(input).toContain('autoComplete="off"');
+      expect(input).toContain('spellCheck="false"');
+      const inputId = input?.match(/id="([^"]+)"/)?.[1];
+      expect(inputId).toBeTruthy();
+      expect(markup).toContain(`for="${inputId}"`);
+    }
+  );
+
+  test('clears the reusable key only after an accepted, current Command Code callback', () => {
+    const source = readFileSync('src/features/oauth/hooks/useOAuthFlows.ts', 'utf8');
+    const accepted = source.slice(
+      source.indexOf('await oauthApi.submitCallback('),
+      source.indexOf("notify(provider, t('auth_login.oauth_callback_success')")
+    );
+    expect(accepted).toContain('if (!attempt.isCurrent()) return;');
+    expect(accepted).toContain("...(provider === 'commandcode' ? { callbackUrl: '' } : {})");
+    expect(accepted.indexOf('if (!attempt.isCurrent()) return;')).toBeLessThan(
+      accepted.indexOf("callbackUrl: ''")
+    );
+  });
+
   test('submits non-xAI input verbatim (trimmed)', () => {
     expect(resolveCallbackUrl('codex', '  http://localhost:1455/auth/callback?code=c  ')).toBe(
       'http://localhost:1455/auth/callback?code=c'
@@ -76,6 +135,37 @@ describe('manual callback input', () => {
     expect(built.searchParams.get('state')).toBe('pasted');
     expect(built.searchParams.get('error')).toBe('access_denied');
     expect(built.searchParams.get('error_description')).toBe('no');
+  });
+
+  test('builds the Command Code callback from a pasted payload, JSON, URL or bare key', () => {
+    const read = (input: string, state?: string) => {
+      const built = resolveCallbackUrl('commandcode', input, state);
+      if (!built) return null;
+      const url = new URL(built);
+      expect(`${url.origin}${url.pathname}`).toBe(COMMANDCODE_CALLBACK_URL);
+      return Object.fromEntries(url.searchParams);
+    };
+    expect(read('apiKey=k1&state=pasted&userId=u&userName=n&keyName=cli', 'st')).toEqual({
+      state: 'pasted',
+      apiKey: 'k1',
+    });
+    expect(read('{"apiKey":"k2","state":"s2","userId":"u"}')).toEqual({
+      state: 's2',
+      apiKey: 'k2',
+    });
+    expect(read(`${COMMANDCODE_CALLBACK_URL}?apiKey=k3&state=s3`)).toEqual({
+      state: 's3',
+      apiKey: 'k3',
+    });
+    expect(read('  user_k4  ', 'st-4')).toEqual({ state: 'st-4', apiKey: 'user_k4' });
+    expect(read('error=access_denied', 'st-5')).toEqual({ state: 'st-5', error: 'access_denied' });
+  });
+
+  test('rejects Command Code input without an API key or state', () => {
+    expect(resolveCallbackUrl('commandcode', COMMANDCODE_CALLBACK_URL, 'st')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', 'user_k')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', 'state=s', 'st')).toBeNull();
+    expect(resolveCallbackUrl('commandcode', '{not json', 'st')).toBeNull();
   });
 
   test('refuses to invent a state for xAI', () => {
