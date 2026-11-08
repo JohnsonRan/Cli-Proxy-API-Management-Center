@@ -4,6 +4,7 @@ export {
   type ExcludedModelsCatalogState,
   type ExcludedModelsPickerProps,
 } from './ExcludedModelsPicker';
+export { type ModelRulesTone } from './useModelRulesCopy';
 export {
   ExcludedModelChipRow,
   ExcludedModelRuleChip,
