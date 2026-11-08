@@ -953,7 +953,7 @@ export function OverviewTab({
                           )}
                         </span>
                       }
-                      sub={<ProviderBadge provider={m.provider} />}
+                      sub={<ProviderBadge provider={m.provider} model={m.model} />}
                       mono
                     />
                   </TableCell>

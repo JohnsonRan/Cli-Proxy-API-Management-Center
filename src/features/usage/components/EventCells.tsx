@@ -229,7 +229,7 @@ export function EventModelCell({ event: e, onAdd }: { event: UsageEvent; onAdd?:
           onClick={onAdd ? () => onAdd('provider', e.provider) : undefined}
           title={t('usage_stats.filter_by_this', { name: e.provider })}
         >
-          <ProviderBadge provider={e.provider} />
+          <ProviderBadge provider={e.provider} model={e.model} fallbackModel={e.responseModel} />
         </FilterText>
         {e.reasoningEffort && (
           <span className={styles.badge} title={t('usage_stats.reasoning_effort')}>
