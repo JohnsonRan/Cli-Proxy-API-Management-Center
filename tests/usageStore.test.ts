@@ -26,11 +26,14 @@ import {
   formatDetailLocation,
   histogramLabels,
   cacheSavings,
+  matchUsageModelBrand,
   mergeSelectedOptions,
   nextSort,
   optionsFromStats,
   parseUsagePrefs,
   popoverShift,
+  resolveCompatFaviconUrl,
+  resolveCompatSiteUrl,
   resolveFacetedOptions,
   sortRows,
   toCsv,
@@ -2069,5 +2072,265 @@ describe('usage faceted filter options', () => {
     expect(page).toContain('fallbackOptions={allProviderOptions}');
     expect(page).toContain('fallbackOptions={allApiKeyOptions}');
     expect(page).toContain('fallbackOptions={allCredentialOptions}');
+  });
+});
+
+describe('usage model icons for OpenAI-compatible providers', () => {
+  test('recognizes all OpenAI-compatible provider key shapes', () => {
+    expect(providerDisplay('openai-compatible-acme')).toEqual({
+      type: 'openai',
+      name: 'acme',
+      compat: true,
+    });
+    expect(providerDisplay('openai-compatible-')).toEqual({
+      type: 'openai',
+      name: null,
+      compat: true,
+    });
+    expect(providerDisplay('openai-compatibility')).toEqual({
+      type: 'openai',
+      name: null,
+      compat: true,
+    });
+    expect(providerDisplay('openai-compatibility:newapi')).toEqual({
+      type: 'openai',
+      name: 'newapi',
+      compat: true,
+    });
+    expect(providerDisplay('openai-compatible')).toEqual({
+      type: 'openai',
+      name: null,
+      compat: true,
+    });
+    expect(providerDisplay('openai')).toEqual({
+      type: 'openai',
+      name: null,
+      compat: true,
+    });
+  });
+
+  test('fuzzy-matches model names across third-party relays, prefixes, and suffixes', () => {
+    const cases: [string, ReturnType<typeof matchUsageModelBrand>][] = [
+      ['claude-sonnet-4-6', 'claude'],
+      ['anthropic/claude-opus-4-6(high)', 'claude'],
+      ['openai/claude-3-5-sonnet', 'claude'],
+      ['us.anthropic.claude-sonnet-4-20250514-v1:0', 'claude'],
+      ['relay/opus-4-6', 'claude'],
+      ['gemini-2.5-pro', 'gemini'],
+      ['google/gemma-3-27b-it', 'gemini'],
+      ['gpt-5.4', 'gpt'],
+      ['openai/gpt-oss-120b', 'gpt'],
+      ['o3-mini', 'gpt'],
+      ['openai/o4-mini', 'gpt'],
+      ['codex-mini-latest', 'gpt'],
+      ['deepseek-chat', 'deepseek'],
+      ['Pro/deepseek-ai/DeepSeek-R1', 'deepseek'],
+      ['DeepSeek-R1-Distill-Qwen-32B', 'deepseek'],
+      ['qwen3-coder-plus', 'qwen'],
+      ['Qwen/Qwen3-235B-A22B', 'qwen'],
+      ['qwq-32b', 'qwen'],
+      ['qvq-72b-preview', 'qwen'],
+      ['kimi-k2.5', 'kimi'],
+      ['moonshotai/Kimi-K2-Instruct', 'kimi'],
+      ['moonshot-v1-8k', 'kimi'],
+      ['glm-5', 'glm'],
+      ['zai-org/GLM-4.5', 'glm'],
+      ['THUDM/chatglm3-6b', 'glm'],
+      ['x-ai/grok-4', 'grok'],
+      ['minimax-m2.5', 'minimax'],
+      ['abab6.5s-chat', 'minimax'],
+      ['mimo-v2-flash', 'xiaomi'],
+      ['step-3.5-flash', 'stepfun'],
+      ['meta-llama/Llama-3.3-70B-Instruct', 'meta'],
+      ['ollama/llama3.3:70b', 'meta'],
+      ['groq/llama-3.3-70b-versatile', 'meta'],
+      ['muse-spark-1.3', 'meta'],
+      ['devin/mimo-v2.6-pro', 'devin'],
+      ['foo-o2', null],
+      ['video-01', null],
+      ['unknown-custom-model', null],
+    ];
+    for (const [model, expected] of cases) {
+      expect(matchUsageModelBrand(model)).toBe(expected);
+    }
+  });
+
+  test('resolves faviconV2 only for public domains and rejects private or invalid hosts', () => {
+    expect(resolveCompatSiteUrl('https://api.typesafe.ai/v1')).toBe('https://typesafe.ai');
+    expect(resolveCompatSiteUrl('https://openrouter.ai/api/v1')).toBe('https://openrouter.ai');
+    expect(resolveCompatSiteUrl('https://api.example.co.uk/v1')).toBe('https://example.co.uk');
+    expect(resolveCompatSiteUrl('https://api.co.uk/v1')).toBe('https://api.co.uk');
+    expect(resolveCompatFaviconUrl('https://api.typesafe.ai/v1')).toBe(
+      'https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Ftypesafe.ai&size=64'
+    );
+
+    for (const privateOrBad of [
+      '',
+      'http://localhost:8080/v1',
+      'http://127.0.0.1:11434/v1',
+      'http://192.168.1.10:3000/v1',
+      'http://[::1]:8080/v1',
+      'https://ollama.local/v1',
+      'https://gateway/v1',
+      'javascript:alert(1)',
+    ]) {
+      expect(resolveCompatSiteUrl(privateOrBad)).toBeNull();
+      expect(resolveCompatFaviconUrl(privateOrBad)).toBeNull();
+    }
+  });
+
+  test('resolves icons for compat models, fallback response models, public baseUrl favicons, and OAuth', async () => {
+    const i18n = (await import('@/i18n')).default;
+    const { ProviderBadge } = await import('@/features/usage/components/Labels');
+    const { resolveProviderBadgeIcon } = await import('@/features/usage/icons');
+    const { EventModelCell } = await import('@/features/usage/components/EventCells');
+    const compatTag = i18n.t('usage_stats.compat_tag');
+
+    const qwenCompat = resolveProviderBadgeIcon({
+      provider: 'openai-compatible-newapi',
+      model: 'qwen3-coder-plus',
+      resolvedTheme: 'light',
+      compatBaseUrl: 'https://api.typesafe.ai/v1',
+    });
+    expect(qwenCompat.src).toContain('qwen.svg');
+    expect(qwenCompat.fallbackSrc).toContain('openai-light.svg');
+
+    const aliasedCompat = resolveProviderBadgeIcon({
+      provider: 'openai-compatible-newapi',
+      model: 'my-fast-alias',
+      fallbackModel: 'deepseek-r1',
+      resolvedTheme: 'dark',
+    });
+    expect(aliasedCompat.src).toContain('deepseek.svg');
+    expect(aliasedCompat.fallbackSrc).toContain('openai-dark.svg');
+
+    const providerNamedCompat = resolveProviderBadgeIcon({
+      provider: 'openai-compatible-deepseek',
+      model: 'custom-reasoner',
+      resolvedTheme: 'light',
+    });
+    expect(providerNamedCompat.src).toContain('deepseek.svg');
+
+    const typesafeFavicon = resolveProviderBadgeIcon({
+      provider: 'openai-compatible-typesafe',
+      model: 'custom-model',
+      resolvedTheme: 'dark',
+      compatBaseUrl: 'https://api.typesafe.ai/v1',
+    });
+    expect(typesafeFavicon.src).toContain('t0.gstatic.com/faviconV2');
+    expect(typesafeFavicon.src).toContain('typesafe.ai');
+    expect(typesafeFavicon.fallbackSrc).toContain('openai-dark.svg');
+
+    const localCompatFallback = resolveProviderBadgeIcon({
+      provider: 'openai-compatible-ollama',
+      model: 'custom-model',
+      resolvedTheme: 'light',
+      compatBaseUrl: 'http://127.0.0.1:11434/v1',
+    });
+    expect(localCompatFallback.src).toContain('openai-light.svg');
+    expect(localCompatFallback.fallbackSrc).toBeNull();
+
+    const oauthAntigravity = resolveProviderBadgeIcon({
+      provider: 'antigravity',
+      model: 'claude-sonnet-4-6',
+      resolvedTheme: 'light',
+    });
+    expect(oauthAntigravity.src).toContain('antigravity.svg');
+
+    // Unnamed openai-compatibility keeps an icon and avoids rendering "null" text.
+    const unnamedMarkup = renderToStaticMarkup(
+      createElement(ProviderBadge, { provider: 'openai-compatibility', model: 'deepseek-chat' })
+    );
+    expect(unnamedMarkup).toContain('deepseek.svg');
+    expect(unnamedMarkup).toContain(compatTag);
+    expect(unnamedMarkup).not.toContain('null');
+
+    const noModelCompatMarkup = renderToStaticMarkup(
+      createElement(ProviderBadge, { provider: 'openai-compatibility' })
+    );
+    expect(noModelCompatMarkup).toContain('openai-light.svg');
+    expect(noModelCompatMarkup).toContain(compatTag);
+
+    // OverviewTab, EventModelCell, RealtimeTab and UsagePage wire `model` into ProviderBadge.
+    const compatEvent: UsageEvent = {
+      id: 99,
+      timestamp: 1000,
+      requestId: 'req-compat',
+      provider: 'openai-compatible-newapi',
+      model: 'claude-sonnet-4-6',
+      alias: '',
+      endpoint: 'POST /v1/chat/completions',
+      authIndex: 'a9',
+      source: 'sk-compat',
+      apiKeyId: 'k9',
+      apiKey: 'sk-9999',
+      serviceTier: 'default',
+      reasoningEffort: '',
+      stream: false,
+      failed: false,
+      statusCode: 200,
+      error: '',
+      latencyMs: 120,
+      ttftMs: 40,
+      outputTps: 50,
+      tokens: {
+        inputUncached: 10,
+        cacheRead: 0,
+        cacheWrite: 0,
+        output: 5,
+        reasoning: 0,
+        unclassified: 0,
+        total: 15,
+      },
+      cost: 0.001,
+      priced: true,
+      clientIp: '127.0.0.1',
+      userAgent: 'curl',
+      responseModel: '',
+      substituted: false,
+      risk: '',
+      riskReason: '',
+      riskPrompt: '',
+      transport: 'http',
+    };
+    const compatCellMarkup = renderToStaticMarkup(
+      createElement(EventModelCell, { event: compatEvent })
+    );
+    expect(compatCellMarkup).toContain('claude.svg');
+    expect(compatCellMarkup).toContain('newapi');
+
+    const overviewStats = normalizeUsageStats({
+      from: 0,
+      to: 3600,
+      bucket: 'hour',
+      totals: aggregate(10, 0, 1),
+      series: [{ time: 0, ...aggregate(10, 0, 1) }],
+      models: [
+        { model: 'qwen3-coder', provider: 'openai-compatible-newapi', ...aggregate(10, 0, 1) },
+      ],
+    });
+    const overviewMarkup = renderToStaticMarkup(
+      createElement(OverviewTab, {
+        stats: overviewStats,
+        prevStats: overviewStats,
+        prices: [],
+        labels: { credential: (authIndex: string) => authIndex, keyName: () => null },
+        onOpenEvents: () => {},
+        onDrillDown: () => {},
+      })
+    );
+    expect(overviewMarkup).toContain('qwen.svg');
+    expect(overviewMarkup).toContain('qwen3-coder');
+
+    for (const file of [
+      'src/features/usage/UsagePage.tsx',
+      'src/features/usage/tabs/OverviewTab.tsx',
+      'src/features/usage/tabs/RealtimeTab.tsx',
+      'src/features/usage/components/EventCells.tsx',
+    ]) {
+      const content = readFileSync(file, 'utf8');
+      expect(content).toContain('<ProviderBadge');
+      expect(content).toMatch(/<ProviderBadge[^>]*model=/);
+    }
   });
 });

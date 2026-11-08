@@ -462,18 +462,155 @@ export const withSelectedOption = (
 };
 
 const COMPAT_PREFIX = 'openai-compatible-';
+const COMPAT_COLON_PREFIX = 'openai-compatibility:';
 
 /** How a usage provider key is shown: OpenAI-compatible upstreams by their configured name. */
 export const providerDisplay = (
   provider: string
 ): { type: string; name: string | null; compat: boolean } => {
   const key = provider.trim();
-  if (key.toLowerCase().startsWith(COMPAT_PREFIX)) {
-    return { type: 'openai', name: key.slice(COMPAT_PREFIX.length), compat: true };
+  const lower = key.toLowerCase();
+  if (lower.startsWith(COMPAT_PREFIX)) {
+    const name = key.slice(COMPAT_PREFIX.length).trim();
+    return { type: 'openai', name: name || null, compat: true };
+  }
+  if (lower.startsWith(COMPAT_COLON_PREFIX)) {
+    const name = key.slice(COMPAT_COLON_PREFIX.length).trim();
+    return { type: 'openai', name: name || null, compat: true };
+  }
+  if (lower === 'openai-compatibility' || lower === 'openai-compatible' || lower === 'openai') {
+    return { type: 'openai', name: null, compat: true };
   }
   // gemini-cli and similar share the Gemini brand.
-  const type = key.toLowerCase().startsWith('gemini') ? 'gemini' : key;
+  const type = lower.startsWith('gemini') ? 'gemini' : key;
   return { type, name: null, compat: false };
+};
+
+export type UsageModelBrand =
+  | 'devin'
+  | 'meta'
+  | 'gpt'
+  | 'claude'
+  | 'gemini'
+  | 'kimi'
+  | 'qwen'
+  | 'glm'
+  | 'grok'
+  | 'deepseek'
+  | 'minimax'
+  | 'xiaomi'
+  | 'stepfun';
+
+const MODEL_BRAND_PATTERNS: readonly [UsageModelBrand, readonly RegExp[]][] = [
+  ['claude', [/claude/i, /(?:^|[-/_.\s[])(?:sonnet|haiku|opus)(?:[-/_.\s\d\](:]|$)/i]],
+  ['gemini', [/gemini/i, /(?:^|[-/_.\s[])gemma(?:[-/_.\s\d\](:]|$)/i, /\bgai\b/i]],
+  ['deepseek', [/deepseek/i]],
+  ['qwen', [/qwen/i, /(?:^|[-/_.\s[])(?:qwq|qvq)(?:[-/_.\s\d\](:]|$)/i, /tongyi/i, /通义/]],
+  ['kimi', [/kimi/i, /moonshot/i]],
+  ['glm', [/glm/i, /chatglm/i, /codegeex/i, /zhipu/i, /智谱/]],
+  ['grok', [/grok/i]],
+  ['minimax', [/minimax/i, /abab/i]],
+  ['xiaomi', [/xiaomi/i, /(?:^|[-/_.\s[])mimo(?:[-/_.\s\d\](:]|$)/i, /小米/]],
+  ['stepfun', [/stepfun/i, /stepaudio/i, /\bstep[-_.]?(?:\d|r1|audio|1o|tts|asr|router)/i, /阶跃/]],
+  ['meta', [/\bmuse(?:[-/_\s\d]|$)/i, /meta-llama/i, /(?:^|[-/_.\s[])llama(?:[-/_.\s:\d\](]|$)/i]],
+  [
+    'gpt',
+    [
+      /gpt/i,
+      /\bchatgpt/i,
+      /\bcodex(?:[-/_.\s\d(:]|$)/i,
+      /(?:^|[-/_.\s[])o[134](?:[-/_.\s\](:]|$)/i,
+      /\bdall[-_]?e/i,
+      /\bwhisper(?:[-/_.\s\d]|$)/i,
+      /\btext-embedding/i,
+    ],
+  ],
+  ['devin', [/(?:^|[-/_.\s[])devin(?:[-/_.\s\d\](:]|$)/i]],
+];
+
+const VENDOR_PREFIX_BRANDS: readonly [UsageModelBrand, RegExp][] = [
+  ['claude', /(?:^|[/:.])anthropic(?:[/:.]|$)/i],
+  ['gemini', /(?:^|[/:.])google(?:[/:.]|$)/i],
+  ['gpt', /(?:^|[/:.])openai(?:[/:.]|$)/i],
+  ['glm', /(?:^|[/:.])(?:zai-org|zai)(?:[/:.]|$)/i],
+  ['grok', /(?:^|[/:.])x-?ai(?:[/:.]|$)/i],
+  ['qwen', /(?:^|[/:.])(?:alibaba|dashscope)(?:[/:.]|$)/i],
+  ['meta', /(?:^|[/:.])meta(?:[/:.]|$)/i],
+];
+
+/** Fuzzy-matches a model name (including relay/router prefixes and suffixes) to a bundled brand. */
+export const matchUsageModelBrand = (name?: string | null): UsageModelBrand | null => {
+  const text = (name ?? '').trim();
+  if (!text) return null;
+  if (/^devin\//i.test(text)) return 'devin';
+  for (const [brand, patterns] of MODEL_BRAND_PATTERNS) {
+    if (patterns.some((pattern) => pattern.test(text))) return brand;
+  }
+  for (const [brand, pattern] of VENDOR_PREFIX_BRANDS) {
+    if (pattern.test(text)) return brand;
+  }
+  return null;
+};
+
+const API_SUBDOMAIN_LABELS = new Set([
+  'api',
+  'v1',
+  'llm',
+  'gateway',
+  'proxy',
+  'openai',
+  'inference',
+]);
+const SECOND_LEVEL_PUBLIC_SUFFIX_LABELS = new Set(['co', 'com', 'net', 'org', 'edu', 'gov', 'ac']);
+const NON_PUBLIC_HOST_SUFFIXES = [
+  '.local',
+  '.localhost',
+  '.internal',
+  '.lan',
+  '.home',
+  '.arpa',
+  '.localdomain',
+  '.corp',
+  '.intranet',
+  '.test',
+  '.example',
+  '.invalid',
+];
+const IPV4_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+
+/** Extracts a public root site URL from an OpenAI-compatible base URL, skipping localhost/LAN IPs. */
+export const resolveCompatSiteUrl = (baseUrl?: string | null): string | null => {
+  const raw = (baseUrl ?? '').trim();
+  if (!raw) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+  const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
+  if (!host || host.includes(':') || IPV4_PATTERN.test(host) || !host.includes('.')) {
+    return null;
+  }
+  if (NON_PUBLIC_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))) {
+    return null;
+  }
+  const parts = host.split('.');
+  const siteHost =
+    parts.length >= 3 &&
+    API_SUBDOMAIN_LABELS.has(parts[0]) &&
+    (parts.length >= 4 || !SECOND_LEVEL_PUBLIC_SUFFIX_LABELS.has(parts[1]))
+      ? parts.slice(1).join('.')
+      : host;
+  return `https://${siteHost}`;
+};
+
+/** Returns a Google faviconV2 URL for a public OpenAI-compatible endpoint, or null when private/invalid. */
+export const resolveCompatFaviconUrl = (baseUrl?: string | null): string | null => {
+  const siteUrl = resolveCompatSiteUrl(baseUrl);
+  if (!siteUrl) return null;
+  return `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(siteUrl)}&size=64`;
 };
 
 /** The usage store groups client keys by the first 12 hex chars of their SHA-256. */

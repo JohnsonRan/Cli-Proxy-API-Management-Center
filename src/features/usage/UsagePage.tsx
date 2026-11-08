@@ -416,7 +416,7 @@ export function UsagePage() {
         renderLabel: (
           <span className={styles.multiSelectOptionModel}>
             <span className={styles.mono}>{m.model}</span>
-            <ProviderBadge provider={m.provider} />
+            <ProviderBadge provider={m.provider} model={m.model} />
           </span>
         ),
         requests: m.requests,
@@ -429,7 +429,9 @@ export function UsagePage() {
       items.map((p) => {
         const display = providerDisplay(p.provider);
         const text = display.compat
-          ? `${display.name} (${t('usage_stats.compat_tag')})`
+          ? display.name
+            ? `${display.name} (${t('usage_stats.compat_tag')})`
+            : t('usage_stats.compat_tag')
           : getTypeLabel(t, display.type);
         return {
           value: p.provider,

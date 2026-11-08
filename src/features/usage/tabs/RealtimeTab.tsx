@@ -587,7 +587,7 @@ function InFlightRow({
             <span className={`${styles.cellStrong} ${styles.mono}`}>{r.model}</span>
             {r.provider && (
               <span className={styles.cellSub}>
-                <ProviderBadge provider={r.provider} />
+                <ProviderBadge provider={r.provider} model={r.model} />
               </span>
             )}
           </span>
