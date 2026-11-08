@@ -1,6 +1,6 @@
 @use '../../../../styles/mixins' as *;
 
-/* 区块编辑器（API 密钥 / 字符串列表 / 插件源认证 / 载荷规则）的共享样式。
+/* 区块编辑器（字符串列表 / 插件源认证 / 载荷规则）的共享样式。
    规则从旧 VisualConfigEditor.module.scss 收编，几何统一到 10px 圆角并引用动效 tokens。 */
 
 /* ---------- 可展开输入 ---------- */
@@ -130,139 +130,6 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-/* ---------- API 密钥列表 ---------- */
-
-/* 与设置行同一副骨架：标题 + 说明在左、主操作在右；条目是发丝分隔的单行，不再套卡片。 */
-.apiKeys {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.apiKeysHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.apiKeysCopy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.apiKeysTitle {
-  color: var(--text-primary);
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.apiKeysHint {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.apiKeyList {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.apiKeyRow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  /* 序号 / 名称 / 掩码按文字基线对齐（三种字号混排），操作组整体居中。 */
-  align-items: baseline;
-  gap: 14px;
-  min-height: 48px;
-  padding: 6px 0;
-  border-top: 1px solid var(--border-color);
-}
-
-.apiKeyIndex {
-  min-width: 26px;
-  color: var(--text-tertiary);
-  font-family: $font-mono;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-.apiKeyMeta {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-}
-
-.apiKeyName {
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 13.5px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.apiKeyValue {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-family: $font-mono;
-  font-size: 12.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.apiKeyActions {
-  display: flex;
-  align-self: center;
-  align-items: center;
-  gap: 2px;
-}
-
-/* 行内操作是次要信息：两套主题都用次级文字色（压过深色主题下 ghost 按钮的纯白）。
-   删除平时与其他操作同色，悬停 / 聚焦才亮出危险色——破坏性动作不该是行里最响的元素。 */
-.apiKeyRow .apiKeyActions :global(.btn.btn-ghost) {
-  color: var(--text-secondary);
-
-  &:focus-visible {
-    color: var(--text-primary);
-  }
-
-  &.apiKeyDelete:focus-visible {
-    background: var(--destructive-10);
-    color: var(--error-color);
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .apiKeyRow .apiKeyActions :global(.btn.btn-ghost):hover {
-    color: var(--text-primary);
-  }
-
-  .apiKeyRow .apiKeyActions :global(.btn.btn-ghost).apiKeyDelete:hover {
-    background: var(--destructive-10);
-    color: var(--error-color);
-  }
-}
-
-/* ---------- API 密钥弹窗 ---------- */
-
-.apiKeyModalInputRow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-
-  :global(.input) {
-    flex: 1;
-  }
 }
 
 /* 强度参考条：四段承载档位，颜色承载严重度。
@@ -524,11 +391,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .apiKeyModalInputRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .payloadRowActionButton {
     width: 100%;
   }
@@ -557,26 +419,6 @@
 
   .stringListRow {
     align-items: stretch;
-  }
-
-  .apiKeysHeader {
-    flex-wrap: wrap;
-  }
-
-  .apiKeyRow {
-    grid-template-columns: auto minmax(0, 1fr);
-    row-gap: 4px;
-  }
-
-  .apiKeyMeta {
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  /* 换行后操作组与名称左对齐：抵消 ghost 按钮自身的水平内边距。 */
-  .apiKeyActions {
-    grid-column: 2;
-    margin-left: -10px;
   }
 }
 
