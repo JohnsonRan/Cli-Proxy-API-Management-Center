@@ -317,8 +317,4 @@ export const PROVIDER_BRAND_ORDER: ProviderBrand[] = [
   'claude',
   'vertex',
   'openaiCompatibility',
-  'apikeyFun',
-  'fennoAI',
-  'qiniuCloud',
-  'aiCodeMirror',
 ];
