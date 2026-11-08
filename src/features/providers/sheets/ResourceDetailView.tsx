@@ -11,7 +11,9 @@ import {
   sponsorProtocolUrl,
 } from '../sponsorDefinitions';
 import type { ProviderResource, SponsorProviderRaw } from '../types';
+import { collectUpstreamQuotaTargets } from '../upstreamQuota';
 import styles from './forms/sharedForm.module.scss';
+import { UpstreamQuotaPanel } from './UpstreamQuotaPanel';
 
 interface ResourceDetailViewProps {
   resource: ProviderResource;
@@ -119,6 +121,7 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
   const openaiConfig =
     resource.brand === 'openaiCompatibility' ? (resource.raw as OpenAIProviderConfig) : null;
   const apiKeyEntries = openaiConfig?.apiKeyEntries ?? [];
+  const upstreamQuotaTargets = collectUpstreamQuotaTargets(resource);
 
   return (
     <div>
@@ -171,6 +174,19 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
           </div>
         </div>
       ) : null}
+
+      {upstreamQuotaTargets.map((target) => (
+        <UpstreamQuotaPanel
+          key={target.authIndex}
+          authIndex={target.authIndex}
+          baseUrl={target.baseUrl}
+          title={
+            apiKeyEntries.length > 1 && target.maskedKey
+              ? t('providersPage.upstreamQuota.titleForKey', { key: target.maskedKey })
+              : undefined
+          }
+        />
+      ))}
 
       <div style={{ marginTop: 16 }}>
         <Collapsible label={t('providersPage.detail.metadataTitle')}>
