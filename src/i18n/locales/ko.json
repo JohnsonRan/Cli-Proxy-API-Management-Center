@@ -1485,6 +1485,10 @@
           "bootstrap_hint": "첫 번째 바이트 전의 재시도 횟수입니다. 0, 음의 정수 또는 빈 필드는 부트스트랩 재시도를 비활성화합니다.",
           "nonstream_keepalive": "비스트리밍 Keepalive 간격(초)",
           "nonstream_keepalive_hint": "비스트리밍 응답 시 N초마다 빈 줄을 전송합니다. 0, 음의 정수 또는 빈 필드는 keepalive를 비활성화합니다.",
+          "codex_app_keepalive_seconds": "Codex 앱 Keepalive 간격(초)",
+          "codex_app_keepalive_hint": "/v1/responses SSE를 사용하는 공식 Codex 클라이언트는 업스트림이 이 시간 동안 조용하면 codex.client.keepalive 이벤트를 받습니다. SSE 주석은 Codex 스트림 유휴 타임아웃을 초기화하지 않기 때문입니다. 비워 두거나 0 또는 음수이면 기본값 30초를 사용합니다.",
+          "disable_codex_app_keepalive": "Codex 앱 Keepalive 비활성화",
+          "disable_codex_app_keepalive_hint": "Codex 클라이언트에 codex.client.keepalive 이벤트를 보내지 않습니다. 일반 SSE keepalive 주석은 영향을 받지 않습니다.",
           "disabled": "비활성화됨"
         },
         "payload": {
