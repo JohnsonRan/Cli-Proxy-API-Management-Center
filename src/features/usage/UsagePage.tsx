@@ -46,15 +46,19 @@ import { EventsTab } from './tabs/EventsTab';
 import { QuotaValueTab } from './tabs/QuotaValueTab';
 import {
   AUTO_REFRESH_SECONDS,
+  activeFilterDimensions,
   emptyGlobalFilter,
   hasActiveGlobalFilters,
   parseGlobalFilterFromSearchParams,
   providerDisplay,
   readUsagePrefs,
+  resolveFacetedOptions,
   saveUsagePrefs,
   serializeGlobalFilterToSearchParams,
+  withoutDimension,
   type EventsFilter,
   type MultiSelectOption,
+  type UsageFilterDimension,
   type UsageGlobalFilter,
 } from './logic';
 import { PricingTab } from './tabs/PricingTab';
@@ -100,6 +104,12 @@ export function UsagePage() {
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [prevStats, setPrevStats] = useState<UsageStats | null>(null);
   const [options, setOptions] = useState<UsageOptions | null>(null);
+  const [facetedSource, setFacetedSource] = useState<{
+    filter: UsageDimensionFilter;
+    stats: UsageStats;
+    baseOptions: UsageOptions;
+    dimensionStats: Partial<Record<UsageFilterDimension, UsageStats>>;
+  } | null>(null);
   const [pricing, setPricing] = useState<UsagePricing | null>(null);
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,6 +165,7 @@ export function UsagePage() {
       const requestId = ++requestRef.current;
       if (!connected) {
         pricingLoadedRef.current = false;
+        setFacetedSource(null);
         setLoading(false);
         return;
       }
@@ -171,16 +182,31 @@ export function UsagePage() {
         apiKeyId: globalFilter.apiKeyIds.length ? globalFilter.apiKeyIds : undefined,
         authIndex: globalFilter.authIndexes.length ? globalFilter.authIndexes : undefined,
       };
+      const activeDims = activeFilterDimensions(dimFilter);
+      const leaveOneOutDims = activeDims.length >= 2 ? activeDims : [];
       setLoading(true);
       setError('');
       try {
-        const [nextStats, nextPrev, nextPricing, nextOptions] = await Promise.all([
-          usageStoreApi.getStats(next.from, next.to, next.tzOffset, dimFilter),
-          usageStoreApi.getStats(prev.from, prev.to, next.tzOffset, dimFilter),
-          refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null),
-          usageStoreApi.getOptions(next.from, next.to),
-        ]);
+        const [nextStats, nextPrev, nextPricing, nextOptions, ...leaveOneOutStats] =
+          await Promise.all([
+            usageStoreApi.getStats(next.from, next.to, next.tzOffset, dimFilter),
+            usageStoreApi.getStats(prev.from, prev.to, next.tzOffset, dimFilter),
+            refreshPricing ? usageStoreApi.getPricing() : Promise.resolve(null),
+            usageStoreApi.getOptions(next.from, next.to),
+            ...leaveOneOutDims.map((dim) =>
+              usageStoreApi.getStats(
+                next.from,
+                next.to,
+                next.tzOffset,
+                withoutDimension(dimFilter, dim)
+              )
+            ),
+          ]);
         if (requestId !== requestRef.current) return;
+        const nextDimensionStats: Partial<Record<UsageFilterDimension, UsageStats>> = {};
+        leaveOneOutDims.forEach((dim, index) => {
+          nextDimensionStats[dim] = leaveOneOutStats[index];
+        });
         setDisabled(false);
         setUsageWindow(next);
         setStats(nextStats);
@@ -190,11 +216,18 @@ export function UsagePage() {
           pricingLoadedRef.current = true;
         }
         setOptions(nextOptions);
+        setFacetedSource({
+          filter: dimFilter,
+          stats: nextStats,
+          baseOptions: nextOptions,
+          dimensionStats: nextDimensionStats,
+        });
       } catch (err: unknown) {
         if (requestId !== requestRef.current) return;
         if (isUsageStoreDisabled(err)) {
           setDisabled(true);
           setStats(null);
+          setFacetedSource(null);
         } else {
           setError(errorMessage(err, t('notification.refresh_failed')));
         }
@@ -362,67 +395,117 @@ export function UsagePage() {
     [t]
   );
 
-  // Multi-select option lists mapped from options.
-  const modelOptions: MultiSelectOption[] = useMemo(() => {
-    return (options?.models ?? []).map((m) => ({
-      value: m.model,
-      label: m.model,
-      renderLabel: (
-        <span className={styles.multiSelectOptionModel}>
-          <span className={styles.mono}>{m.model}</span>
-          <ProviderBadge provider={m.provider} />
-        </span>
-      ),
-      requests: m.requests,
-    }));
-  }, [options?.models]);
+  const facetedOptions = useMemo(
+    () =>
+      facetedSource
+        ? resolveFacetedOptions(
+            facetedSource.filter,
+            facetedSource.baseOptions,
+            facetedSource.stats,
+            facetedSource.dimensionStats
+          )
+        : options,
+    [facetedSource, options]
+  );
 
-  const providerOptions: MultiSelectOption[] = useMemo(() => {
-    return (options?.providers ?? []).map((p) => {
-      const display = providerDisplay(p.provider);
-      const text = display.compat
-        ? `${display.name} (${t('usage_stats.compat_tag')})`
-        : getTypeLabel(t, display.type);
-      return {
-        value: p.provider,
-        label: text,
-        renderLabel: <ProviderBadge provider={p.provider} />,
-        requests: p.requests,
-      };
-    });
-  }, [options?.providers, t]);
-
-  const apiKeyOptions: MultiSelectOption[] = useMemo(() => {
-    return (options?.apiKeys ?? []).map((k) => {
-      const name = labels.keyName(k.apiKeyId);
-      const labelText = name
-        ? `${name} (${k.apiKey || t('usage_stats.none')})`
-        : k.apiKey || t('usage_stats.none');
-      return {
-        value: k.apiKeyId,
-        label: labelText,
-        renderLabel: <KeyLabel name={name} masked={k.apiKey} />,
-        requests: k.requests,
-      };
-    });
-  }, [labels, options?.apiKeys, t]);
-
-  const credentialOptions: MultiSelectOption[] = useMemo(() => {
-    return (options?.credentials ?? []).map((c) => {
-      const name = labels.credential(c.authIndex, c.source);
-      return {
-        value: c.authIndex,
-        label: `${name} (${c.provider})`,
+  const buildModelOptions = useCallback(
+    (items: UsageOptions['models']): MultiSelectOption[] =>
+      items.map((m) => ({
+        value: m.model,
+        label: m.model,
         renderLabel: (
           <span className={styles.multiSelectOptionModel}>
-            <span>{name}</span>
-            <ProviderBadge provider={c.provider} />
+            <span className={styles.mono}>{m.model}</span>
+            <ProviderBadge provider={m.provider} />
           </span>
         ),
-        requests: c.requests,
-      };
-    });
-  }, [labels, options?.credentials]);
+        requests: m.requests,
+      })),
+    []
+  );
+
+  const buildProviderOptions = useCallback(
+    (items: UsageOptions['providers']): MultiSelectOption[] =>
+      items.map((p) => {
+        const display = providerDisplay(p.provider);
+        const text = display.compat
+          ? `${display.name} (${t('usage_stats.compat_tag')})`
+          : getTypeLabel(t, display.type);
+        return {
+          value: p.provider,
+          label: text,
+          renderLabel: <ProviderBadge provider={p.provider} />,
+          requests: p.requests,
+        };
+      }),
+    [t]
+  );
+
+  const buildApiKeyOptions = useCallback(
+    (items: UsageOptions['apiKeys']): MultiSelectOption[] =>
+      items.map((k) => {
+        const name = labels.keyName(k.apiKeyId);
+        const labelText = name
+          ? `${name} (${k.apiKey || t('usage_stats.none')})`
+          : k.apiKey || t('usage_stats.none');
+        return {
+          value: k.apiKeyId,
+          label: labelText,
+          renderLabel: <KeyLabel name={name} masked={k.apiKey} />,
+          requests: k.requests,
+        };
+      }),
+    [labels, t]
+  );
+
+  const buildCredentialOptions = useCallback(
+    (items: UsageOptions['credentials']): MultiSelectOption[] =>
+      items.map((c) => {
+        const name = labels.credential(c.authIndex, c.source);
+        return {
+          value: c.authIndex,
+          label: `${name} (${c.provider})`,
+          renderLabel: (
+            <span className={styles.multiSelectOptionModel}>
+              <span>{name}</span>
+              <ProviderBadge provider={c.provider} />
+            </span>
+          ),
+          requests: c.requests,
+        };
+      }),
+    [labels]
+  );
+
+  // Multi-select option lists mapped from facetedOptions, with base options as fallback for selected labels.
+  const modelOptions = useMemo(
+    () => buildModelOptions(facetedOptions?.models ?? []),
+    [buildModelOptions, facetedOptions?.models]
+  );
+  const providerOptions = useMemo(
+    () => buildProviderOptions(facetedOptions?.providers ?? []),
+    [buildProviderOptions, facetedOptions?.providers]
+  );
+  const allProviderOptions = useMemo(
+    () => buildProviderOptions(options?.providers ?? []),
+    [buildProviderOptions, options?.providers]
+  );
+  const apiKeyOptions = useMemo(
+    () => buildApiKeyOptions(facetedOptions?.apiKeys ?? []),
+    [buildApiKeyOptions, facetedOptions?.apiKeys]
+  );
+  const allApiKeyOptions = useMemo(
+    () => buildApiKeyOptions(options?.apiKeys ?? []),
+    [buildApiKeyOptions, options?.apiKeys]
+  );
+  const credentialOptions = useMemo(
+    () => buildCredentialOptions(facetedOptions?.credentials ?? []),
+    [buildCredentialOptions, facetedOptions?.credentials]
+  );
+  const allCredentialOptions = useMemo(
+    () => buildCredentialOptions(options?.credentials ?? []),
+    [buildCredentialOptions, options?.credentials]
+  );
 
   // Active filter chips list.
   const activeChips = useMemo(() => {
@@ -453,7 +536,9 @@ export function UsagePage() {
       });
     }
     for (const k of globalFilter.apiKeyIds) {
-      const opt = options?.apiKeys.find((item) => item.apiKeyId === k);
+      const opt =
+        stats?.apiKeys.find((item) => item.apiKeyId === k) ??
+        options?.apiKeys.find((item) => item.apiKeyId === k);
       const masked = opt?.apiKey ?? '';
       chips.push({
         id: `k:${k}`,
@@ -464,7 +549,9 @@ export function UsagePage() {
       });
     }
     for (const a of globalFilter.authIndexes) {
-      const opt = options?.credentials.find((item) => item.authIndex === a);
+      const opt =
+        stats?.credentials.find((item) => item.authIndex === a) ??
+        options?.credentials.find((item) => item.authIndex === a);
       chips.push({
         id: `a:${a}`,
         dim: 'auth_index',
@@ -474,7 +561,7 @@ export function UsagePage() {
       });
     }
     return chips;
-  }, [globalFilter, labels, options, t]);
+  }, [globalFilter, labels, options, stats, t]);
 
   const dimensionFilter: UsageDimensionFilter = useMemo(
     () => ({
@@ -624,6 +711,7 @@ export function UsagePage() {
               label={t('usage_stats.select_providers')}
               selected={globalFilter.providers}
               options={providerOptions}
+              fallbackOptions={allProviderOptions}
               onChange={(providers) => setGlobalFilter((prev) => ({ ...prev, providers }))}
               disabled={!connected || disabled}
             />
@@ -632,6 +720,7 @@ export function UsagePage() {
               label={t('usage_stats.select_keys')}
               selected={globalFilter.apiKeyIds}
               options={apiKeyOptions}
+              fallbackOptions={allApiKeyOptions}
               onChange={(apiKeyIds) => setGlobalFilter((prev) => ({ ...prev, apiKeyIds }))}
               disabled={!connected || disabled}
             />
@@ -640,6 +729,7 @@ export function UsagePage() {
               label={t('usage_stats.select_credentials')}
               selected={globalFilter.authIndexes}
               options={credentialOptions}
+              fallbackOptions={allCredentialOptions}
               onChange={(authIndexes) => setGlobalFilter((prev) => ({ ...prev, authIndexes }))}
               disabled={!connected || disabled}
             />

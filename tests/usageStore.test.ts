@@ -13,6 +13,7 @@ import {
   normalizeUsageStats,
 } from '@/services/api/usageStore';
 import {
+  activeFilterDimensions,
   alignPrevious,
   clientKeyEntries,
   clientKeyId,
@@ -27,8 +28,10 @@ import {
   cacheSavings,
   mergeSelectedOptions,
   nextSort,
+  optionsFromStats,
   parseUsagePrefs,
   popoverShift,
+  resolveFacetedOptions,
   sortRows,
   toCsv,
   parseDraftRows,
@@ -37,6 +40,7 @@ import {
   serializeGlobalFilterToSearchParams,
   toEventsQuery,
   withSelectedOption,
+  withoutDimension,
 } from '@/features/usage/logic';
 import {
   cacheHitRate,
@@ -473,6 +477,20 @@ describe('usage analysis and pricing helpers', () => {
     const merged = mergeSelectedOptions(multiOpts, ['gpt-5', 'unknown-model']);
     expect(merged).toHaveLength(3);
     expect(merged[0]).toEqual({ value: 'unknown-model', label: 'unknown-model' });
+
+    const mergedFallback = mergeSelectedOptions(
+      [multiOpts[0]],
+      ['claude-3-5', 'missing'],
+      [
+        { value: 'claude-3-5', label: 'Claude 3.5 Sonnet', requests: 42 },
+        { value: 'claude-3-5', label: 'Duplicate should be ignored', requests: 1 },
+      ]
+    );
+    expect(mergedFallback).toEqual([
+      { value: 'claude-3-5', label: 'Claude 3.5 Sonnet', requests: undefined },
+      { value: 'missing', label: 'missing' },
+      multiOpts[0],
+    ]);
 
     // Fits: no shift. Overflows right: slide left just enough. Wider than the screen: pin left.
     expect(popoverShift(20, 260, 640)).toBe(0);
@@ -1892,5 +1910,164 @@ describe('usage store database', () => {
       apiClient.put = origPut;
       apiClient.patch = origPatch;
     }
+  });
+});
+
+describe('usage faceted filter options', () => {
+  const baseOptions = normalizeUsageOptions({
+    models: [
+      { model: 'gpt-5', provider: 'codex', requests: 10 },
+      { model: 'claude-sonnet-4', provider: 'claude', requests: 8 },
+      { model: 'gpt-5', provider: 'openai-compatible-acme', requests: 3 },
+    ],
+    providers: [
+      { provider: 'codex', requests: 10 },
+      { provider: 'claude', requests: 8 },
+      { provider: 'openai-compatible-acme', requests: 3 },
+    ],
+    api_keys: [
+      { api_key_id: 'k1', api_key: 'sk-1', requests: 13 },
+      { api_key_id: 'k2', api_key: 'sk-2', requests: 8 },
+    ],
+    credentials: [
+      { auth_index: 'a1', provider: 'codex', auth_type: 'oauth', source: 'codex@a', requests: 10 },
+      { auth_index: 'a2', provider: 'claude', auth_type: 'oauth', source: 'claude@b', requests: 8 },
+      {
+        auth_index: 'a3',
+        provider: 'openai-compatible-acme',
+        auth_type: 'api-key',
+        source: 'acme-key',
+        requests: 3,
+      },
+    ],
+  });
+
+  test('tracks active dimensions and builds leave-one-out filters', () => {
+    const filter = { model: ['gpt-5'], provider: undefined, apiKeyId: [], authIndex: ['a1'] };
+    expect(activeFilterDimensions(filter)).toEqual(['model', 'authIndex']);
+    expect(withoutDimension(filter, 'model')).toEqual({
+      model: undefined,
+      provider: undefined,
+      apiKeyId: [],
+      authIndex: ['a1'],
+    });
+  });
+
+  test('derives options from stats, omitting blanks and summing providers', () => {
+    const stats = normalizeUsageStats({
+      models: [
+        { model: 'gpt-5', provider: 'codex', ...aggregate(6, 0, 0) },
+        { model: 'gpt-4o', provider: 'codex', ...aggregate(4, 0, 0) },
+        { model: '', provider: 'codex', ...aggregate(2, 1, 0) },
+        { model: 'orphan', provider: '', ...aggregate(1, 1, 0) },
+      ],
+      api_keys: [
+        { api_key_id: 'k1', api_key: 'sk-1', ...aggregate(12, 0, 0) },
+        { api_key_id: '', api_key: '', ...aggregate(1, 0, 0) },
+      ],
+      credentials: [
+        {
+          auth_index: 'a1',
+          provider: '',
+          auth_type: 'oauth',
+          source: 'codex@a',
+          ...aggregate(10, 0, 0),
+        },
+        { auth_index: '', provider: '', ...aggregate(3, 1, 0) },
+      ],
+    });
+    expect(optionsFromStats(stats, baseOptions)).toEqual({
+      models: [
+        { model: 'gpt-5', provider: 'codex', requests: 6 },
+        { model: 'gpt-4o', provider: 'codex', requests: 4 },
+        { model: 'orphan', provider: '', requests: 1 },
+      ],
+      providers: [{ provider: 'codex', requests: 12 }],
+      apiKeys: [{ apiKeyId: 'k1', apiKey: 'sk-1', requests: 12 }],
+      credentials: [
+        { authIndex: 'a1', provider: 'codex', authType: 'oauth', source: 'codex@a', requests: 10 },
+      ],
+    });
+  });
+
+  test('hides unrelated options on single and multi-dimension filters', () => {
+    const codexStats = normalizeUsageStats({
+      models: [{ model: 'gpt-5', provider: 'codex', ...aggregate(10, 0, 0) }],
+      api_keys: [{ api_key_id: 'k1', api_key: 'sk-1', ...aggregate(10, 0, 0) }],
+      credentials: [
+        {
+          auth_index: 'a1',
+          provider: 'codex',
+          auth_type: 'oauth',
+          source: 'codex@a',
+          ...aggregate(10, 0, 0),
+        },
+      ],
+    });
+
+    // No active filter -> full base options.
+    expect(resolveFacetedOptions({}, baseOptions, codexStats)).toEqual(baseOptions);
+
+    // Single active filter (provider=codex): providers stays unfiltered for multi-select,
+    // while models, keys and credentials drop unrelated entries (claude, acme, k2, a2, a3).
+    const single = resolveFacetedOptions({ provider: ['codex'] }, baseOptions, codexStats);
+    expect(single.providers).toEqual(baseOptions.providers);
+    expect(single.models).toEqual([{ model: 'gpt-5', provider: 'codex', requests: 10 }]);
+    expect(single.apiKeys).toEqual([{ apiKeyId: 'k1', apiKey: 'sk-1', requests: 10 }]);
+    expect(single.credentials).toEqual([
+      { authIndex: 'a1', provider: 'codex', authType: 'oauth', source: 'codex@a', requests: 10 },
+    ]);
+
+    // Two active filters (provider=codex AND model=gpt-5):
+    // - models uses provider-only stats (codex models)
+    // - providers uses model-only stats (codex + openai-compatible-acme, hiding claude)
+    // - keys & credentials use the intersection stats
+    const gpt5Stats = normalizeUsageStats({
+      models: [
+        { model: 'gpt-5', provider: 'codex', ...aggregate(10, 0, 0) },
+        { model: 'gpt-5', provider: 'openai-compatible-acme', ...aggregate(3, 0, 0) },
+      ],
+      api_keys: [{ api_key_id: 'k1', api_key: 'sk-1', ...aggregate(13, 0, 0) }],
+      credentials: [
+        {
+          auth_index: 'a1',
+          provider: 'codex',
+          auth_type: 'oauth',
+          source: 'codex@a',
+          ...aggregate(10, 0, 0),
+        },
+        {
+          auth_index: 'a3',
+          provider: 'openai-compatible-acme',
+          auth_type: 'api-key',
+          source: 'acme-key',
+          ...aggregate(3, 0, 0),
+        },
+      ],
+    });
+    const dual = resolveFacetedOptions(
+      { provider: ['codex'], model: ['gpt-5'] },
+      baseOptions,
+      codexStats,
+      { provider: gpt5Stats, model: codexStats }
+    );
+    expect(dual.models).toEqual([{ model: 'gpt-5', provider: 'codex', requests: 10 }]);
+    expect(dual.providers).toEqual([
+      { provider: 'codex', requests: 10 },
+      { provider: 'openai-compatible-acme', requests: 3 },
+    ]);
+    expect(dual.apiKeys).toEqual([{ apiKeyId: 'k1', apiKey: 'sk-1', requests: 10 }]);
+    expect(dual.credentials).toEqual([
+      { authIndex: 'a1', provider: 'codex', authType: 'oauth', source: 'codex@a', requests: 10 },
+    ]);
+  });
+
+  test('UsagePage wires leave-one-out faceted options and fallback labels', () => {
+    const page = readFileSync('src/features/usage/UsagePage.tsx', 'utf8');
+    expect(page).toContain('resolveFacetedOptions(');
+    expect(page).toContain('withoutDimension(dimFilter, dim)');
+    expect(page).toContain('fallbackOptions={allProviderOptions}');
+    expect(page).toContain('fallbackOptions={allApiKeyOptions}');
+    expect(page).toContain('fallbackOptions={allCredentialOptions}');
   });
 });
