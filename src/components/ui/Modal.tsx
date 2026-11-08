@@ -4,6 +4,7 @@ import {
   useId,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PropsWithChildren,
   type ReactNode,
 } from 'react';
@@ -20,6 +21,7 @@ interface ModalProps {
   width?: number | string;
   className?: string;
   closeDisabled?: boolean;
+  closeOnBackdrop?: boolean;
 }
 
 const CLOSE_ANIMATION_DURATION = 350;
@@ -32,6 +34,7 @@ export function Modal({
   width = 520,
   className,
   closeDisabled = false,
+  closeOnBackdrop = false,
   children,
 }: PropsWithChildren<ModalProps>) {
   const { t } = useTranslation();
@@ -42,6 +45,7 @@ export function Modal({
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const mouseDownOnOverlayRef = useRef(false);
 
   const getFocusableElements = useCallback(() => {
     if (!modalRef.current) return [] as HTMLElement[];
@@ -180,8 +184,22 @@ export function Modal({
   const overlayClass = `modal-overlay ${isClosing ? 'modal-overlay-closing' : 'modal-overlay-entering'}`;
   const modalClass = `modal ${isClosing ? 'modal-closing' : 'modal-entering'}${className ? ` ${className}` : ''}`;
 
+  // Opt-in backdrop close: only when the press both starts and ends on the overlay, so a
+  // text selection dragged out of the dialog does not close it.
+  const handleOverlayMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
+    mouseDownOnOverlayRef.current = closeOnBackdrop && e.target === e.currentTarget;
+  };
+
+  const handleOverlayClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const startedOnOverlay = mouseDownOnOverlayRef.current;
+    mouseDownOnOverlayRef.current = false;
+    if (closeOnBackdrop && !closeDisabled && startedOnOverlay && e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
   const modalContent = (
-    <div className={overlayClass}>
+    <div className={overlayClass} onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
       <div
         ref={modalRef}
         className={modalClass}
