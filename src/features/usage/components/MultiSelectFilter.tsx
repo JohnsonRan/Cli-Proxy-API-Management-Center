@@ -14,6 +14,7 @@ export interface MultiSelectFilterProps {
   label: string;
   selected: string[];
   options: MultiSelectOption[];
+  fallbackOptions?: MultiSelectOption[];
   onChange: (selected: string[]) => void;
   disabled?: boolean;
 }
@@ -22,6 +23,7 @@ export function MultiSelectFilter({
   label,
   selected,
   options,
+  fallbackOptions,
   onChange,
   disabled = false,
 }: MultiSelectFilterProps) {
@@ -34,6 +36,12 @@ export function MultiSelectFilter({
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const [shift, setShift] = useState(0);
 
+  const merged = useMemo(
+    () => mergeSelectedOptions(options, selected, fallbackOptions),
+    [fallbackOptions, options, selected]
+  );
+  const filtered = useMemo(() => filterMultiSelectOptions(merged, search), [merged, search]);
+
   // The popover grows with its widest row, so slide it left just enough to stay on screen.
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -42,7 +50,7 @@ export function MultiSelectFilter({
     if (!wrap || !popover) return;
     const left = wrap.getBoundingClientRect().left;
     setShift(popoverShift(left, popover.offsetWidth, document.documentElement.clientWidth));
-  }, [isOpen, options]);
+  }, [isOpen, merged]);
 
   // Close popover on outside click.
   useEffect(() => {
@@ -72,9 +80,6 @@ export function MultiSelectFilter({
       triggerRef.current?.focus();
     }
   }, []);
-
-  const merged = useMemo(() => mergeSelectedOptions(options, selected), [options, selected]);
-  const filtered = useMemo(() => filterMultiSelectOptions(merged, search), [merged, search]);
 
   const handleToggle = useCallback(
     (value: string, checked: boolean) => {
@@ -168,10 +173,10 @@ export function MultiSelectFilter({
             {filtered.length === 0 ? (
               <div className={styles.multiSelectEmpty}>{t('usage_stats.no_matching_options')}</div>
             ) : (
-              filtered.map((opt) => {
+              filtered.map((opt, index) => {
                 const isChecked = selected.includes(opt.value);
                 return (
-                  <div key={opt.value} className={styles.multiSelectOption}>
+                  <div key={`${opt.value}\0${index}`} className={styles.multiSelectOption}>
                     <SelectionCheckbox
                       className={styles.multiSelectCheck}
                       labelClassName={styles.multiSelectCheckLabel}

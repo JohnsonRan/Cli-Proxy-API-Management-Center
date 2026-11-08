@@ -3,10 +3,13 @@ import {
   MAX_OPTIMIZE_KEEP_DAYS,
   MAX_RETENTION_DAYS,
   type ClientGeo,
+  type UsageDimensionFilter,
   type UsageEvent,
   type UsageEventsQuery,
   type UsageModelPrice,
+  type UsageOptions,
   type UsagePriceOverride,
+  type UsageStats,
   type UsageStoreSettings,
 } from '@/services/api/usageStore';
 import {
@@ -129,17 +132,146 @@ export const filterMultiSelectOptions = (
 
 export const mergeSelectedOptions = (
   options: MultiSelectOption[],
-  selected: string[]
+  selected: string[],
+  fallbackOptions?: MultiSelectOption[]
 ): MultiSelectOption[] => {
   const existing = new Set(options.map((o) => o.value));
+  const fallbackByValue = new Map<string, MultiSelectOption>();
+  if (fallbackOptions?.length) {
+    for (const opt of fallbackOptions) {
+      if (!fallbackByValue.has(opt.value)) {
+        fallbackByValue.set(opt.value, opt);
+      }
+    }
+  }
   const missing: MultiSelectOption[] = [];
   for (const s of selected) {
     if (s && !existing.has(s)) {
-      missing.push({ value: s, label: s });
+      const fb = fallbackByValue.get(s);
+      missing.push(fb ? { ...fb, requests: undefined } : { value: s, label: s });
       existing.add(s);
     }
   }
   return missing.length ? [...missing, ...options] : options;
+};
+
+export type UsageFilterDimension = keyof UsageDimensionFilter;
+
+export const USAGE_FILTER_DIMENSIONS: readonly UsageFilterDimension[] = [
+  'model',
+  'provider',
+  'apiKeyId',
+  'authIndex',
+];
+
+export const activeFilterDimensions = (filter: UsageDimensionFilter): UsageFilterDimension[] =>
+  USAGE_FILTER_DIMENSIONS.filter((dim) => (filter[dim]?.length ?? 0) > 0);
+
+export const withoutDimension = (
+  filter: UsageDimensionFilter,
+  dimension: UsageFilterDimension
+): UsageDimensionFilter => ({
+  ...filter,
+  [dimension]: undefined,
+});
+
+/**
+ * Derives filter option lists from an aggregated `UsageStats` response (matching the
+ * shape of `UsageOptions`). `fallback` supplies credential provider metadata if any row
+ * in `stats.credentials` lacks it.
+ */
+export const optionsFromStats = (
+  stats: UsageStats,
+  fallback?: UsageOptions | null
+): UsageOptions => {
+  const models = stats.models
+    .filter((m) => m.model !== '')
+    .map((m) => ({
+      model: m.model,
+      provider: m.provider,
+      requests: m.requests,
+    }));
+
+  const providerCounts = new Map<string, number>();
+  for (const m of stats.models) {
+    if (!m.provider) continue;
+    providerCounts.set(m.provider, (providerCounts.get(m.provider) ?? 0) + m.requests);
+  }
+  const providers = Array.from(providerCounts.entries())
+    .map(([provider, requests]) => ({ provider, requests }))
+    .sort((a, b) => b.requests - a.requests || a.provider.localeCompare(b.provider));
+
+  const apiKeys = stats.apiKeys
+    .filter((k) => k.apiKeyId !== '')
+    .map((k) => ({
+      apiKeyId: k.apiKeyId,
+      apiKey: k.apiKey,
+      requests: k.requests,
+    }));
+
+  const fallbackCredProvider = new Map(
+    (fallback?.credentials ?? []).map((c) => [c.authIndex, c.provider])
+  );
+  const credentials = stats.credentials
+    .filter((c) => c.authIndex !== '')
+    .map((c) => ({
+      authIndex: c.authIndex,
+      provider: c.provider || fallbackCredProvider.get(c.authIndex) || '',
+      authType: c.authType,
+      source: c.source,
+      requests: c.requests,
+    }));
+
+  return { models, providers, apiKeys, credentials };
+};
+
+/**
+ * Resolves per-dimension filter options using leave-one-out faceted filtering:
+ * each dimension's list is constrained by all *other* active dimensions so unrelated
+ * values are hidden while sibling values in the active dimension stay multi-selectable.
+ */
+export const resolveFacetedOptions = (
+  filter: UsageDimensionFilter,
+  baseOptions: UsageOptions | null,
+  filteredStats: UsageStats | null,
+  dimensionStats?: Partial<Record<UsageFilterDimension, UsageStats>>
+): UsageOptions => {
+  if (!baseOptions) {
+    return filteredStats
+      ? optionsFromStats(filteredStats)
+      : { models: [], providers: [], apiKeys: [], credentials: [] };
+  }
+  const activeDims = activeFilterDimensions(filter);
+  if (activeDims.length === 0 || !filteredStats) {
+    return baseOptions;
+  }
+
+  const narrowOptions = optionsFromStats(filteredStats, baseOptions);
+  if (activeDims.length === 1) {
+    const only = activeDims[0];
+    return {
+      models: only === 'model' ? baseOptions.models : narrowOptions.models,
+      providers: only === 'provider' ? baseOptions.providers : narrowOptions.providers,
+      apiKeys: only === 'apiKeyId' ? baseOptions.apiKeys : narrowOptions.apiKeys,
+      credentials: only === 'authIndex' ? baseOptions.credentials : narrowOptions.credentials,
+    };
+  }
+
+  const pickDimension = <K extends keyof UsageOptions>(
+    dim: UsageFilterDimension,
+    key: K
+  ): UsageOptions[K] => {
+    if (!filter[dim]?.length) return narrowOptions[key];
+    const dimStat = dimensionStats?.[dim];
+    return dimStat ? optionsFromStats(dimStat, baseOptions)[key] : baseOptions[key];
+  };
+
+  return {
+    models: pickDimension('model', 'models'),
+    providers: pickDimension('provider', 'providers'),
+    apiKeys: pickDimension('apiKeyId', 'apiKeys'),
+    credentials: pickDimension('authIndex', 'credentials'),
+  };
 };
 
 /** Histogram bucket labels such as "≤0.5s", "1–2s" and ">60s". */
