@@ -16,7 +16,6 @@ export const QUOTA_API_PROVIDERS = [
   'antigravity',
   'xai',
   'grok',
-  'commandcode',
 ];
 
 export const isQuotaApiProvider = (provider: unknown): boolean =>
