@@ -14,12 +14,12 @@ import {
 const roots = ['https://api.aicodemirror.ai', 'https://api.claudecode.net.cn'];
 
 describe('AIcodemirror sponsor', () => {
-  test('registers four protocols and the documented referral link', () => {
+  test('registers four protocols without a referral link', () => {
     expect(isMultiProtocolSponsorBrand('aiCodeMirror')).toBe(true);
     const definition = getSponsorProviderDefinition('aiCodeMirror');
     expect(definition.displayName).toBe('AIcodemirror');
     expect([...definition.protocols].sort()).toEqual(['claude', 'codex', 'gemini', 'openai']);
-    expect(definition.affiliateUrl).toBe('https://www.aicodemirror.ai/register?invitecode=YNE3NQ');
+    expect(definition.affiliateUrl).toBeUndefined();
     expect(definition.supportsUsageCheck).toBe(false);
     expect(definition.baseUrlOptions.map((option) => option.baseUrl)).toEqual(roots);
     expect(resolveAiCodeMirrorBaseUrl(undefined)).toBe(roots[0]);
