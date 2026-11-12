@@ -148,6 +148,7 @@ Re-run on 2026-11-06 after upstream added the AIcodemirror sponsor provider (`95
      - Remove the `.empty-action` duplicate of that rule.
      - `tests/buttonIconLayout.test.ts` guards the wrapper class, the row layout, the retired workaround and the converted files, and fails on the pre-fix tree.
      - Delete the remaining per-call-site copies of that layout, which the base rule made redundant and which disagreed with it: `.actions :global(.btn > span)` and `.actions :global(.btn svg)` in `AuthFileCard.module.scss`, and the `:global(.btn > span)` overrides in `PluginsPage.module.scss` (two) and `PluginStorePage.module.scss` (two). Only the auth-files card changes visibly — its labelled button moves from a 6px gap and a 14px line box to the standard 8px gap and 39px height — and its icon buttons are pinned to 30px by `.iconButton`.
+     - Upstream tests that match a button label as a bare `<span>` must expect `<span class="btn-label">` instead; so far that is the footer Save button in `tests/codexCreditOverageUi.test.ts`.
    - **Note**: The defect is upstream's own, and upstream worked around it per call site (`.empty-action`, the auth-files card, the plugins pages); this patch centralises the layout and removes those copies. No other patch touches `Button.tsx`, `styles/components.scss` or the three converted feature stylesheets, so this patch's position in the integration order does not matter.
 
 10. **`patch/secure-storage-stable-key`**
