@@ -102,6 +102,14 @@ export function SectionOAuthBehavior({
             onChange={(codexOptimizeMultiAgentV2) => onChange({ codexOptimizeMultiAgentV2 })}
           />
           <ToggleSetting
+            fieldId="codexEnableWebsocketUpstream"
+            label={t('config_management.visual.additions.codexEnableWebsocketUpstream.label')}
+            description={t('config_management.visual.additions.codexEnableWebsocketUpstream.hint')}
+            checked={values.codexEnableWebsocketUpstream}
+            disabled={disabled}
+            onChange={(codexEnableWebsocketUpstream) => onChange({ codexEnableWebsocketUpstream })}
+          />
+          <ToggleSetting
             fieldId="codexOrphanDelegationCompatibility"
             label={t('config_management.visual.additions.codexOrphanDelegationCompatibility.label')}
             description={t(
