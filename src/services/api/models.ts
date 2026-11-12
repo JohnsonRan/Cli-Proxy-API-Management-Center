@@ -9,6 +9,11 @@ import { normalizeApiBase } from '@/utils/connection';
 import { apiCallApi, getApiCallErrorMessage } from './apiCall';
 import { isRecord } from '@/utils/helpers';
 
+export type ManagementCatalogModel = {
+  id: string;
+  display_name?: string;
+};
+
 const DEFAULT_CLAUDE_BASE_URL = 'https://api.anthropic.com';
 const DEFAULT_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
@@ -90,6 +95,31 @@ export const modelsApi = {
       '/models/refresh'
     );
     return { changedProviders: response.changed_providers ?? [] };
+  },
+
+  /**
+   * Unfiltered model catalog from the management API.
+   * /v1/models is trimmed by the client key used to call it, so it cannot
+   * populate that key's own allow/deny list.
+   */
+  async listCatalog(): Promise<ManagementCatalogModel[]> {
+    const data = await apiClient.get<{ models?: Array<{ id?: string; display_name?: string }> }>(
+      '/models'
+    );
+    const models = Array.isArray(data?.models) ? data.models : [];
+    const byId = new Map<string, ManagementCatalogModel>();
+    models.forEach((item) => {
+      const id = item?.id?.trim();
+      if (!id || byId.has(id.toLowerCase())) return;
+      const displayName = item.display_name?.trim();
+      byId.set(id.toLowerCase(), {
+        id,
+        display_name: displayName || undefined,
+      });
+    });
+    return [...byId.values()].sort((left, right) =>
+      left.id.localeCompare(right.id, undefined, { sensitivity: 'base' })
+    );
   },
 
   /**
