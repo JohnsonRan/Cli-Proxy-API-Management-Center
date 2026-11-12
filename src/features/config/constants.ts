@@ -49,11 +49,10 @@ export const CONFIG_TAB_ICONS: Record<ConfigTabId, ComponentType<IconProps>> = {
   payload: IconCode,
 };
 
-/** 常用 tab 的 6 个字段（原简单模式），渲染源与正典分区共享（fields/sharedFields.tsx）。 */
+/** 常用 tab 的 5 个字段（原简单模式），渲染源与正典分区共享（fields/sharedFields.tsx）。 */
 export const COMMON_FIELD_IDS = [
   'host',
   'port',
-  'apiKeys',
   'proxyUrl',
   'debug',
   'loggingToFile',
@@ -141,7 +140,6 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   host: ['host'],
   port: ['port'],
   authDir: ['authDir'],
-  apiKeys: ['apiKeysText'],
   tlsEnable: ['tlsEnable'],
   tlsCert: ['tlsCert'],
   tlsKey: ['tlsKey'],
