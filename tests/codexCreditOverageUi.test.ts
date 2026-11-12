@@ -162,7 +162,7 @@ describe('CodexCreditOverageDialog', () => {
     expect(markup).not.toContain('checked=""');
     const footer = markup.slice(markup.indexOf('modal-footer'));
     expect(footer.match(/<button\b/g)?.length).toBe(1);
-    expect(footer).toMatch(/<button[^>]*disabled=""[^>]*><span>Save<\/span>/);
+    expect(footer).toMatch(/<button[^>]*disabled=""[^>]*><span class="btn-label">Save<\/span>/);
     expect(footer).not.toContain('Cancel');
   });
 
