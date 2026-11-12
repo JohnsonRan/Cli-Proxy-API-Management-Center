@@ -8,6 +8,8 @@ import {
   buildInteractionsProbePayload,
   INTERACTIONS_API_REVISION,
   buildOpenAIChatCompletionsEndpoint,
+  buildOpenAIEmbeddingsEndpoint,
+  buildRerankEndpoint,
 } from '@/components/providers/utils';
 import { buildHeaderObject, hasHeader } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
@@ -46,6 +48,13 @@ const pickModel = (testModel: string | undefined, models: ModelEntryInput[]): st
   }
   return '';
 };
+
+// The endpoint a model is tested against depends on its flags, so a flag change must
+// invalidate earlier results just like a rename does.
+export const modelsSignature = (models: ModelEntryInput[]): string =>
+  models
+    .map((it) => [it.name, it.alias ?? '', it.embedding ? 'e' : '', it.rerank ? 'r' : ''].join(':'))
+    .join('|');
 
 const resolveBearerToken = (headers: Record<string, string>): string => {
   const auth = Object.entries(headers).find(([k]) => k.toLowerCase() === 'authorization')?.[1];
@@ -152,7 +161,7 @@ export function useConnectivityTest(
 
   const signature = useMemo(() => {
     const h = formHeaders.map((it) => `${it.key}:${it.value}`).join('|');
-    const m = models.map((it) => `${it.name}:${it.alias ?? ''}`).join('|');
+    const m = modelsSignature(models);
     return [
       baseUrl,
       proxyUrl ?? '',
@@ -195,7 +204,51 @@ export function useConnectivityTest(
         });
         return false;
       }
-      const endpoint = buildOpenAIChatCompletionsEndpoint(trimmedBase);
+      const model = pickModel(testModel, models);
+      if (!model) {
+        updateOpenaiStatus(idx, {
+          state: 'error',
+          message: messages.modelRequired,
+        });
+        return false;
+      }
+
+      const selectedModelEntry = models.find(
+        (m) => (m.name ?? '').trim() === model || (m.alias ?? '').trim() === model
+      );
+      const isEmbedding =
+        selectedModelEntry?.embedding === true ||
+        (!selectedModelEntry?.rerank &&
+          /embed|bge-(m3|[a-z0-9]+)/i.test(model) &&
+          !/rerank/i.test(model));
+      const isRerank = selectedModelEntry?.rerank === true || /rerank/i.test(model);
+
+      let endpoint: string;
+      let requestPayload: unknown;
+
+      if (isEmbedding) {
+        endpoint = buildOpenAIEmbeddingsEndpoint(trimmedBase);
+        requestPayload = {
+          model,
+          input: 'Hello',
+        };
+      } else if (isRerank) {
+        endpoint = buildRerankEndpoint(trimmedBase);
+        requestPayload = {
+          model,
+          query: 'Hello',
+          documents: ['Hello', 'World'],
+        };
+      } else {
+        endpoint = buildOpenAIChatCompletionsEndpoint(trimmedBase);
+        requestPayload = {
+          model,
+          messages: [{ role: 'user', content: 'Hi' }],
+          stream: false,
+          max_tokens: 5,
+        };
+      }
+
       if (!endpoint) {
         updateOpenaiStatus(idx, {
           state: 'error',
@@ -203,6 +256,7 @@ export function useConnectivityTest(
         });
         return false;
       }
+
       const entry = apiKeyEntries?.[idx];
       const entryKey = (entry?.apiKey ?? '').trim() || (entry?.existingApiKey ?? '').trim();
       const resolvedAuthIndex =
@@ -211,14 +265,6 @@ export function useConnectivityTest(
         updateOpenaiStatus(idx, {
           state: 'error',
           message: messages.apiKeyRequired,
-        });
-        return false;
-      }
-      const model = pickModel(testModel, models);
-      if (!model) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.modelRequired,
         });
         return false;
       }
@@ -245,12 +291,7 @@ export function useConnectivityTest(
             method: 'POST',
             url: endpoint,
             header: headerObj,
-            data: JSON.stringify({
-              model,
-              messages: [{ role: 'user', content: 'Hi' }],
-              stream: false,
-              max_tokens: 5,
-            }),
+            data: JSON.stringify(requestPayload),
           },
           { timeout: DEFAULT_TIMEOUT_MS }
         );
