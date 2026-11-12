@@ -304,6 +304,10 @@ const normalizeOpenAIProvider = (
   if (prefix) result.prefix = prefix;
   if (headers) result.headers = headers;
   if (models.length) result.models = models;
+  const autoDiscoverModels = normalizeBoolean(provider['auto-discover-models']);
+  if (autoDiscoverModels !== undefined) result.autoDiscoverModels = autoDiscoverModels;
+  const excludedModels = normalizeExcludedModels(provider['excluded-models']);
+  if (excludedModels.length) result.excludedModels = excludedModels;
   if (priority !== undefined) result.priority = Number(priority);
   const authIndex = normalizeAuthIndex(provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
