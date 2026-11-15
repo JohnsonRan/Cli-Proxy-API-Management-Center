@@ -373,8 +373,12 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
   const strategy = at('routing.strategy');
   if (typeof strategy === 'string') config.routingStrategy = strategy;
   const keys = at('access.api-keys');
+  // Entries are plain strings or objects carrying `api-key` (plus name/model rules).
   config.apiKeys = Array.isArray(keys)
-    ? keys.filter((key): key is string => typeof key === 'string')
+    ? keys
+        .map((key) => (isRecord(key) ? key['api-key'] : key))
+        .filter((key): key is string => typeof key === 'string' && key.trim() !== '')
+        .map((key) => key.trim())
     : [];
   config.quotaExceeded = {
     antigravityCredits:
