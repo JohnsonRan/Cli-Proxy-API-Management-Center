@@ -1,5 +1,9 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'bun:test';
-import { evaluateApiKeyStrength } from '@/utils/apiKeyStrength';
+import '@/i18n';
+import { GlobalClientModelRulesCard } from '@/pages/GlobalClientModelRulesCard';
+import { hasApiKeyModelRestrictions } from '@/utils/apiKeyScope';
 import { maskApiKey } from '@/utils/format';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import en from '@/i18n/locales/en.json';
@@ -26,7 +30,9 @@ describe('API Keys Page UI logic', () => {
     const filter = (query: string) => {
       const q = query.trim().toLowerCase();
       if (!q) return rows;
-      return rows.filter((r) => r.name.toLowerCase().includes(q) || r.key.toLowerCase().includes(q));
+      return rows.filter(
+        (r) => r.name.toLowerCase().includes(q) || r.key.toLowerCase().includes(q)
+      );
     };
 
     expect(filter('cursor')).toHaveLength(1);
@@ -37,13 +43,16 @@ describe('API Keys Page UI logic', () => {
     expect(filter('non-existent')).toHaveLength(0);
   });
 
-  test('computes security metrics correctly', () => {
-    const evaluated = keys.map((k) => evaluateApiKeyStrength(k));
-    const strongCount = evaluated.filter((e) => e.tier === 'strong' || e.tier === 'good').length;
+  test('counts keys with a restricted model scope', () => {
+    const items = [
+      { apiKey: keys[0] },
+      { apiKey: keys[1], models: ['gpt-4o'] },
+      { apiKey: keys[2], excludedModels: ['*-preview'] },
+    ];
 
-    expect(strongCount).toBeGreaterThan(0);
-    const compliance = `${Math.round((strongCount / keys.length) * 100)}%`;
-    expect(compliance).toMatch(/^\d+%$/);
+    const restricted = items.filter(hasApiKeyModelRestrictions).length;
+
+    expect(restricted).toBe(2);
   });
 
   test('masks keys for privacy while preserving quick recognition', () => {
@@ -76,16 +85,19 @@ describe('API Keys Page localization contracts', () => {
     'create_key',
     'refresh',
     'search_placeholder',
+    'search_aria',
+    'clear_search',
     'stat_total',
     'stat_total_desc',
     'stat_named',
     'stat_named_desc',
-    'stat_security',
-    'stat_security_desc',
-    'table_index',
+    'name_hint',
+    'stat_restricted',
+    'stat_restricted_desc',
     'table_name',
     'table_key',
-    'table_strength',
+    'table_models',
+    'models_excluded_count',
     'table_actions',
     'unnamed',
     'show_key',
@@ -103,11 +115,23 @@ describe('API Keys Page localization contracts', () => {
     'delete_btn',
   ];
 
+  const removedKeys = ['table_index', 'table_strength', 'stat_security', 'stat_security_desc'];
+
+  for (const { name, dict } of locales) {
+    test(`locale ${name} drops the retired security/strength strings`, () => {
+      const pageDict = (dict as Record<string, unknown>).api_keys_page as
+        Record<string, string> | undefined;
+
+      for (const key of removedKeys) {
+        expect(pageDict?.[key]).toBeUndefined();
+      }
+    });
+  }
+
   for (const { name, dict } of locales) {
     test(`locale ${name} contains all required api_keys_page strings`, () => {
       const pageDict = (dict as Record<string, unknown>).api_keys_page as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       expect(pageDict).toBeDefined();
 
       for (const key of requiredKeys) {
@@ -115,6 +139,59 @@ describe('API Keys Page localization contracts', () => {
         expect(typeof pageDict?.[key]).toBe('string');
         expect(pageDict?.[key]?.length).toBeGreaterThan(0);
       }
+
+      const globalDict = (pageDict as unknown as Record<string, unknown>)?.global_models as
+        Record<string, string> | undefined;
+      expect(globalDict).toBeDefined();
+      for (const key of [
+        'title',
+        'description',
+        'edit',
+        'empty',
+        'precedence',
+        'allow_label',
+        'allow_hint',
+        'exclude_label',
+        'exclude_hint',
+        'inherited_badge',
+        'inherited_hint',
+      ]) {
+        expect(typeof globalDict?.[key]).toBe('string');
+        expect(globalDict?.[key]?.length).toBeGreaterThan(0);
+      }
     });
   }
+
+  test('renders GlobalClientModelRulesCard in summary and editing states', () => {
+    const summaryMarkup = renderToStaticMarkup(
+      createElement(GlobalClientModelRulesCard, {
+        rules: { models: ['gpt-4o*'], excludedModels: ['*-preview'] },
+        loading: false,
+        disabled: false,
+        candidates: [{ id: 'gpt-4o' }],
+        catalogState: 'ready',
+        onRetryCatalog: () => {},
+        editing: false,
+        onEditingChange: () => {},
+        onSave: async () => true,
+      })
+    );
+    expect(summaryMarkup).toContain('gpt-4o*');
+
+    const editMarkup = renderToStaticMarkup(
+      createElement(GlobalClientModelRulesCard, {
+        rules: { models: ['gpt-4o*'], excludedModels: ['*-preview'] },
+        loading: false,
+        disabled: false,
+        candidates: [{ id: 'gpt-4o' }],
+        catalogState: 'ready',
+        onRetryCatalog: () => {},
+        editing: true,
+        onEditingChange: () => {},
+        onSave: async () => true,
+      })
+    );
+    expect(editMarkup).toContain('access.models');
+    expect(editMarkup).toContain('access.excluded-models');
+  });
 });
