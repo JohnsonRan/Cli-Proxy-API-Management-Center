@@ -3,8 +3,6 @@ import { IconExternalLink, IconPlus, IconSearch } from '@/components/ui/icons';
 import type { ProviderRecentUsageMap } from '@/components/providers/utils';
 import { PROVIDER_LOGOS } from '../brandLogos';
 import { getKimiAffiliateUrl } from '../kimi';
-import { APIKEY_FUN_AFFILIATE_URL, APIKEY_FUN_DASHBOARD_URL } from '../sponsor';
-import { getSponsorProviderDefinition } from '../sponsorDefinitions';
 import type { ProviderGroup, ProviderResource } from '../types';
 import { ProviderResourceTable } from './ProviderResourceTable';
 import { ProviderResourceToolbar } from './ProviderResourceToolbar';
@@ -55,21 +53,11 @@ export function ProviderResourcePanel({
   const { t, i18n } = useTranslation();
   const logo = PROVIDER_LOGOS[group.id];
   const providerTitle = t(`providersPage.providerNames.${group.id}`);
-  const hasProviderInfo = group.resources.length > 0;
-  const showSponsorRegistrationLink = group.id === 'apikeyFun' && !hasProviderInfo;
-  const showSponsorDashboardLink = group.id === 'apikeyFun' && hasProviderInfo;
+  // Only Kimi keeps a sign-up link, and it carries no affiliate parameter.
   const registrationUrl =
-    group.id === 'kimi'
-      ? getKimiAffiliateUrl(i18n.resolvedLanguage ?? i18n.language)
-      : group.id === 'fennoAI' || group.id === 'qiniuCloud' || group.id === 'aiCodeMirror'
-        ? getSponsorProviderDefinition(group.id).affiliateUrl
-        : null;
-  const registrationLabel = t(
-    group.id === 'kimi' ? 'providersPage.sponsor.registerNow' : 'providersPage.sponsor.registerLink'
-  );
-  const emptyText = showSponsorRegistrationLink
-    ? t('providersPage.sponsor.emptyRegisterHint')
-    : t('providersPage.table.empty');
+    group.id === 'kimi' ? getKimiAffiliateUrl(i18n.resolvedLanguage ?? i18n.language) : null;
+  const registrationLabel = t('providersPage.sponsor.registerNow');
+  const emptyText = t('providersPage.table.empty');
   const logoClassName = [
     styles.logo,
     logo?.themeSurface ? styles.logoThemeSurface : '',
@@ -97,9 +85,6 @@ export function ProviderResourcePanel({
         </>
       ) : null}
       <h2 className={styles.title}>{providerTitle}</h2>
-      {showSponsorDashboardLink ? (
-        <IconExternalLink className={styles.titleExternalIcon} size={16} />
-      ) : null}
     </>
   );
 
@@ -108,52 +93,17 @@ export function ProviderResourcePanel({
       <div className={styles.header}>
         <div className={styles.headerMain}>
           <div className={styles.titleArea}>
-            {showSponsorDashboardLink ? (
+            <div className={styles.titleRow}>{titleContent}</div>
+            {registrationUrl ? (
               <a
-                className={`${styles.titleRow} ${styles.titleLink}`}
-                href={APIKEY_FUN_DASHBOARD_URL}
-                target="_blank"
-                rel="noreferrer"
-                title={t('providersPage.sponsor.dashboardLink')}
-              >
-                {titleContent}
-              </a>
-            ) : (
-              <div className={styles.titleRow}>{titleContent}</div>
-            )}
-            {showSponsorDashboardLink ? (
-              <a
-                className={styles.sponsorLink}
-                href={APIKEY_FUN_DASHBOARD_URL}
+                className={`${styles.sponsorLink} ${styles.sponsorLinkEmphasis} ${styles.sponsorLinkKimi}`}
+                href={registrationUrl}
                 target="_blank"
                 rel="noreferrer"
               >
-                <span className={styles.sponsorLinkText}>
-                  {t('providersPage.sponsor.dashboardLink')}
-                </span>
+                <span className={styles.sponsorLinkText}>{registrationLabel}</span>
                 <IconExternalLink className={styles.sponsorLinkIcon} size={14} />
               </a>
-            ) : registrationUrl ? (
-              <>
-                <a
-                  className={[
-                    styles.sponsorLink,
-                    styles.sponsorLinkEmphasis,
-                    group.id === 'kimi' ? styles.sponsorLinkKimi : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  href={registrationUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span className={styles.sponsorLinkText}>{registrationLabel}</span>
-                  <IconExternalLink className={styles.sponsorLinkIcon} size={14} />
-                </a>
-                {group.id === 'kimi' ? (
-                  <p className={styles.kimiPromo}>{t('providersPage.sponsor.kimiPromo')}</p>
-                ) : null}
-              </>
             ) : null}
           </div>
           <div className={styles.searchWrap}>
@@ -189,22 +139,10 @@ export function ProviderResourcePanel({
         <div className={styles.empty}>
           <div>{emptyText}</div>
           <div className={styles.emptyAction}>
-            {showSponsorRegistrationLink ? (
-              <a
-                className={`${styles.emptyActionButton} ${styles.emptyActionButtonEmphasis}`}
-                href={APIKEY_FUN_AFFILIATE_URL}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <IconExternalLink size={16} />
-                <span>{t('providersPage.sponsor.registerLink')}</span>
-              </a>
-            ) : (
-              <button type="button" className={styles.emptyActionButton} onClick={onCreate}>
-                <IconPlus size={16} />
-                <span>{t('providersPage.actions.new')}</span>
-              </button>
-            )}
+            <button type="button" className={styles.emptyActionButton} onClick={onCreate}>
+              <IconPlus size={16} />
+              <span>{t('providersPage.actions.new')}</span>
+            </button>
           </div>
         </div>
       ) : (
