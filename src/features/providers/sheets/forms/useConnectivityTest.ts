@@ -67,19 +67,11 @@ const resolveModelConfig = (model: string, models: ModelEntryInput[]) => {
   );
 };
 
-// The endpoint and payload a model is tested with depend on its flags, so a flag change
-// must invalidate earlier results just like a rename does.
+// The endpoint a model is tested against depends on its flags, so a flag change must
+// invalidate earlier results just like a rename does.
 export const modelsSignature = (models: ModelEntryInput[]): string =>
   models
-    .map((it) =>
-      [
-        it.name,
-        it.alias ?? '',
-        it.embedding ? 'e' : '',
-        it.rerank ? 'r' : '',
-        it.useMaxCompletionTokens === true ? 'm' : '',
-      ].join(':')
-    )
+    .map((it) => [it.name, it.alias ?? '', it.embedding ? 'e' : '', it.rerank ? 'r' : ''].join(':'))
     .join('|');
 
 const resolveBearerToken = (headers: Record<string, string>): string => {
@@ -187,7 +179,9 @@ export function useConnectivityTest(
 
   const signature = useMemo(() => {
     const h = formHeaders.map((it) => `${it.key}:${it.value}`).join('|');
-    const m = modelsSignature(models);
+    const m = models
+      .map((it) => `${it.name}:${it.alias ?? ''}:${it.useMaxCompletionTokens === true}`)
+      .join('|');
     return [
       baseUrl,
       proxyUrl ?? '',
@@ -197,6 +191,7 @@ export function useConnectivityTest(
       authIndex ?? '',
       h,
       m,
+      modelsSignature(models),
     ].join('||');
   }, [apiKey, authIndex, baseUrl, proxyUrl, fallbackApiKey, testModel, formHeaders, models]);
 
