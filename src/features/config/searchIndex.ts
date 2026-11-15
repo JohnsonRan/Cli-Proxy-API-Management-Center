@@ -540,6 +540,20 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     hintKey: L('sections.streaming.nonstream_keepalive_hint'),
     yamlKeys: ['requests', 'nonstream-keepalive-interval'],
   },
+  {
+    fieldId: 'codexAppKeepaliveSeconds',
+    sectionId: 'streaming',
+    labelKey: L('sections.streaming.codex_app_keepalive_seconds'),
+    hintKey: L('sections.streaming.codex_app_keepalive_hint'),
+    yamlKeys: ['requests', 'streaming', 'codex-app-keepalive-seconds'],
+  },
+  {
+    fieldId: 'disableCodexAppKeepalive',
+    sectionId: 'streaming',
+    labelKey: L('sections.streaming.disable_codex_app_keepalive'),
+    hintKey: L('sections.streaming.disable_codex_app_keepalive_hint'),
+    yamlKeys: ['requests', 'streaming', 'disable-codex-app-keepalive'],
+  },
   // ── advanced ──────────────────────────────────────────────────────────────
   {
     fieldId: 'quotaAntigravityCredits',
