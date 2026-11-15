@@ -30,6 +30,7 @@ import {
   IconSidebarRouting,
   IconSidebarSystem,
   IconChevronDown,
+  IconKey,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -59,6 +60,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   aiProviders: <IconSidebarProviders size={18} />,
   authFiles: <IconSidebarAuthFiles size={18} />,
   oauth: <IconSidebarOauth size={18} />,
+  apiKeys: <IconKey size={18} />,
   quota: <IconSidebarQuota size={18} />,
   routing: <IconSidebarRouting size={18} />,
   plugins: <IconSidebarPlugins size={18} />,
@@ -605,6 +607,12 @@ export function MainLayout() {
           labelKey: 'nav.ai_providers',
           metaKey: 'nav_meta.ai_providers',
           icon: sidebarIcons.aiProviders,
+        },
+        {
+          path: '/api-keys',
+          labelKey: 'nav.api_keys',
+          metaKey: 'nav_meta.api_keys',
+          icon: sidebarIcons.apiKeys,
         },
         {
           path: '/auth-files',
