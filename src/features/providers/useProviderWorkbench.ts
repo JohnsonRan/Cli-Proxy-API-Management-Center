@@ -43,27 +43,10 @@ import type {
   SponsorProviderBrand,
   SponsorProviderRaw,
 } from './types';
-import {
-  buildApiKeyFunRaw,
-  isApiKeyFunClaudeProvider,
-  isApiKeyFunCodexProvider,
-  isApiKeyFunOpenAIProvider,
-} from './sponsor';
-import { buildFennoAIRaw, isFennoAIClaudeProvider, isFennoAICodexProvider } from './fennoAI';
-import {
-  buildQiniuCloudRaw,
-  isQiniuCloudClaudeProvider,
-  isQiniuCloudCodexProvider,
-  isQiniuCloudGeminiProvider,
-  isQiniuCloudOpenAIProvider,
-} from './qiniuCloud';
-import {
-  buildAiCodeMirrorRaw,
-  isAiCodeMirrorClaudeProvider,
-  isAiCodeMirrorCodexProvider,
-  isAiCodeMirrorGeminiProvider,
-  isAiCodeMirrorOpenAIProvider,
-} from './aiCodeMirror';
+import { buildApiKeyFunRaw } from './sponsor';
+import { buildFennoAIRaw } from './fennoAI';
+import { buildQiniuCloudRaw } from './qiniuCloud';
+import { buildAiCodeMirrorRaw } from './aiCodeMirror';
 import {
   buildKimiRaw,
   isKimiClaudeProvider,
@@ -380,12 +363,9 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
     let resources: ProviderResource[];
     switch (brand) {
       case 'gemini':
-        resources = (config.geminiApiKeys ?? []).reduce<ProviderResource[]>((out, item, index) => {
-          if (!isQiniuCloudGeminiProvider(item) && !isAiCodeMirrorGeminiProvider(item)) {
-            out.push(geminiToResource(item, index));
-          }
-          return out;
-        }, []);
+        resources = (config.geminiApiKeys ?? []).map((item, index) =>
+          geminiToResource(item, index)
+        );
         break;
       case 'interactions':
         resources = (config.interactionsApiKeys ?? []).map((item, index) =>
@@ -394,13 +374,7 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
         break;
       case 'codex':
         resources = (config.codexApiKeys ?? []).reduce<ProviderResource[]>((out, item, index) => {
-          if (
-            !isApiKeyFunCodexProvider(item) &&
-            !isFennoAICodexProvider(item) &&
-            !isQiniuCloudCodexProvider(item) &&
-            !isAiCodeMirrorCodexProvider(item) &&
-            !isKimiCodexProvider(item)
-          ) {
+          if (!isKimiCodexProvider(item)) {
             out.push(codexToResource(item, index));
           }
           return out;
@@ -414,13 +388,7 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
         break;
       case 'claude':
         resources = (config.claudeApiKeys ?? []).reduce<ProviderResource[]>((out, item, index) => {
-          if (
-            !isApiKeyFunClaudeProvider(item) &&
-            !isFennoAIClaudeProvider(item) &&
-            !isQiniuCloudClaudeProvider(item) &&
-            !isAiCodeMirrorClaudeProvider(item) &&
-            !isKimiClaudeProvider(item)
-          ) {
+          if (!isKimiClaudeProvider(item)) {
             out.push(claudeToResource(item, index));
           }
           return out;
@@ -434,12 +402,7 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
       case 'openaiCompatibility':
         resources = (config.openaiCompatibility ?? []).reduce<ProviderResource[]>(
           (out, item, index) => {
-            if (
-              !isApiKeyFunOpenAIProvider(item) &&
-              !isQiniuCloudOpenAIProvider(item) &&
-              !isAiCodeMirrorOpenAIProvider(item) &&
-              !isKimiOpenAIProvider(item)
-            ) {
+            if (!isKimiOpenAIProvider(item)) {
               out.push(openaiToResource(item, index));
             }
             return out;
