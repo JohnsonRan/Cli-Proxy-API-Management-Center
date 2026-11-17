@@ -1450,8 +1450,12 @@ describe('usage store settings', () => {
 
     const busy = render(5);
     expect(busy).toContain(background);
-    // Only the save button remains in the card; no manual lookup action.
-    expect(busy.match(/<button/g)?.length).toBe(1);
+    // Only the save button remains in the card; no manual lookup action. Field InfoTip
+    // triggers are buttons too, so they are left out of the count.
+    const actions = (busy.match(/<button\b[^>]*>/g) ?? []).filter(
+      (tag) => !tag.includes('data-info-tip')
+    );
+    expect(actions).toHaveLength(1);
     expect(render(0)).not.toContain(background);
     // The note follows the backend-reported status, not the unsaved switch.
     expect(render(5, true, true)).toContain(background);
