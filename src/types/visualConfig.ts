@@ -150,6 +150,7 @@ export type VisualConfigValues = {
   codexStreamBootstrapBuffering: boolean;
   codexStreamBootstrapTimeout: string;
   codexOptimizeMultiAgentV2: boolean;
+  codexEnableWebsocketUpstream: boolean;
   codexOrphanDelegationCompatibility: boolean;
   codexResponseSteering: boolean;
   antigravityConnectionPoolEnabled: boolean;
@@ -256,6 +257,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexStreamBootstrapBuffering: false,
   codexStreamBootstrapTimeout: '',
   codexOptimizeMultiAgentV2: false,
+  codexEnableWebsocketUpstream: false,
   codexOrphanDelegationCompatibility: false,
   codexResponseSteering: false,
   antigravityConnectionPoolEnabled: false,
