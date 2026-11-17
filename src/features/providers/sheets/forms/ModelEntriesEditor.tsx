@@ -97,6 +97,16 @@ export function ModelEntriesEditor({
                     {t('providersPage.form.modelBadgeImage')}
                   </span>
                 ) : null}
+                {!oauthAliasOnly && supportsImage && !expanded && entry.embedding === true ? (
+                  <span className={styles.entryBadge}>
+                    {t('providersPage.form.modelBadgeEmbedding')}
+                  </span>
+                ) : null}
+                {!oauthAliasOnly && supportsImage && !expanded && entry.rerank === true ? (
+                  <span className={styles.entryBadge}>
+                    {t('providersPage.form.modelBadgeRerank')}
+                  </span>
+                ) : null}
                 {!oauthAliasOnly && supportsThinking && !expanded && hasThinking ? (
                   <span className={styles.entryBadge}>
                     {t('providersPage.form.modelBadgeThinking')}
@@ -135,13 +145,29 @@ export function ModelEntriesEditor({
             {expanded ? (
               <div className={styles.modelEntryDetails}>
                 {!oauthAliasOnly && supportsImage ? (
-                  <CheckboxField
-                    label={t('providersPage.form.modelImage')}
-                    hint={t('providersPage.form.modelImageHint')}
-                    checked={entry.image === true}
-                    disabled={mutating}
-                    onChange={(checked) => onUpdate(idx, { image: checked })}
-                  />
+                  <>
+                    <CheckboxField
+                      label={t('providersPage.form.modelImage')}
+                      hint={t('providersPage.form.modelImageHint')}
+                      checked={entry.image === true}
+                      disabled={mutating}
+                      onChange={(checked) => onUpdate(idx, { image: checked })}
+                    />
+                    <CheckboxField
+                      label={t('providersPage.form.modelEmbedding')}
+                      hint={t('providersPage.form.modelEmbeddingHint')}
+                      checked={entry.embedding === true}
+                      disabled={mutating}
+                      onChange={(checked) => onUpdate(idx, { embedding: checked })}
+                    />
+                    <CheckboxField
+                      label={t('providersPage.form.modelRerank')}
+                      hint={t('providersPage.form.modelRerankHint')}
+                      checked={entry.rerank === true}
+                      disabled={mutating}
+                      onChange={(checked) => onUpdate(idx, { rerank: checked })}
+                    />
+                  </>
                 ) : null}
                 {oauthAliasOnly ? (
                   <>
