@@ -37,7 +37,8 @@ export type VisualConfigFieldPath =
   | 'authAutoRefreshWorkers'
   | 'streaming.keepaliveSeconds'
   | 'streaming.bootstrapRetries'
-  | 'streaming.nonstreamKeepaliveInterval';
+  | 'streaming.nonstreamKeepaliveInterval'
+  | 'codexAppKeepaliveSeconds';
 
 export type VisualConfigValidationErrorCode =
   | 'invalid_trusted_proxies'
@@ -164,6 +165,8 @@ export type VisualConfigValues = {
   codexLiveMediaRelayUDPPortMin: string;
   codexLiveMediaRelayUDPPortMax: string;
   codexLiveMediaRelayICEServers: CodexLiveICEServerDraft[];
+  codexAppKeepaliveSeconds: string;
+  disableCodexAppKeepalive: boolean;
   host: string;
   port: string;
   tlsEnable: boolean;
@@ -271,6 +274,8 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexLiveMediaRelayUDPPortMin: '',
   codexLiveMediaRelayUDPPortMax: '',
   codexLiveMediaRelayICEServers: [],
+  codexAppKeepaliveSeconds: '',
+  disableCodexAppKeepalive: false,
   host: '',
   port: '',
   tlsEnable: false,
