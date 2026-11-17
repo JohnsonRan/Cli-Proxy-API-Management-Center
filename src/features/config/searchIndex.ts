@@ -313,13 +313,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['oauth', 'auth-dir'],
   },
   {
-    fieldId: 'apiKeys',
-    sectionId: 'connectivity',
-    labelKey: L('api_keys.label'),
-    yamlKeys: ['access', 'api-keys'],
-    keywords: ['api key', 'apikey', 'token'],
-  },
-  {
     fieldId: 'tlsEnable',
     sectionId: 'connectivity',
     labelKey: L('sections.tls.enable'),
