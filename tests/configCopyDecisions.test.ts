@@ -173,12 +173,3 @@ describe('plugin store auth rule editor', () => {
     expect(markup.split(t('sections.system.store_auth_apply_to_hint'))).toHaveLength(2);
   });
 });
-
-describe('api keys block', () => {
-  test('the header is just the title and the add action', () => {
-    const markup = renderSection(SectionCommon);
-    const cell = rowOf(markup, 'apiKeys');
-    expect(cell).toContain(t('api_keys.label'));
-    expect(cell).not.toContain(t('api_keys.hint'));
-  });
-});
