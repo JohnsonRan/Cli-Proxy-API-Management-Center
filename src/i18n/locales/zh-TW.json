@@ -420,6 +420,8 @@
     "note_label": "備註（note）",
     "note_placeholder": "輸入備註資訊，例如：張三的帳號",
     "excluded_models_label": "排除模型（excluded_models）",
+    "allowed_models_label": "允許模型（allowed_models）",
+    "allowed_models_hint": "設定後此憑證只提供符合的模型（支援 '*' 萬用字元），排除模型仍然生效。規則比對上游模型名稱，不含前綴與別名。留空表示不限制。",
     "headers_label": "自訂請求標頭（headers）",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_invalid_json": "自訂請求標頭必須是有效的 JSON。",

@@ -422,6 +422,8 @@
     "note_label": "Note",
     "note_placeholder": "Enter a note, e.g.: John's account",
     "excluded_models_label": "Excluded models (excluded_models)",
+    "allowed_models_label": "Allowed models (allowed_models)",
+    "allowed_models_hint": "When set, this credential serves only the matching models ('*' wildcard); excluded models still apply. Rules match upstream model names, without prefix or alias. Empty means unrestricted.",
     "headers_label": "Custom Headers (headers)",
     "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
     "headers_invalid_json": "Custom headers must be valid JSON.",
