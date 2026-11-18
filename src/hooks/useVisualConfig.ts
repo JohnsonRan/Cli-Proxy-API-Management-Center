@@ -92,17 +92,6 @@ function areSensitiveReplacementsEqual(
   );
 }
 
-function parseApiKeysText(raw: unknown): string {
-  if (!Array.isArray(raw)) return '';
-
-  const keys: string[] = [];
-  for (const item of raw) {
-    const key = typeof item === 'string' ? item.trim() : '';
-    if (key) keys.push(key);
-  }
-  return keys.join('\n');
-}
-
 type YamlDocument = ReturnType<typeof parseDocument>;
 type YamlPath = string[];
 
@@ -1579,7 +1568,6 @@ function getNextDirtyFields(
       'rmDisableControlPanel',
       'rmPanelRepo',
       'authDir',
-      'apiKeysText',
       'debug',
       'commercialMode',
       'loggingToFile',
@@ -1806,7 +1794,6 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
         : '',
 
     authDir: typeof v8Oauth?.['auth-dir'] === 'string' ? v8Oauth?.['auth-dir'] : '',
-    apiKeysText: parseApiKeysText(asRecord(parsed.access)?.['api-keys']),
     pluginsEnabled: Boolean(plugins?.enabled),
     pluginStoreSources: parseStringList(plugins?.['store-sources']),
     pluginStoreAuth: parsePluginStoreAuthRules(plugins?.['store-auth']),
@@ -2096,17 +2083,6 @@ export function useVisualConfig() {
         }
 
         if (dirtyFields.has('authDir')) setStringInDoc(doc, ['oauth', 'auth-dir'], values.authDir);
-        if (dirtyFields.has('apiKeysText')) {
-          const apiKeys = values.apiKeysText
-            .split('\n')
-            .map((key) => key.trim())
-            .filter(Boolean);
-          if (apiKeys.length > 0) {
-            doc.setIn(['access', 'api-keys'], apiKeys);
-          } else if (docHas(doc, ['access', 'api-keys'])) {
-            doc.deleteIn(['access', 'api-keys']);
-          }
-        }
 
         const pluginsDirty =
           dirtyFields.has('pluginsEnabled') ||
