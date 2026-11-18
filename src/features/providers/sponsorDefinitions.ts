@@ -1,5 +1,4 @@
 import {
-  APIKEY_FUN_AFFILIATE_URL,
   APIKEY_FUN_BASE_URL_OPTIONS,
   APIKEY_FUN_DASHBOARD_URL,
   APIKEY_FUN_DISPLAY_NAME,
@@ -9,7 +8,6 @@ import {
   resolveApiKeyFunBaseUrl,
 } from './sponsor';
 import {
-  FENNO_AI_AFFILIATE_URL,
   FENNO_AI_BASE_URL_OPTIONS,
   FENNO_AI_DISPLAY_NAME,
   FENNO_AI_PROTOCOL_LABELS,
@@ -18,7 +16,6 @@ import {
   resolveFennoAIBaseUrl,
 } from './fennoAI';
 import {
-  QINIU_CLOUD_AFFILIATE_URL,
   QINIU_CLOUD_BASE_URL_OPTIONS,
   QINIU_CLOUD_DISPLAY_NAME,
   QINIU_CLOUD_PROTOCOL_LABELS,
@@ -27,7 +24,6 @@ import {
   resolveQiniuCloudBaseUrl,
 } from './qiniuCloud';
 import {
-  AI_CODE_MIRROR_AFFILIATE_URL,
   AI_CODE_MIRROR_BASE_URL_OPTIONS,
   AI_CODE_MIRROR_DISPLAY_NAME,
   AI_CODE_MIRROR_PROTOCOL_LABELS,
@@ -87,7 +83,6 @@ const SPONSOR_DEFINITIONS: Record<SponsorProviderBrand, SponsorProviderDefinitio
     brand: 'apikeyFun',
     displayName: APIKEY_FUN_DISPLAY_NAME,
     providerName: APIKEY_FUN_PROVIDER_NAME,
-    affiliateUrl: APIKEY_FUN_AFFILIATE_URL,
     dashboardUrl: APIKEY_FUN_DASHBOARD_URL,
     protocols: ['codex', 'claude', 'openai'],
     protocolLabels: APIKEY_FUN_PROTOCOLS,
@@ -101,7 +96,6 @@ const SPONSOR_DEFINITIONS: Record<SponsorProviderBrand, SponsorProviderDefinitio
     brand: 'fennoAI',
     displayName: FENNO_AI_DISPLAY_NAME,
     providerName: FENNO_AI_PROVIDER_NAME,
-    affiliateUrl: FENNO_AI_AFFILIATE_URL,
     protocols: ['codex', 'claude'],
     protocolLabels: FENNO_AI_PROTOCOL_LABELS,
     defaultProtocol: 'codex',
@@ -114,7 +108,6 @@ const SPONSOR_DEFINITIONS: Record<SponsorProviderBrand, SponsorProviderDefinitio
     brand: 'qiniuCloud',
     displayName: QINIU_CLOUD_DISPLAY_NAME,
     providerName: QINIU_CLOUD_PROVIDER_NAME,
-    affiliateUrl: QINIU_CLOUD_AFFILIATE_URL,
     protocols: ['openai', 'claude', 'gemini', 'codex'],
     protocolLabels: QINIU_CLOUD_PROTOCOL_LABELS,
     defaultProtocol: 'openai',
@@ -127,7 +120,6 @@ const SPONSOR_DEFINITIONS: Record<SponsorProviderBrand, SponsorProviderDefinitio
     brand: 'aiCodeMirror',
     displayName: AI_CODE_MIRROR_DISPLAY_NAME,
     providerName: AI_CODE_MIRROR_PROVIDER_NAME,
-    affiliateUrl: AI_CODE_MIRROR_AFFILIATE_URL,
     protocols: ['openai', 'claude', 'gemini', 'codex'],
     protocolLabels: AI_CODE_MIRROR_PROTOCOL_LABELS,
     defaultProtocol: 'openai',
