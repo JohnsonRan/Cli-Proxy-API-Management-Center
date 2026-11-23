@@ -48,6 +48,9 @@ const serializeModelAliases = (models?: ModelAlias[], includeOpenAIFields = fals
           if (includeOpenAIFields && model.rerank) {
             payload.rerank = true;
           }
+          if (includeOpenAIFields && model.systemone) {
+            payload.systemone = true;
+          }
           return payload;
         })
         .filter(Boolean)
