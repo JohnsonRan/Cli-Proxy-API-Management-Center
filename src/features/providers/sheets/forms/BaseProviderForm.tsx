@@ -130,6 +130,7 @@ function buildInitialForm(
       models: [emptyModel()],
       headers: [emptyHeader()],
       excludedModelsText: '',
+      autoDiscoverModels: PROVIDER_DESCRIPTORS[brand].supportsAutoDiscoverModels ? false : undefined,
       websockets: brand === 'codex' || brand === 'xai' ? false : undefined,
       cloak: isClaudeLikeBrand(brand)
         ? {
@@ -187,7 +188,8 @@ function buildInitialForm(
       headers: cfg.headers
         ? Object.entries(cfg.headers).map(([k, v]) => ({ key: k, value: String(v) }))
         : [emptyHeader()],
-      excludedModelsText: '',
+      excludedModelsText: (cfg.excludedModels ?? []).join('\n'),
+      autoDiscoverModels: cfg.autoDiscoverModels === true,
       testModel: '',
       apiKeyEntries: cfg.apiKeyEntries?.length
         ? cfg.apiKeyEntries.map((entry) => ({
@@ -821,6 +823,15 @@ function ProviderFields({
               count={existingModelNames.size}
             >
               <div className={styles.entriesList}>
+                {descriptor.supportsAutoDiscoverModels ? (
+                  <CheckboxField
+                    label={t('providersPage.form.autoDiscoverModels')}
+                    hint={t('providersPage.form.autoDiscoverModelsHint')}
+                    checked={form.autoDiscoverModels === true}
+                    disabled={mutating}
+                    onChange={(checked) => updateField('autoDiscoverModels', checked)}
+                  />
+                ) : null}
                 {discovery.available ? (
                   <div className={styles.entriesToolbar}>
                     <button
@@ -945,9 +956,8 @@ function ProviderFields({
                   catalogState={excludedCatalogState}
                   onRetryCatalog={discovery.available ? () => void discovery.fetch() : undefined}
                   disabled={mutating}
-                  // `'*'` = 该 provider 已停用，唯一所有者是上面的停用开关。
-                  // 传进来后 picker 双向过滤它，用户手打 `*` 也会被拦下并解释原因。
-                  reservedRules={DISABLE_ALL_RULES}
+                  // Only OpenAI-compatible providers use a separate disabled field.
+                  reservedRules={brand === 'openaiCompatibility' ? undefined : DISABLE_ALL_RULES}
                   reservedRuleMessage={t('providersPage.form.excludedDisabledNote')}
                 />
               </div>
