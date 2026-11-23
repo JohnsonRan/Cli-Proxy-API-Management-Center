@@ -58,11 +58,11 @@ describe('buildConfigPatch', () => {
     });
   });
 
-  test('editing client keys replaces only the key list, not the access section', () => {
-    const before = 'access: {api-keys: [fixture-old], future-setting: keep}\n';
-    const visual = runVisualConfig(before, [{ apiKeysText: 'fixture-new\nfixture-second' }]);
+  test('visual edits leave client keys to the API keys page', () => {
+    const before = 'access: {api-keys: [fixture-old, {api-key: fixture-obj}]}\nserver: {port: 1}\n';
+    const visual = runVisualConfig(before, [{ port: '2' }]);
     expect(buildConfigPatch(before, visual.applyVisualChangesToYaml(before))).toEqual({
-      patch: { access: { 'api-keys': ['fixture-new', 'fixture-second'] } },
+      patch: { server: { port: 2 } },
       deletions: [],
     });
   });
