@@ -60,6 +60,18 @@ describe('API Keys Page UI logic', () => {
   });
 });
 
+describe('API Keys Page table', () => {
+  test('uses a native table and column headers without the removed shared component', async () => {
+    const source = await Bun.file(new URL('../src/pages/ApiKeysPage.tsx', import.meta.url)).text();
+
+    expect(source).not.toContain('@/components/ui/Table');
+    expect(source).toMatch(/<table\b[^>]*>\s*<colgroup>/);
+    expect(source).toContain('<thead>');
+    expect(source).toMatch(/<th\b[^>]*scope="col"/);
+    expect(source).toContain('<tbody>');
+  });
+});
+
 describe('API Keys Page localization contracts', () => {
   const locales = [
     { name: 'zh-CN', dict: zhCN },

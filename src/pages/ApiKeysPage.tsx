@@ -6,14 +6,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
-import {
   IconCheck,
   IconCopy,
   IconEye,
@@ -400,112 +392,120 @@ export function ApiKeysPage() {
             />
           </div>
         ) : (
-          <Table
-            cols={
-              <>
+          <div
+            className={styles.tableScroll}
+            role="region"
+            aria-label={t('api_keys_page.title')}
+            tabIndex={0}
+          >
+            <table className={styles.table}>
+              <colgroup>
                 <col style={{ width: '56px' }} />
                 <col style={{ minWidth: '160px', width: '22%' }} />
                 <col style={{ minWidth: '260px' }} />
                 <col style={{ width: '120px' }} />
                 <col style={{ width: '130px' }} />
-              </>
-            }
-          >
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('api_keys_page.table_index')}</TableHead>
-                <TableHead>{t('api_keys_page.table_name')}</TableHead>
-                <TableHead>{t('api_keys_page.table_key')}</TableHead>
-                <TableHead>{t('api_keys_page.table_strength')}</TableHead>
-                <TableHead alignRight>{t('api_keys_page.table_actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRows.map(({ key, index, name }) => {
-                const isRevealed = revealedKeys.has(key);
-                const isCopied = copiedKey === key;
-                const { tier } = evaluateApiKeyStrength(key);
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">{t('api_keys_page.table_index')}</th>
+                  <th scope="col">{t('api_keys_page.table_name')}</th>
+                  <th scope="col">{t('api_keys_page.table_key')}</th>
+                  <th scope="col">{t('api_keys_page.table_strength')}</th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('api_keys_page.table_actions')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.map(({ key, index, name }) => {
+                  const isRevealed = revealedKeys.has(key);
+                  const isCopied = copiedKey === key;
+                  const { tier } = evaluateApiKeyStrength(key);
 
-                return (
-                  <TableRow key={`${key}-${index}`}>
-                    <TableCell>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                        #{index + 1}
-                      </span>
-                    </TableCell>
+                  return (
+                    <tr key={`${key}-${index}`}>
+                      <td>
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                          #{index + 1}
+                        </span>
+                      </td>
 
-                    <TableCell>
-                      {name ? (
-                        <span className={styles.keyName}>{name}</span>
-                      ) : (
-                        <span className={styles.unnamed}>{t('api_keys_page.unnamed')}</span>
-                      )}
-                    </TableCell>
+                      <td>
+                        {name ? (
+                          <span className={styles.keyName}>{name}</span>
+                        ) : (
+                          <span className={styles.unnamed}>{t('api_keys_page.unnamed')}</span>
+                        )}
+                      </td>
 
-                    <TableCell>
-                      <div className={styles.keyCell}>
-                        <code className={styles.keyCode}>
-                          {isRevealed ? key : maskApiKey(key)}
-                        </code>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          onClick={() => toggleReveal(key)}
-                          title={t(isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key')}
-                        >
-                          {isRevealed ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          onClick={() => void handleCopy(key)}
-                          title={t('api_keys_page.copy_key')}
-                        >
-                          {isCopied ? (
-                            <IconCheck size={15} className={styles.copiedIcon} />
-                          ) : (
-                            <IconCopy size={15} />
-                          )}
-                        </button>
-                      </div>
-                    </TableCell>
+                      <td>
+                        <div className={styles.keyCell}>
+                          <code className={styles.keyCode}>
+                            {isRevealed ? key : maskApiKey(key)}
+                          </code>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => toggleReveal(key)}
+                            title={t(
+                              isRevealed ? 'api_keys_page.hide_key' : 'api_keys_page.show_key'
+                            )}
+                          >
+                            {isRevealed ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => void handleCopy(key)}
+                            title={t('api_keys_page.copy_key')}
+                          >
+                            {isCopied ? (
+                              <IconCheck size={15} className={styles.copiedIcon} />
+                            ) : (
+                              <IconCopy size={15} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
 
-                    <TableCell>
-                      <span className={`${styles.strengthBadge} ${styles[tier]}`}>
-                        <span className={styles.strengthDot} />
-                        {t(`config_management.visual.api_keys.strength.${tier}`)}
-                      </span>
-                    </TableCell>
+                      <td>
+                        <span className={`${styles.strengthBadge} ${styles[tier]}`}>
+                          <span className={styles.strengthDot} />
+                          {t(`config_management.visual.api_keys.strength.${tier}`)}
+                        </span>
+                      </td>
 
-                    <TableCell alignRight>
-                      <div className={styles.rowActions}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(key, index)}
-                          disabled={saving}
-                          title={t('api_keys_page.edit_key')}
-                        >
-                          <IconPencil size={14} />
-                          <span>{t('common.edit', '编辑')}</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={styles.deleteBtn}
-                          onClick={() => openDeleteModal(index)}
-                          disabled={saving}
-                          title={t('api_keys_page.delete_key')}
-                        >
-                          <IconTrash2 size={14} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <td className={styles.alignRight}>
+                        <div className={styles.rowActions}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditModal(key, index)}
+                            disabled={saving}
+                            title={t('api_keys_page.edit_key')}
+                          >
+                            <IconPencil size={14} />
+                            <span>{t('common.edit', '编辑')}</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={styles.deleteBtn}
+                            onClick={() => openDeleteModal(index)}
+                            disabled={saving}
+                            title={t('api_keys_page.delete_key')}
+                          >
+                            <IconTrash2 size={14} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
