@@ -7,14 +7,6 @@ import {
 } from '@/services/api/usageStore';
 import { Button } from '@/components/ui/Button';
 import { IconCheck, IconPencil, IconPlus, IconTrash2, IconX } from '@/components/ui/icons';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import {
   PRICE_FIELDS,
@@ -151,7 +143,7 @@ export function PricingTab({
   const editCells = (e: Editing) => (
     <>
       {PRICE_FIELDS.map((field) => (
-        <TableCell key={field} alignRight>
+        <td key={field} className={styles.alignRight}>
           <input
             className={styles.cellInputNumber}
             inputMode="decimal"
@@ -163,9 +155,9 @@ export function PricingTab({
             onChange={(ev) => updateDraft({ [field]: ev.target.value })}
             onKeyDown={onEditKey}
           />
-        </TableCell>
+        </td>
       ))}
-      <TableCell alignRight>
+      <td className={styles.alignRight}>
         <span className={styles.iconActions}>
           <IconButton label={t('common.save')} onClick={saveEdit} loading={saving}>
             <IconCheck size={14} />
@@ -174,7 +166,7 @@ export function PricingTab({
             <IconX size={14} />
           </IconButton>
         </span>
-      </TableCell>
+      </td>
     </>
   );
 
@@ -224,97 +216,103 @@ export function PricingTab({
       {rows.length === 0 && !adding ? (
         <p className={styles.muted}>{t('usage_stats.no_data')}</p>
       ) : (
-        <Table className={styles.table}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('usage_stats.col_model')}</TableHead>
-              <TableHead>{t('usage_stats.col_source')}</TableHead>
-              {PRICE_FIELDS.map((field) => (
-                <TableHead key={field} alignRight>
-                  {t(priceLabelKey(field))}
-                </TableHead>
-              ))}
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {adding && editing && (
-              <TableRow className={editing.invalid ? styles.invalidRow : undefined}>
-                <TableCell>
-                  <input
-                    className={styles.cellInput}
-                    value={editing.draft.model}
-                    placeholder="gpt-5"
-                    aria-label={t('usage_stats.col_model')}
-                    autoFocus
-                    onChange={(ev) => updateDraft({ model: ev.target.value })}
-                    onKeyDown={onEditKey}
-                  />
-                </TableCell>
-                <TableCell>{t('usage_stats.source_override')}</TableCell>
-                {editCells(editing)}
-              </TableRow>
-            )}
-            {rows.map((row) => {
-              const isEditing = editing !== null && editing.model === row.model;
-              return (
-                <TableRow
-                  key={row.model}
-                  className={isEditing && editing.invalid ? styles.invalidRow : undefined}
-                >
-                  <TableCell className={styles.mono}>{row.model}</TableCell>
-                  <TableCell>
-                    {row.override ? (
-                      <span className={styles.overrideTag}>{t('usage_stats.source_override')}</span>
-                    ) : row.source ? (
-                      'models.dev'
-                    ) : (
-                      <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
-                    )}
-                  </TableCell>
-                  {isEditing ? (
-                    editCells(editing)
-                  ) : (
-                    <>
-                      <TableCell alignRight>{price(row.price?.input)}</TableCell>
-                      <TableCell alignRight>{price(row.price?.output)}</TableCell>
-                      <TableCell alignRight>{price(row.price?.cacheRead)}</TableCell>
-                      <TableCell alignRight>{price(row.price?.cacheWrite)}</TableCell>
-                      <TableCell alignRight>
-                        <span className={styles.iconActions}>
-                          <IconButton
-                            label={t(
-                              row.override
-                                ? 'usage_stats.override_edit'
-                                : 'usage_stats.override_this',
-                              { model: row.model }
-                            )}
-                            onClick={() => startEdit(row)}
-                            disabled={busy || editing !== null}
-                          >
-                            <IconPencil size={14} />
-                          </IconButton>
-                          {row.override && (
-                            <IconButton
-                              label={t('usage_stats.override_remove', { model: row.model })}
-                              onClick={() =>
-                                overrides &&
-                                void persist(replaceOverride(overrides, row.model, null))
-                              }
-                              disabled={busy || editing !== null}
-                            >
-                              <IconTrash2 size={14} />
-                            </IconButton>
-                          )}
-                        </span>
-                      </TableCell>
-                    </>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <div className={styles.tableFrame}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">{t('usage_stats.col_model')}</th>
+                  <th scope="col">{t('usage_stats.col_source')}</th>
+                  {PRICE_FIELDS.map((field) => (
+                    <th key={field} scope="col" className={styles.alignRight}>
+                      {t(priceLabelKey(field))}
+                    </th>
+                  ))}
+                  <th scope="col" />
+                </tr>
+              </thead>
+              <tbody>
+                {adding && editing && (
+                  <tr className={editing.invalid ? styles.invalidRow : undefined}>
+                    <td>
+                      <input
+                        className={styles.cellInput}
+                        value={editing.draft.model}
+                        placeholder="gpt-5"
+                        aria-label={t('usage_stats.col_model')}
+                        autoFocus
+                        onChange={(ev) => updateDraft({ model: ev.target.value })}
+                        onKeyDown={onEditKey}
+                      />
+                    </td>
+                    <td>{t('usage_stats.source_override')}</td>
+                    {editCells(editing)}
+                  </tr>
+                )}
+                {rows.map((row) => {
+                  const isEditing = editing !== null && editing.model === row.model;
+                  return (
+                    <tr
+                      key={row.model}
+                      className={isEditing && editing.invalid ? styles.invalidRow : undefined}
+                    >
+                      <td className={styles.mono}>{row.model}</td>
+                      <td>
+                        {row.override ? (
+                          <span className={styles.overrideTag}>
+                            {t('usage_stats.source_override')}
+                          </span>
+                        ) : row.source ? (
+                          'models.dev'
+                        ) : (
+                          <span className={styles.muted}>{t('usage_stats.unpriced')}</span>
+                        )}
+                      </td>
+                      {isEditing ? (
+                        editCells(editing)
+                      ) : (
+                        <>
+                          <td className={styles.alignRight}>{price(row.price?.input)}</td>
+                          <td className={styles.alignRight}>{price(row.price?.output)}</td>
+                          <td className={styles.alignRight}>{price(row.price?.cacheRead)}</td>
+                          <td className={styles.alignRight}>{price(row.price?.cacheWrite)}</td>
+                          <td className={styles.alignRight}>
+                            <span className={styles.iconActions}>
+                              <IconButton
+                                label={t(
+                                  row.override
+                                    ? 'usage_stats.override_edit'
+                                    : 'usage_stats.override_this',
+                                  { model: row.model }
+                                )}
+                                onClick={() => startEdit(row)}
+                                disabled={busy || editing !== null}
+                              >
+                                <IconPencil size={14} />
+                              </IconButton>
+                              {row.override && (
+                                <IconButton
+                                  label={t('usage_stats.override_remove', { model: row.model })}
+                                  onClick={() =>
+                                    overrides &&
+                                    void persist(replaceOverride(overrides, row.model, null))
+                                  }
+                                  disabled={busy || editing !== null}
+                                >
+                                  <IconTrash2 size={14} />
+                                </IconButton>
+                              )}
+                            </span>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </section>
   );

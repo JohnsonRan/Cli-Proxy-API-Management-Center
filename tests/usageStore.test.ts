@@ -944,7 +944,7 @@ describe('usage table sorting and CSV', () => {
         onSort: () => {},
       })
     );
-    expect(markup).toContain('aria-sort="descending"');
+    expect(markup).toMatch(/<th\b[^>]*scope="col"[^>]*aria-sort="descending"[^>]*>/);
     expect(markup).toContain('<button type="button"');
   });
 });
@@ -1015,6 +1015,8 @@ describe('usage overview', () => {
     expect(markup.match(/<div class="card\b/g)?.length).toBe(8);
     expect(markup).not.toContain('--accent');
     expect(markup).toContain('title="1,500"');
+    expect(markup).toMatch(/<table\b[^>]*><thead><tr><th\b/);
+    expect(markup).toMatch(/<tbody><tr\b[^>]*tabindex="0"[^>]*><td\b/);
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-pressed="false"');
   });

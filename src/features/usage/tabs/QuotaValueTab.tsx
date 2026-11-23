@@ -8,14 +8,6 @@ import {
 } from '@/services/api/usageStore';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { SERIES_COLORS, baseCartesianOptions, useChartTheme } from '../charts';
 import { PanelHeading } from '../components/PanelBits';
 import { ProviderBadge } from '../components/Labels';
@@ -221,93 +213,109 @@ export function QuotaValueTab({
         >
           <Bar data={comparison.data} options={comparison.options} />
         </div>
-        <Table className={styles.table}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('usage_stats.col_credential')}</TableHead>
-              <TableHead>{t('usage_stats.quota_value_col_window')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_col_used')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_col_cost')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_full_cost')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_full_tokens')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_col_reset')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {values.flatMap((c) =>
-              c.periods.map((p, index) => (
-                <TableRow key={`${c.key}:${p.periodSeconds}`}>
-                  <TableCell>
-                    {index === 0 && (
-                      <div className={styles.cellMain}>
-                        <span className={styles.cellLine}>
-                          <span className={styles.cellStrong}>{name(c)}</span>
-                          <ProviderBadge provider={c.provider} />
-                        </span>
-                        {c.ratio !== null && (
-                          <span className={styles.cellSub}>
-                            {t('usage_stats.quota_value_ratio', {
-                              long: formatPeriod(c.periods[c.periods.length - 1].periodSeconds),
-                              short: formatPeriod(c.periods[0].periodSeconds),
-                              ratio: c.ratio.toFixed(1),
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatPeriod(p.periodSeconds)}</TableCell>
-                  <TableCell alignRight>{formatPercent(p.current.usedPercent, 0)}</TableCell>
-                  <TableCell alignRight>{formatCost(p.current.usage.cost)}</TableCell>
-                  <TableCell alignRight>
-                    {p.reference ? (
-                      <div>
-                        <span>
-                          {nullableCost(p.reference.fullCost)}
-                          {p.reference.source === 'model' && p.reference.ciPercent !== null && (
-                            <span> ±{Math.round(p.reference.ciPercent)}%</span>
-                          )}
-                        </span>
-                        {p.reference.source === 'model' && p.model && (
-                          <span className={styles.cellSub}>
-                            {t('usage_stats.quota_value_model_basis', {
-                              windows: p.model.windows,
-                              segments: p.model.segments,
-                            })}
-                          </span>
-                        )}
-                        {p.reference.source === 'window' &&
-                          p.estimate &&
-                          p.estimate.externalPercent >= 1 && (
-                            <span className={styles.cellSub}>
-                              {t('usage_stats.quota_value_external_deducted', {
-                                percent: Math.round(p.estimate.externalPercent),
-                              })}
+        <div className={styles.tableFrame}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">{t('usage_stats.col_credential')}</th>
+                  <th scope="col">{t('usage_stats.quota_value_col_window')}</th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_col_used')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_col_cost')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_full_cost')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_full_tokens')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_col_reset')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {values.flatMap((c) =>
+                  c.periods.map((p, index) => (
+                    <tr key={`${c.key}:${p.periodSeconds}`}>
+                      <td>
+                        {index === 0 && (
+                          <div className={styles.cellMain}>
+                            <span className={styles.cellLine}>
+                              <span className={styles.cellStrong}>{name(c)}</span>
+                              <ProviderBadge provider={c.provider} />
                             </span>
-                          )}
-                      </div>
-                    ) : (
-                      <span className={styles.muted}>
-                        {windowIssue(p.current) === 'unpriced'
-                          ? t('usage_stats.quota_value_unpriced')
-                          : t('usage_stats.quota_value_need_more', {
-                              percent: MIN_RELIABLE_PERCENT,
-                            })}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell alignRight>
-                    {nullableTokens(
-                      p.reference?.tokens ??
-                        (windowIssue(p.current) === 'unpriced' ? p.current.fullTokens : null)
-                    )}
-                  </TableCell>
-                  <TableCell alignRight>{dateLabel(p.current.resetAt)}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                            {c.ratio !== null && (
+                              <span className={styles.cellSub}>
+                                {t('usage_stats.quota_value_ratio', {
+                                  long: formatPeriod(c.periods[c.periods.length - 1].periodSeconds),
+                                  short: formatPeriod(c.periods[0].periodSeconds),
+                                  ratio: c.ratio.toFixed(1),
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td>{formatPeriod(p.periodSeconds)}</td>
+                      <td className={styles.alignRight}>
+                        {formatPercent(p.current.usedPercent, 0)}
+                      </td>
+                      <td className={styles.alignRight}>{formatCost(p.current.usage.cost)}</td>
+                      <td className={styles.alignRight}>
+                        {p.reference ? (
+                          <div>
+                            <span>
+                              {nullableCost(p.reference.fullCost)}
+                              {p.reference.source === 'model' && p.reference.ciPercent !== null && (
+                                <span> ±{Math.round(p.reference.ciPercent)}%</span>
+                              )}
+                            </span>
+                            {p.reference.source === 'model' && p.model && (
+                              <span className={styles.cellSub}>
+                                {t('usage_stats.quota_value_model_basis', {
+                                  windows: p.model.windows,
+                                  segments: p.model.segments,
+                                })}
+                              </span>
+                            )}
+                            {p.reference.source === 'window' &&
+                              p.estimate &&
+                              p.estimate.externalPercent >= 1 && (
+                                <span className={styles.cellSub}>
+                                  {t('usage_stats.quota_value_external_deducted', {
+                                    percent: Math.round(p.estimate.externalPercent),
+                                  })}
+                                </span>
+                              )}
+                          </div>
+                        ) : (
+                          <span className={styles.muted}>
+                            {windowIssue(p.current) === 'unpriced'
+                              ? t('usage_stats.quota_value_unpriced')
+                              : t('usage_stats.quota_value_need_more', {
+                                  percent: MIN_RELIABLE_PERCENT,
+                                })}
+                          </span>
+                        )}
+                      </td>
+                      <td className={styles.alignRight}>
+                        {nullableTokens(
+                          p.reference?.tokens ??
+                            (windowIssue(p.current) === 'unpriced' ? p.current.fullTokens : null)
+                        )}
+                      </td>
+                      <td className={styles.alignRight}>{dateLabel(p.current.resetAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section className={styles.panel} data-reveal="">
@@ -343,64 +351,88 @@ export function QuotaValueTab({
             </div>
           ))}
         </div>
-        <Table className={styles.table}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('usage_stats.quota_value_col_window')}</TableHead>
-              <TableHead>{t('usage_stats.quota_value_col_start')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_col_used')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_col_cost')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.metric_tokens')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_full_cost')}</TableHead>
-              <TableHead alignRight>{t('usage_stats.quota_value_full_tokens')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {history.map((w) => {
-              const issue = windowIssue(w);
-              return (
-                <TableRow key={`${w.periodSeconds}:${w.resetAt}`}>
-                  <TableCell>{formatPeriod(w.periodSeconds)}</TableCell>
-                  <TableCell>
-                    {dateLabel(w.startAt)}
-                    {w.partial && (
-                      <span className={styles.cellSub}>
-                        {' '}
-                        {t('usage_stats.quota_value_partial')}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell alignRight>{formatPercent(w.usedPercent, 0)}</TableCell>
-                  <TableCell alignRight>{formatCost(w.usage.cost)}</TableCell>
-                  <TableCell alignRight>{formatCompact(w.usage.tokens.total)}</TableCell>
-                  <TableCell alignRight className={issue ? styles.muted : undefined}>
-                    {issue === 'unpriced' ? (
-                      t('usage_stats.quota_value_unpriced')
-                    ) : issue === 'low' ? (
-                      t('usage_stats.quota_value_need_more', {
-                        percent: MIN_RELIABLE_PERCENT,
-                      })
-                    ) : (
-                      <div>
-                        <span>{nullableCost(w.fullCost)}</span>
-                        {w.externalPercent >= 1 && (
+        <div className={styles.tableFrame}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">{t('usage_stats.quota_value_col_window')}</th>
+                  <th scope="col">{t('usage_stats.quota_value_col_start')}</th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_col_used')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_col_cost')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.metric_tokens')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_full_cost')}
+                  </th>
+                  <th scope="col" className={styles.alignRight}>
+                    {t('usage_stats.quota_value_full_tokens')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((w) => {
+                  const issue = windowIssue(w);
+                  return (
+                    <tr key={`${w.periodSeconds}:${w.resetAt}`}>
+                      <td>{formatPeriod(w.periodSeconds)}</td>
+                      <td>
+                        {dateLabel(w.startAt)}
+                        {w.partial && (
                           <span className={styles.cellSub}>
-                            {t('usage_stats.quota_value_external_deducted', {
-                              percent: Math.round(w.externalPercent),
-                            })}
+                            {' '}
+                            {t('usage_stats.quota_value_partial')}
                           </span>
                         )}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell alignRight className={issue === 'low' ? styles.muted : undefined}>
-                    {issue === 'low' ? '—' : nullableTokens(w.fullTokens)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                      </td>
+                      <td className={styles.alignRight}>{formatPercent(w.usedPercent, 0)}</td>
+                      <td className={styles.alignRight}>{formatCost(w.usage.cost)}</td>
+                      <td className={styles.alignRight}>{formatCompact(w.usage.tokens.total)}</td>
+                      <td
+                        className={
+                          issue ? `${styles.alignRight} ${styles.muted}` : styles.alignRight
+                        }
+                      >
+                        {issue === 'unpriced' ? (
+                          t('usage_stats.quota_value_unpriced')
+                        ) : issue === 'low' ? (
+                          t('usage_stats.quota_value_need_more', {
+                            percent: MIN_RELIABLE_PERCENT,
+                          })
+                        ) : (
+                          <div>
+                            <span>{nullableCost(w.fullCost)}</span>
+                            {w.externalPercent >= 1 && (
+                              <span className={styles.cellSub}>
+                                {t('usage_stats.quota_value_external_deducted', {
+                                  percent: Math.round(w.externalPercent),
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className={
+                          issue === 'low'
+                            ? `${styles.alignRight} ${styles.muted}`
+                            : styles.alignRight
+                        }
+                      >
+                        {issue === 'low' ? '—' : nullableTokens(w.fullTokens)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section className={styles.panel} data-reveal="">
@@ -415,53 +447,67 @@ export function QuotaValueTab({
             </h3>
             {p.model?.status === 'fitted' && p.model.features.length > 0 ? (
               <div className={styles.split}>
-                <Table className={styles.table}>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('usage_stats.col_model')}</TableHead>
-                      <TableHead>{t('usage_stats.quota_value_col_kind')}</TableHead>
-                      <TableHead alignRight>
-                        {t('usage_stats.quota_value_col_multiplier')}
-                      </TableHead>
-                      <TableHead alignRight>{t('usage_stats.quota_value_col_share')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {p.model.features.map((f, i) => (
-                      <TableRow key={i}>
-                        <TableCell className={styles.mono}>
-                          {f.model || t('usage_stats.quota_value_kind_other')}
-                        </TableCell>
-                        <TableCell>
-                          {t(`usage_stats.quota_value_kind_${f.kind}`, { defaultValue: f.kind })}
-                        </TableCell>
-                        <TableCell alignRight>{f.multiplier.toFixed(2)}×</TableCell>
-                        <TableCell alignRight>{f.share.toFixed(1)}%</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className={styles.tableFrame}>
+                  <div className={styles.tableScroll}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th scope="col">{t('usage_stats.col_model')}</th>
+                          <th scope="col">{t('usage_stats.quota_value_col_kind')}</th>
+                          <th scope="col" className={styles.alignRight}>
+                            {t('usage_stats.quota_value_col_multiplier')}
+                          </th>
+                          <th scope="col" className={styles.alignRight}>
+                            {t('usage_stats.quota_value_col_share')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {p.model.features.map((f, i) => (
+                          <tr key={i}>
+                            <td className={styles.mono}>
+                              {f.model || t('usage_stats.quota_value_kind_other')}
+                            </td>
+                            <td>
+                              {t(`usage_stats.quota_value_kind_${f.kind}`, {
+                                defaultValue: f.kind,
+                              })}
+                            </td>
+                            <td className={styles.alignRight}>{f.multiplier.toFixed(2)}×</td>
+                            <td className={styles.alignRight}>{f.share.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
                 {p.model.modelValues.length > 0 ? (
                   <div>
                     <h4 className={styles.panelDesc}>
                       {t('usage_stats.quota_value_model_values')}
                     </h4>
-                    <Table className={styles.table}>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('usage_stats.col_model')}</TableHead>
-                          <TableHead alignRight>{t('usage_stats.quota_value_full_cost')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {p.model.modelValues.map((mv) => (
-                          <TableRow key={mv.model}>
-                            <TableCell className={styles.mono}>{mv.model}</TableCell>
-                            <TableCell alignRight>{nullableCost(mv.fullCost)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className={styles.tableFrame}>
+                      <div className={styles.tableScroll}>
+                        <table className={styles.table}>
+                          <thead>
+                            <tr>
+                              <th scope="col">{t('usage_stats.col_model')}</th>
+                              <th scope="col" className={styles.alignRight}>
+                                {t('usage_stats.quota_value_full_cost')}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {p.model.modelValues.map((mv) => (
+                              <tr key={mv.model}>
+                                <td className={styles.mono}>{mv.model}</td>
+                                <td className={styles.alignRight}>{nullableCost(mv.fullCost)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 ) : null}
               </div>

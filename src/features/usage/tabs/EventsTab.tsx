@@ -4,14 +4,6 @@ import { usageStoreApi, type UsageEvent, type UsageStats } from '@/services/api/
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
 import { METRIC_ACCENTS } from '../charts';
@@ -290,61 +282,61 @@ export function EventsTab({
     switch (column) {
       case 'time':
         return (
-          <TableCell>
+          <td>
             <EventTimeCell
               timestamp={e.timestamp}
               timeFormatter={timeFormatter}
               dateFormatter={dateFormatter}
             />
-          </TableCell>
+          </td>
         );
       case 'status':
         return (
-          <TableCell>
+          <td>
             <EventStatusCell event={e} onResult={onResultFilterChange} />
-          </TableCell>
+          </td>
         );
       case 'model':
         return (
-          <TableCell>
+          <td>
             <EventModelCell event={e} onAdd={onAddFilter} />
-          </TableCell>
+          </td>
         );
       case 'route':
         return (
-          <TableCell>
+          <td>
             <EventRouteCell event={e} labels={labels} onAdd={onAddFilter} />
-          </TableCell>
+          </td>
         );
       case 'tokens':
         return (
-          <TableCell alignRight>
+          <td className={styles.alignRight}>
             <EventTokensCell event={e} />
-          </TableCell>
+          </td>
         );
       case 'latency':
         return (
-          <TableCell alignRight>
+          <td className={styles.alignRight}>
             <EventLatencyCell event={e} />
-          </TableCell>
+          </td>
         );
       case 'cost':
         return (
-          <TableCell alignRight>
+          <td className={styles.alignRight}>
             <EventCostCell event={e} />
-          </TableCell>
+          </td>
         );
       case 'client':
         return (
-          <TableCell>
+          <td>
             <EventClientCell event={e} />
-          </TableCell>
+          </td>
         );
     }
   };
 
   const eventRow = (e: UsageEvent, child = false) => (
-    <TableRow
+    <tr
       key={e.id}
       className={[
         styles.clickableRow,
@@ -366,7 +358,7 @@ export function EventsTab({
       {EVENT_COLUMNS.map((column) => (
         <Fragment key={column}>{cell(column, e)}</Fragment>
       ))}
-    </TableRow>
+    </tr>
   );
 
   return (
@@ -420,59 +412,67 @@ export function EventsTab({
       {events.length === 0 && !loading ? (
         <p className={styles.muted}>{t('usage_stats.events_empty')}</p>
       ) : (
-        <Table className={styles.table}>
-          <TableHeader>
-            <TableRow>
-              {EVENT_COLUMNS.map((column) => (
-                <TableHead key={column} alignRight={NUMERIC_COLUMNS.has(column)}>
-                  {t(`usage_stats.column_${column}`)}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => {
-              if (item.kind === 'event') return eventRow(item.event);
-              const { group } = item;
-              const open = expanded.has(group.requestId);
-              const toggle = () => setExpanded((prev) => toggleInSet(prev, group.requestId));
-              return (
-                <Fragment key={`ws-${group.requestId}`}>
-                  <TableRow
-                    className={
-                      group.summary.failed
-                        ? `${styles.clickableRow} ${styles.failedRow}`
-                        : styles.clickableRow
-                    }
-                    tabIndex={0}
-                    aria-expanded={open}
-                    aria-label={t('usage_stats.ws_group_toggle')}
-                    onClick={toggle}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        toggle();
-                      }
-                    }}
-                  >
-                    {EVENT_COLUMNS.map((column) => (
-                      <Fragment key={column}>
-                        {column === 'status' ? (
-                          <TableCell>
-                            <EventGroupStatusCell group={group} live={false} expanded={open} />
-                          </TableCell>
-                        ) : (
-                          cell(column, group.summary)
-                        )}
-                      </Fragment>
-                    ))}
-                  </TableRow>
-                  {open && group.events.map((e) => eventRow(e, true))}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <div className={styles.tableFrame}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  {EVENT_COLUMNS.map((column) => (
+                    <th
+                      key={column}
+                      scope="col"
+                      className={NUMERIC_COLUMNS.has(column) ? styles.alignRight : undefined}
+                    >
+                      {t(`usage_stats.column_${column}`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  if (item.kind === 'event') return eventRow(item.event);
+                  const { group } = item;
+                  const open = expanded.has(group.requestId);
+                  const toggle = () => setExpanded((prev) => toggleInSet(prev, group.requestId));
+                  return (
+                    <Fragment key={`ws-${group.requestId}`}>
+                      <tr
+                        className={
+                          group.summary.failed
+                            ? `${styles.clickableRow} ${styles.failedRow}`
+                            : styles.clickableRow
+                        }
+                        tabIndex={0}
+                        aria-expanded={open}
+                        aria-label={t('usage_stats.ws_group_toggle')}
+                        onClick={toggle}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggle();
+                          }
+                        }}
+                      >
+                        {EVENT_COLUMNS.map((column) => (
+                          <Fragment key={column}>
+                            {column === 'status' ? (
+                              <td>
+                                <EventGroupStatusCell group={group} live={false} expanded={open} />
+                              </td>
+                            ) : (
+                              cell(column, group.summary)
+                            )}
+                          </Fragment>
+                        ))}
+                      </tr>
+                      {open && group.events.map((e) => eventRow(e, true))}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
       <div className={styles.loadMore}>
         <span className={styles.muted}>

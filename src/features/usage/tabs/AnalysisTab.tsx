@@ -8,14 +8,6 @@ import {
   type UsageStats,
 } from '@/services/api/usageStore';
 import { Skeleton } from '@/components/ui/Skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { PanelHeading } from '../components/PanelBits';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
@@ -192,34 +184,52 @@ export function AnalysisTab({
         {analysis.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.col_model')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_samples')}</TableHead>
-                <TableHead alignRight>P50</TableHead>
-                <TableHead alignRight>P95</TableHead>
-                <TableHead alignRight>P99</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_ttft_p50')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_ttft_p95')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.col_speed_p50')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {analysis.models.map((m) => (
-                <TableRow key={m.model}>
-                  <TableCell className={styles.mono}>{m.model}</TableCell>
-                  <TableCell alignRight>{formatCompact(m.latency.count)}</TableCell>
-                  <TableCell alignRight>{formatMs(m.latency.p50)}</TableCell>
-                  <TableCell alignRight>{formatMs(m.latency.p95)}</TableCell>
-                  <TableCell alignRight>{formatMs(m.latency.p99)}</TableCell>
-                  <TableCell alignRight>{formatMs(m.ttft.p50)}</TableCell>
-                  <TableCell alignRight>{formatMs(m.ttft.p95)}</TableCell>
-                  <TableCell alignRight>{formatTps(m.tps.p50)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className={styles.tableFrame}>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('usage_stats.col_model')}</th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.col_samples')}
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      P50
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      P95
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      P99
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.col_ttft_p50')}
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.col_ttft_p95')}
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.col_speed_p50')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analysis.models.map((m) => (
+                    <tr key={m.model}>
+                      <td className={styles.mono}>{m.model}</td>
+                      <td className={styles.alignRight}>{formatCompact(m.latency.count)}</td>
+                      <td className={styles.alignRight}>{formatMs(m.latency.p50)}</td>
+                      <td className={styles.alignRight}>{formatMs(m.latency.p95)}</td>
+                      <td className={styles.alignRight}>{formatMs(m.latency.p99)}</td>
+                      <td className={styles.alignRight}>{formatMs(m.ttft.p50)}</td>
+                      <td className={styles.alignRight}>{formatMs(m.ttft.p95)}</td>
+                      <td className={styles.alignRight}>{formatTps(m.tps.p50)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </section>
     </RevealGroup>

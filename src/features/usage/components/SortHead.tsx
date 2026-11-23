@@ -1,4 +1,3 @@
-import { TableHead } from '@/components/ui/Table';
 import type { SortState } from '../logic';
 import styles from '../UsagePage.module.scss';
 
@@ -20,8 +19,9 @@ export function SortHead({
 }) {
   const dir = sort?.key === sortKey ? sort.dir : null;
   return (
-    <TableHead
-      alignRight={alignRight}
+    <th
+      scope="col"
+      className={alignRight ? styles.alignRight : undefined}
       aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none'}
     >
       <button
@@ -34,6 +34,6 @@ export function SortHead({
           {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : '↕'}
         </span>
       </button>
-    </TableHead>
+    </th>
   );
 }

@@ -19,14 +19,6 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { METRIC_ACCENTS, baseCartesianOptions, useChartTheme } from '../charts';
 import { EventDetailModal } from '../components/EventDetailModal';
 import {
@@ -300,32 +292,32 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
       .filter(Boolean)
       .join(' ');
     return (
-      <TableRow
+      <tr
         key={e.id}
         className={rowClass}
         aria-label={t('usage_stats.open_detail')}
         {...activate(() => setSelected(e))}
       >
-        <TableCell className={styles.mono}>{timeFormatter.format(new Date(e.timestamp))}</TableCell>
-        <TableCell>
+        <td className={styles.mono}>{timeFormatter.format(new Date(e.timestamp))}</td>
+        <td>
           <EventStatusCell event={e} />
-        </TableCell>
-        <TableCell>
+        </td>
+        <td>
           <EventModelCell event={e} />
-        </TableCell>
-        <TableCell>
+        </td>
+        <td>
           <EventRouteCell event={e} labels={labels} />
-        </TableCell>
-        <TableCell alignRight>
+        </td>
+        <td className={styles.alignRight}>
           <EventTokensCell event={e} />
-        </TableCell>
-        <TableCell alignRight>
+        </td>
+        <td className={styles.alignRight}>
           <EventLatencyCell event={e} />
-        </TableCell>
-        <TableCell alignRight>
+        </td>
+        <td className={styles.alignRight}>
           <CostValue event={e} />
-        </TableCell>
-      </TableRow>
+        </td>
+      </tr>
     );
   };
 
@@ -342,28 +334,28 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
       .join(' ');
     return (
       <Fragment key={`ws-${group.requestId}`}>
-        <TableRow
+        <tr
           className={rowClass}
           aria-expanded={open}
           aria-label={t('usage_stats.ws_group_toggle')}
           {...activate(() => setExpanded((prev) => toggleInSet(prev, group.requestId)))}
         >
-          <TableCell className={styles.mono}>
+          <td className={styles.mono}>
             {timeFormatter.format(new Date(socket ? socket.startedAt : e.timestamp))}
-          </TableCell>
-          <TableCell>
+          </td>
+          <td>
             <EventGroupStatusCell group={group} live={Boolean(socket)} expanded={open} />
-          </TableCell>
-          <TableCell>
+          </td>
+          <td>
             <EventModelCell event={e} />
-          </TableCell>
-          <TableCell>
+          </td>
+          <td>
             <EventRouteCell event={e} labels={labels} />
-          </TableCell>
-          <TableCell alignRight>
+          </td>
+          <td className={styles.alignRight}>
             <EventTokensCell event={e} />
-          </TableCell>
-          <TableCell alignRight>
+          </td>
+          <td className={styles.alignRight}>
             {socket ? (
               <span className={styles.rankText}>
                 <span className={styles.cellStrong} title={t('usage_stats.ws_group_elapsed')}>
@@ -376,11 +368,11 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
             ) : (
               <EventLatencyCell event={e} />
             )}
-          </TableCell>
-          <TableCell alignRight>
+          </td>
+          <td className={styles.alignRight}>
             <CostValue event={e} />
-          </TableCell>
-        </TableRow>
+          </td>
+        </tr>
         {open && group.events.map((x) => eventRow(x, true))}
       </Fragment>
     );
@@ -502,32 +494,42 @@ export function RealtimeTab({ dimensionFilter, labels }: RealtimeTabProps) {
         {items.length + liveGroups.length + inFlightRows.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.realtime_feed_empty')}</p>
         ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('usage_stats.column_time')}</TableHead>
-                <TableHead>{t('usage_stats.column_status')}</TableHead>
-                <TableHead>{t('usage_stats.column_model')}</TableHead>
-                <TableHead>{t('usage_stats.column_route')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.column_tokens')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.column_latency')}</TableHead>
-                <TableHead alignRight>{t('usage_stats.column_cost')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inFlightRows.map((r) => (
-                <InFlightRow
-                  key={`inflight-${r.id}`}
-                  request={r}
-                  elapsedMs={r.elapsedMs + sincePoll}
-                  labels={labels}
-                  time={timeFormatter.format(new Date(r.startedAt))}
-                />
-              ))}
-              {liveGroups.map((i) => i.kind === 'group' && groupRows(i.group))}
-              {items.map((i) => (i.kind === 'group' ? groupRows(i.group) : eventRow(i.event)))}
-            </TableBody>
-          </Table>
+          <div className={styles.tableFrame}>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('usage_stats.column_time')}</th>
+                    <th scope="col">{t('usage_stats.column_status')}</th>
+                    <th scope="col">{t('usage_stats.column_model')}</th>
+                    <th scope="col">{t('usage_stats.column_route')}</th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.column_tokens')}
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.column_latency')}
+                    </th>
+                    <th scope="col" className={styles.alignRight}>
+                      {t('usage_stats.column_cost')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inFlightRows.map((r) => (
+                    <InFlightRow
+                      key={`inflight-${r.id}`}
+                      request={r}
+                      elapsedMs={r.elapsedMs + sincePoll}
+                      labels={labels}
+                      time={timeFormatter.format(new Date(r.startedAt))}
+                    />
+                  ))}
+                  {liveGroups.map((i) => i.kind === 'group' && groupRows(i.group))}
+                  {items.map((i) => (i.kind === 'group' ? groupRows(i.group) : eventRow(i.event)))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </section>
       <EventDetailModal event={selected} labels={labels} onClose={() => setSelected(null)} />
@@ -559,9 +561,9 @@ function InFlightRow({
   const { t } = useTranslation();
   const transport = eventTransport(r.endpoint, false, r.transport);
   return (
-    <TableRow className={styles.inFlightRow}>
-      <TableCell className={styles.mono}>{time}</TableCell>
-      <TableCell>
+    <tr className={styles.inFlightRow}>
+      <td className={styles.mono}>{time}</td>
+      <td>
         <span className={styles.rankText}>
           <span className={styles.cellLine}>
             <span className={styles.pillPending} title={t('usage_stats.realtime_in_flight_hint')}>
@@ -580,8 +582,8 @@ function InFlightRow({
             </span>
           )}
         </span>
-      </TableCell>
-      <TableCell>
+      </td>
+      <td>
         {r.model ? (
           <span className={styles.rankText}>
             <span className={`${styles.cellStrong} ${styles.mono}`}>{r.model}</span>
@@ -594,23 +596,23 @@ function InFlightRow({
         ) : (
           <span className={styles.muted}>{t('usage_stats.realtime_in_flight_waiting')}</span>
         )}
-      </TableCell>
-      <TableCell>
+      </td>
+      <td>
         {r.model ? (
           <EventRouteCell event={r} labels={labels} />
         ) : (
           <span className={styles.muted}>—</span>
         )}
-      </TableCell>
-      <TableCell alignRight>
+      </td>
+      <td className={styles.alignRight}>
         <span className={styles.muted}>—</span>
-      </TableCell>
-      <TableCell alignRight>
+      </td>
+      <td className={styles.alignRight}>
         <span className={styles.cellStrong}>{formatMs(elapsedMs)}</span>
-      </TableCell>
-      <TableCell alignRight>
+      </td>
+      <td className={styles.alignRight}>
         <span className={styles.muted}>—</span>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 }

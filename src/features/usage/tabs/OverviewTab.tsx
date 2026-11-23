@@ -9,7 +9,6 @@ import type {
   UsageModelStat,
   UsageStats,
 } from '@/services/api/usageStore';
-import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { useQuotaBatchLoader } from '@/features/quota/hooks/useQuotaBatchLoader';
@@ -921,74 +920,78 @@ export function OverviewTab({
         {stats.models.length === 0 ? (
           <p className={styles.muted}>{t('usage_stats.no_data')}</p>
         ) : (
-          <Table className={styles.table}>
-            <TableHeader>
-              <TableRow>{sortHeads(modelColumns, modelSort)}</TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedModels.map(({ row: m, color }, index) => (
-                <TableRow
-                  key={`${m.provider}:${m.model}`}
-                  {...rowProps({ model: m.model, provider: m.provider }, m.model)}
-                >
-                  <TableCell>
-                    <RankName
-                      rank={index + 1}
-                      color={color}
-                      name={
-                        <span className={styles.cellLine}>
-                          <span>{m.model}</span>
-                          {m.substituted > 0 && (
-                            <span
-                              className={styles.substitutedBadge}
-                              title={t('usage_stats.model_substituted_count', {
-                                count: m.substituted,
-                              })}
-                              aria-label={t('usage_stats.model_substituted_count', {
-                                count: m.substituted,
-                              })}
-                            >
-                              {m.substituted}
+          <div className={styles.tableFrame}>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>{sortHeads(modelColumns, modelSort)}</tr>
+                </thead>
+                <tbody>
+                  {sortedModels.map(({ row: m, color }, index) => (
+                    <tr
+                      key={`${m.provider}:${m.model}`}
+                      {...rowProps({ model: m.model, provider: m.provider }, m.model)}
+                    >
+                      <td>
+                        <RankName
+                          rank={index + 1}
+                          color={color}
+                          name={
+                            <span className={styles.cellLine}>
+                              <span>{m.model}</span>
+                              {m.substituted > 0 && (
+                                <span
+                                  className={styles.substitutedBadge}
+                                  title={t('usage_stats.model_substituted_count', {
+                                    count: m.substituted,
+                                  })}
+                                  aria-label={t('usage_stats.model_substituted_count', {
+                                    count: m.substituted,
+                                  })}
+                                >
+                                  {m.substituted}
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                      }
-                      sub={<ProviderBadge provider={m.provider} model={m.model} />}
-                      mono
-                    />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Share value={m.requests} total={totals.requests} color={color} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Rate value={successRate(m)} />
-                  </TableCell>
-                  <TableCell alignRight>{costCell(m)}</TableCell>
-                  <TableCell alignRight>{unitCostCell(costPerRequest(m))}</TableCell>
-                  <TableCell alignRight>
-                    {unitCostCell(
-                      costPerMillionTokens(m),
-                      priced(m) === null ? t('usage_stats.unpriced') : '—'
-                    )}
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={inputTokens(m)} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={m.tokens.cacheRead} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={m.tokens.output} />
-                  </TableCell>
-                  <TableCell alignRight>
-                    <Compact value={tokensPerRequest(m)} />
-                  </TableCell>
-                  <TableCell alignRight>{formatMs(m.avgLatencyMs)}</TableCell>
-                  <TableCell alignRight>{formatTps(m.outputTps)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          }
+                          sub={<ProviderBadge provider={m.provider} model={m.model} />}
+                          mono
+                        />
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Share value={m.requests} total={totals.requests} color={color} />
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Rate value={successRate(m)} />
+                      </td>
+                      <td className={styles.alignRight}>{costCell(m)}</td>
+                      <td className={styles.alignRight}>{unitCostCell(costPerRequest(m))}</td>
+                      <td className={styles.alignRight}>
+                        {unitCostCell(
+                          costPerMillionTokens(m),
+                          priced(m) === null ? t('usage_stats.unpriced') : '—'
+                        )}
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Compact value={inputTokens(m)} />
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Compact value={m.tokens.cacheRead} />
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Compact value={m.tokens.output} />
+                      </td>
+                      <td className={styles.alignRight}>
+                        <Compact value={tokensPerRequest(m)} />
+                      </td>
+                      <td className={styles.alignRight}>{formatMs(m.avgLatencyMs)}</td>
+                      <td className={styles.alignRight}>{formatTps(m.outputTps)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </section>
 
@@ -1013,37 +1016,41 @@ export function OverviewTab({
           {stats.apiKeys.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
-            <Table className={styles.table}>
-              <TableHeader>
-                <TableRow>{sortHeads(keyColumns, keySort)}</TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedKeys.map(({ row: k, color }, index) => (
-                  <TableRow
-                    key={k.apiKeyId || 'none'}
-                    {...rowProps(
-                      { api_key_id: k.apiKeyId },
-                      labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none')
-                    )}
-                  >
-                    <TableCell>
-                      <RankName
-                        rank={index + 1}
-                        color={color}
-                        name={<KeyLabel name={labels.keyName(k.apiKeyId)} masked={k.apiKey} />}
-                      />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Share value={k.requests} total={totals.requests} color={color} />
-                    </TableCell>
-                    <TableCell alignRight>
-                      <Compact value={k.tokens.total} />
-                    </TableCell>
-                    <TableCell alignRight>{costCell(k)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className={styles.tableFrame}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>{sortHeads(keyColumns, keySort)}</tr>
+                  </thead>
+                  <tbody>
+                    {sortedKeys.map(({ row: k, color }, index) => (
+                      <tr
+                        key={k.apiKeyId || 'none'}
+                        {...rowProps(
+                          { api_key_id: k.apiKeyId },
+                          labels.keyName(k.apiKeyId) || k.apiKey || t('usage_stats.none')
+                        )}
+                      >
+                        <td>
+                          <RankName
+                            rank={index + 1}
+                            color={color}
+                            name={<KeyLabel name={labels.keyName(k.apiKeyId)} masked={k.apiKey} />}
+                          />
+                        </td>
+                        <td className={styles.alignRight}>
+                          <Share value={k.requests} total={totals.requests} color={color} />
+                        </td>
+                        <td className={styles.alignRight}>
+                          <Compact value={k.tokens.total} />
+                        </td>
+                        <td className={styles.alignRight}>{costCell(k)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </section>
 
@@ -1088,54 +1095,58 @@ export function OverviewTab({
           {stats.credentials.length === 0 ? (
             <p className={styles.muted}>{t('usage_stats.no_data')}</p>
           ) : (
-            <Table className={styles.table}>
-              <TableHeader>
-                <TableRow>{sortHeads(credentialColumns, credentialSort)}</TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedCredentials.map(({ row: c, color }, index) => {
-                  const credLabel = labels.credential(c.authIndex, c.source);
-                  const quotaInfo = credentialQuotas.get(c.authIndex);
-                  return (
-                    <TableRow
-                      key={c.authIndex || 'none'}
-                      {...rowProps({ auth_index: c.authIndex }, credLabel)}
-                    >
-                      <TableCell>
-                        <RankName
-                          rank={index + 1}
-                          color={color}
-                          name={credLabel}
-                          sub={<ProviderBadge provider={c.provider} />}
-                        />
-                      </TableCell>
-                      <TableCell alignRight>
-                        <Share value={c.requests} total={totals.requests} color={color} />
-                      </TableCell>
-                      <TableCell alignRight>
-                        <Rate value={successRate(c)} />
-                      </TableCell>
-                      <TableCell alignRight>{costCell(c)}</TableCell>
-                      <TableCell alignRight>
-                        <CredentialQuotaCell
-                          entry={quotaInfo?.entry ?? null}
-                          summary={quotaInfo?.summary ?? null}
-                          credentialLabel={credLabel}
-                          nowMs={effectiveNow}
-                          onOpen={() =>
-                            setSelectedQuotaKey({
-                              authIndex: c.authIndex,
-                              source: c.source,
-                              provider: c.provider,
-                            })
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className={styles.tableFrame}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>{sortHeads(credentialColumns, credentialSort)}</tr>
+                  </thead>
+                  <tbody>
+                    {sortedCredentials.map(({ row: c, color }, index) => {
+                      const credLabel = labels.credential(c.authIndex, c.source);
+                      const quotaInfo = credentialQuotas.get(c.authIndex);
+                      return (
+                        <tr
+                          key={c.authIndex || 'none'}
+                          {...rowProps({ auth_index: c.authIndex }, credLabel)}
+                        >
+                          <td>
+                            <RankName
+                              rank={index + 1}
+                              color={color}
+                              name={credLabel}
+                              sub={<ProviderBadge provider={c.provider} />}
+                            />
+                          </td>
+                          <td className={styles.alignRight}>
+                            <Share value={c.requests} total={totals.requests} color={color} />
+                          </td>
+                          <td className={styles.alignRight}>
+                            <Rate value={successRate(c)} />
+                          </td>
+                          <td className={styles.alignRight}>{costCell(c)}</td>
+                          <td className={styles.alignRight}>
+                            <CredentialQuotaCell
+                              entry={quotaInfo?.entry ?? null}
+                              summary={quotaInfo?.summary ?? null}
+                              credentialLabel={credLabel}
+                              nowMs={effectiveNow}
+                              onOpen={() =>
+                                setSelectedQuotaKey({
+                                  authIndex: c.authIndex,
+                                  source: c.source,
+                                  provider: c.provider,
+                                })
+                              }
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </section>
       </div>

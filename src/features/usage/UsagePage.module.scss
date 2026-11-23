@@ -137,11 +137,6 @@
   }
 }
 
-.table th,
-.table td {
-  white-space: nowrap;
-}
-
 .muted {
   margin: 0;
   font-size: 12.5px;
@@ -278,6 +273,72 @@
 /* ---------- Summary changes ---------- */
 
 /* ---------- Tables ---------- */
+
+.tableFrame {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+
+  > thead {
+    background: var(--muted-bg);
+  }
+
+  > tbody {
+    background: var(--bg-primary);
+  }
+
+  th,
+  td {
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--muted-foreground);
+    font-weight: 500;
+    font-size: 12px;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+  }
+
+  tr {
+    transition: background-color $transition-fast;
+
+    &:hover > td {
+      background: color-mix(in srgb, var(--accent-bg) 50%, transparent);
+    }
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  > tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+
+  .alignRight {
+    text-align: right;
+  }
+}
 
 .sortButton,
 .sortButtonActive {
@@ -747,10 +808,6 @@
 .rateBad {
   font-weight: 600;
   color: var(--viz-failure);
-}
-
-.table td {
-  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Provider and key labels ---------- */
