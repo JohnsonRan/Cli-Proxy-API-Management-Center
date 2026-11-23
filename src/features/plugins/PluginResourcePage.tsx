@@ -38,6 +38,9 @@ export function PluginResourcePage() {
   const [data, setData] = useState<PluginListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // The iframe stays invisible until its document fires `load`, so the browser's blank
+  // canvas never shows through while the plugin page is still loading.
+  const [loadedSrc, setLoadedSrc] = useState('');
 
   const connected = connectionStatus === 'connected';
   const pluginID = useMemo(() => safeDecodeURIComponent(params.pluginId), [params.pluginId]);
@@ -86,10 +89,12 @@ export function PluginResourcePage() {
   }, [data?.plugins, menuIndex, pluginID]);
 
   const iframeSrc = resource ? resolvePluginAssetURL(resource.menu.path, apiBase) : '';
+  const frameReady = loadedSrc !== '' && loadedSrc === iframeSrc;
 
   return (
     <div className={styles.page}>
-      {loading ? (
+      {/* Only the first fetch blanks the page; refreshes keep the mounted iframe alive. */}
+      {loading && !data ? (
         <div className={styles.stateShell}>
           <div className={styles.statusPanel}>{t('common.loading')}</div>
         </div>
@@ -112,13 +117,22 @@ export function PluginResourcePage() {
           />
         </div>
       ) : (
-        <iframe
-          className={styles.frame}
-          src={iframeSrc}
-          title={resource.label}
-          referrerPolicy="no-referrer"
-          allow="clipboard-read; clipboard-write"
-        />
+        <>
+          {!frameReady && (
+            <div className={styles.frameOverlay}>
+              <div className={styles.statusPanel}>{t('common.loading')}</div>
+            </div>
+          )}
+          <iframe
+            key={iframeSrc}
+            className={`${styles.frame}${frameReady ? '' : ` ${styles.frameLoading}`}`}
+            src={iframeSrc}
+            onLoad={() => setLoadedSrc(iframeSrc)}
+            title={resource.label}
+            referrerPolicy="no-referrer"
+            allow="clipboard-read; clipboard-write"
+          />
+        </>
       )}
     </div>
   );
