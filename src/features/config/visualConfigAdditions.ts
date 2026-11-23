@@ -77,6 +77,11 @@ export const ADDITION_FIELDS = [
     kind: 'boolean',
   },
   {
+    key: 'codexEnableWebsocketUpstream',
+    path: 'oauth.providers.codex.enable-websocket-upstream'.split('.'),
+    kind: 'boolean',
+  },
+  {
     key: 'codexOrphanDelegationCompatibility',
     path: 'upstream.codex.orphan-delegation-compatibility'.split('.'),
     kind: 'boolean',

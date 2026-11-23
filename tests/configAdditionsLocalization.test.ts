@@ -15,6 +15,7 @@ const addedFieldIds = [
   'codexStreamBootstrapBuffering',
   'codexStreamBootstrapTimeout',
   'codexOptimizeMultiAgentV2',
+  'codexEnableWebsocketUpstream',
   'codexOrphanDelegationCompatibility',
   'codexResponseSteering',
   'antigravityConnectionPoolEnabled',
