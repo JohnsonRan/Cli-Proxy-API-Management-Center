@@ -43,8 +43,16 @@ import {
 import { guardConfigConnection } from '@/services/api/configValue';
 import { keyScopesApi, type ClientKeyScope } from '@/services/api/keyScopes';
 import { modelsApi } from '@/services/api/models';
+import {
+  quotaApiKeysApi,
+  quotaCredentialsForKey,
+  sameQuotaApiKeys,
+  withQuotaCredentials,
+  type QuotaApiKeyEntry,
+} from '@/services/api/quotaApiKeys';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { ClientKeyModelRulesField } from './ClientKeyModelRulesField';
+import { ClientKeyQuotaCredentialsField } from './ClientKeyQuotaCredentialsField';
 import { ClientKeyScopesCard } from './ClientKeyScopesCard';
 import { GlobalClientModelRulesCard } from './GlobalClientModelRulesCard';
 
@@ -104,6 +112,7 @@ export function ApiKeysPage() {
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const clearCache = useConfigStore((state) => state.clearCache);
+  const updateConfigValue = useConfigStore((state) => state.updateConfigValue);
   const openaiCompatibility = useConfigStore((state) => state.config?.openaiCompatibility);
 
   const [apiKeyItems, setApiKeyItems] = useState<ClientApiKeyItem[]>([]);
@@ -114,7 +123,9 @@ export function ApiKeysPage() {
   }));
   const [globalRulesEditing, setGlobalRulesEditing] = useState(false);
   const [keyScopes, setKeyScopes] = useState<ClientKeyScope[]>([]);
-  // Connection the rules and scopes were read from; a save after a connection switch must fail.
+  const [quotaKeys, setQuotaKeys] = useState<QuotaApiKeyEntry[]>([]);
+  // Connection the rules, scopes and quota visibility were read from; a save after a
+  // connection switch must fail.
   const connectionGuardRef = useRef<() => void>(() => {});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -132,6 +143,7 @@ export function ApiKeysPage() {
   const [keyInput, setKeyInput] = useState('');
   const [allowedModels, setAllowedModels] = useState<string[]>([]);
   const [excludedModels, setExcludedModels] = useState<string[]>([]);
+  const [quotaCredentials, setQuotaCredentials] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
   const modelCatalog = useProxyModelCatalog(modalOpen || globalRulesEditing);
 
@@ -149,16 +161,18 @@ export function ApiKeysPage() {
     const assertConnection = guardConfigConnection();
     setLoading(true);
     try {
-      const [items, globalRules, scopes] = await Promise.all([
+      const [items, globalRules, scopes, quota] = await Promise.all([
         apiKeysApi.listItems(),
         apiKeysApi.getGlobalModelRules(),
         keyScopesApi.list(),
+        quotaApiKeysApi.list(),
       ]);
       assertConnection();
       connectionGuardRef.current = assertConnection;
       setApiKeyItems(items);
       setGlobalModelRules(globalRules);
       setKeyScopes(scopes);
+      setQuotaKeys(quota);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       showNotification(getErrorMessage(err), 'error');
@@ -329,6 +343,7 @@ export function ApiKeysPage() {
     setKeyInput('');
     setAllowedModels([]);
     setExcludedModels([]);
+    setQuotaCredentials([]);
     setFormError('');
     setModalOpen(true);
   };
@@ -340,6 +355,7 @@ export function ApiKeysPage() {
     const activeModels = item.models ?? item.allowedModels ?? [];
     setAllowedModels(normalizeExcludedRules(activeModels));
     setExcludedModels(normalizeExcludedRules(item.excludedModels ?? []));
+    setQuotaCredentials(quotaCredentialsForKey(quotaKeys, item.apiKey));
     setFormError('');
     setModalOpen(true);
   };
@@ -351,6 +367,7 @@ export function ApiKeysPage() {
     setKeyInput('');
     setAllowedModels([]);
     setExcludedModels([]);
+    setQuotaCredentials([]);
     setFormError('');
   };
 
@@ -358,6 +375,30 @@ export function ApiKeysPage() {
     setKeyInput(generateSecureApiKey());
     setFormError('');
   };
+
+  const refreshConfigAfterSave = useCallback(
+    async (assertConnection: () => void, apiKeys: string[]) => {
+      // Record the committed keys and invalidate cached/in-flight reads, keeping the rest of
+      // the config snapshot so a failed refresh does not blank unrelated consumers.
+      updateConfigValue('api-keys', apiKeys);
+      try {
+        await fetchConfig(true);
+        assertConnection();
+        showNotification(t('config_management.save_success'), 'success');
+      } catch (err) {
+        try {
+          assertConnection();
+        } catch {
+          return;
+        }
+        showNotification(
+          `${t('config_management.save_success')}. ${t('notification.refresh_failed')}: ${getErrorMessage(err)}`,
+          'warning'
+        );
+      }
+    },
+    [fetchConfig, showNotification, t, updateConfigValue]
+  );
 
   const handleSave = useCallback(async () => {
     const trimmedKey = keyInput.trim();
@@ -382,17 +423,30 @@ export function ApiKeysPage() {
     setSaving(true);
     try {
       let nextItems: ClientApiKeyItem[];
+      let previousKey: string | null = null;
       if (editingIndex !== null && editingIndex >= 0) {
+        const oldKey = apiKeyItems[editingIndex].apiKey;
+        previousKey = oldKey;
         nextItems = apiKeyItems.map((k, i) => (i === editingIndex ? nextItem : k));
       } else {
         nextItems = [...apiKeyItems, nextItem];
       }
 
-      await apiKeysApi.replaceItems(nextItems);
-      await fetchConfig(true);
+      const nextQuota = withQuotaCredentials(quotaKeys, previousKey, trimmedKey, quotaCredentials);
+      const assertConnection = connectionGuardRef.current;
+      await quotaApiKeysApi.replaceClientKeys(
+        nextItems,
+        sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
+        assertConnection
+      );
+      assertConnection();
       setApiKeyItems(nextItems);
+      setQuotaKeys(nextQuota);
       closeModal();
-      showNotification(t('common.saved_success', '保存成功'), 'success');
+      await refreshConfigAfterSave(
+        assertConnection,
+        nextItems.map((item) => item.apiKey)
+      );
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -403,10 +457,11 @@ export function ApiKeysPage() {
     apiKeyItems,
     editingIndex,
     excludedModels,
-    fetchConfig,
     keyInput,
     nameInput,
-    showNotification,
+    quotaCredentials,
+    quotaKeys,
+    refreshConfigAfterSave,
     t,
   ]);
 
@@ -428,20 +483,32 @@ export function ApiKeysPage() {
     ) {
       return;
     }
+    const keyToDelete = apiKeyItems[targetDeleteIndex].apiKey;
     setSaving(true);
     try {
       const nextItems = apiKeyItems.filter((_, i) => i !== targetDeleteIndex);
-      await apiKeysApi.replaceItems(nextItems);
-      await fetchConfig(true);
+      // A deleted key keeps no quota visibility, so a later key with the same value starts empty.
+      const nextQuota = withQuotaCredentials(quotaKeys, keyToDelete, keyToDelete, []);
+      const assertConnection = connectionGuardRef.current;
+      await quotaApiKeysApi.replaceClientKeys(
+        nextItems,
+        sameQuotaApiKeys(quotaKeys, nextQuota) ? undefined : nextQuota,
+        assertConnection
+      );
+      assertConnection();
       setApiKeyItems(nextItems);
+      setQuotaKeys(nextQuota);
       closeDeleteModal();
-      showNotification(t('common.saved_success', '保存成功'), 'success');
+      await refreshConfigAfterSave(
+        assertConnection,
+        nextItems.map((item) => item.apiKey)
+      );
     } catch (err) {
       showNotification(getErrorMessage(err), 'error');
     } finally {
       setSaving(false);
     }
-  }, [apiKeyItems, fetchConfig, showNotification, t, targetDeleteIndex]);
+  }, [apiKeyItems, quotaKeys, refreshConfigAfterSave, showNotification, targetDeleteIndex]);
 
   const modalScope = modalOpen ? resolveKeyScope(keyInput, keyScopes)?.scope : undefined;
 
@@ -631,6 +698,7 @@ export function ApiKeysPage() {
                     globalModelRules
                   );
                   const providerScope = resolveKeyScope(key, keyScopes)?.scope;
+                  const quotaCount = quotaCredentialsForKey(quotaKeys, key).length;
 
                   return (
                     <tr
@@ -706,6 +774,11 @@ export function ApiKeysPage() {
                                   ', '
                                 ),
                               })}
+                            </span>
+                          )}
+                          {quotaCount > 0 && (
+                            <span className={styles.providerScopeTag}>
+                              {t('api_keys_page.quota_credentials.tag', { n: quotaCount })}
                             </span>
                           )}
                           {!scope.restricted ? (
@@ -900,6 +973,14 @@ export function ApiKeysPage() {
           onRetry={() => void modelCatalog.retry()}
           disabled={saving}
         />
+
+        {modalOpen && (
+          <ClientKeyQuotaCredentialsField
+            value={quotaCredentials}
+            onChange={setQuotaCredentials}
+            disabled={saving}
+          />
+        )}
       </Modal>
 
       {/* 删除确认弹窗 */}
