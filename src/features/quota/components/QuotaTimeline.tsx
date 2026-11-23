@@ -57,6 +57,11 @@ export interface QuotaTimelineProps {
   quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined;
   displayNameFor: (name: string) => string;
   resolvedTheme: ResolvedTheme;
+  /**
+   * Lanes that are not auth files (the accounts upstream proxies share), built for the
+   * same longest-period bound as the credential lanes. Must be referentially stable.
+   */
+  extraLanes?: (maxPeriodHours?: number) => TimelineLane[];
   /** Injectable for tests/screenshots; defaults to the real clock. */
   now?: number;
   /** Injectable initial zoom for tests/screenshots; defaults to the weekly view. */
@@ -70,6 +75,7 @@ export function QuotaTimeline({
   quotaFor,
   displayNameFor,
   resolvedTheme,
+  extraLanes,
   now: nowProp,
   initialMode = 'weekly',
   initialOffset = 0,
@@ -110,30 +116,26 @@ export function QuotaTimeline({
   // real quota window. Once there is timeline data, however, changing zoom must
   // never remove the whole panel just because that mode has no matching lanes.
   const hasAnyLane = useMemo(
-    () => laneInputs.some((input) => buildTimelineLanes(input).some(laneHasWindow)),
-    [laneInputs]
+    () =>
+      laneInputs.some((input) => buildTimelineLanes(input).some(laneHasWindow)) ||
+      (extraLanes?.() ?? []).some(laneHasWindow),
+    [laneInputs, extraLanes]
   );
 
-  const lanes = useMemo(
-    () =>
-      laneInputs
-        .flatMap((input) =>
-          buildTimelineLanes(
-            {
-              ...input,
-              // Select a window independently within each quota group.
-              // Session mode must not reinterpret longer periods as 5-hour resets.
-              maxPeriodHours: mode === 'session' ? 5 : span.days * 24,
-            },
-            (label) => {
-              const key = resolveAntigravityGroupLabelKey(label);
-              return key ? t(`antigravity_quota.${key}`, { defaultValue: label }) : label;
-            }
-          )
-        )
-        .filter((lane) => laneHasWindow(lane) && (mode !== 'session' || lane.periodHours === 5)),
-    [laneInputs, mode, span.days, t]
-  );
+  const lanes = useMemo(() => {
+    // Select a window independently within each quota group.
+    // Session mode must not reinterpret longer periods as 5-hour resets.
+    const maxPeriodHours = mode === 'session' ? 5 : span.days * 24;
+    return [
+      ...laneInputs.flatMap((input) =>
+        buildTimelineLanes({ ...input, maxPeriodHours }, (label) => {
+          const key = resolveAntigravityGroupLabelKey(label);
+          return key ? t(`antigravity_quota.${key}`, { defaultValue: label }) : label;
+        })
+      ),
+      ...(extraLanes?.(maxPeriodHours) ?? []),
+    ].filter((lane) => laneHasWindow(lane) && (mode !== 'session' || lane.periodHours === 5));
+  }, [laneInputs, extraLanes, mode, span.days, t]);
 
   /** Weekly: one cell per day. Session: one per 6 hours. */
   const cells = useMemo(() => {
