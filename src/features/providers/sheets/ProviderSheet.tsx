@@ -17,6 +17,7 @@ import type {
 import type { UseProviderWorkbenchResult } from '../useProviderWorkbench';
 import { BaseProviderForm } from './forms/BaseProviderForm';
 import { ResourceDetailView } from './ResourceDetailView';
+import { UpstreamQuotaPanels } from './UpstreamQuotaPanel';
 import { SponsorProviderForm } from './forms/SponsorProviderForm';
 import { BrandLogo } from '../components/BrandLogo';
 import { ProviderPicker } from '../components/ProviderPicker';
@@ -207,18 +208,29 @@ export function ProviderSheet({
       return <ResourceDetailView resource={state.resource} usageByProvider={usageByProvider} />;
     }
     if (isNativeFamily(state.brand)) {
+      const section = state.section;
       return (
-        <BaseProviderForm
-          key={viewKey}
-          brand={state.brand}
-          resource={null}
-          nativeSection={state.section}
-          mode={state.mode}
-          mutating={formMutating}
-          formId={formId}
-          onNativeSubmit={handleNativeSubmit}
-          onDirtyChange={handleDirtyChange}
-        />
+        <>
+          <BaseProviderForm
+            key={viewKey}
+            brand={state.brand}
+            resource={null}
+            nativeSection={section}
+            mode={state.mode}
+            mutating={formMutating}
+            formId={formId}
+            onNativeSubmit={handleNativeSubmit}
+            onDirtyChange={handleDirtyChange}
+          />
+          {/* api-call resolves saved member auth indices, never the editor's draft. */}
+          {state.mode === 'edit' && section ? (
+            <UpstreamQuotaPanels
+              key={`${viewKey}:upstreamQuota`}
+              resources={section.members}
+              showMaskedKeys={section.members.length > 1}
+            />
+          ) : null}
+        </>
       );
     }
     if (isMultiProtocolSponsorBrand(state.brand)) {
