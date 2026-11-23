@@ -55,6 +55,8 @@ export interface ModelAlias {
   alias?: string;
   priority?: number;
   image?: boolean;
+  embedding?: boolean;
+  rerank?: boolean;
   displayName?: string;
   maxContextLength?: number;
   openapi?: boolean;
