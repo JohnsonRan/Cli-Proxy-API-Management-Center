@@ -56,6 +56,12 @@ Re-run on 2026-11-06 after upstream added the AIcodemirror sponsor provider (`95
 
 Re-run on 2026-11-23 for Upstream Sync run `45078679367`: upstream `f3020c8f` replaced the provider workbench panels and `246637a3` moved partner promotions into the add-provider catalogue. The renewed sponsor/affiliate/quick-connect search found no supported opt-out; [#552](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/552) (closed unmerged) and [#394](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/394) (merged) add promotions. Keep the override in the new workbench. Upstream client-key issue [#513](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/issues/513) is closed as not planned; the dedicated page still owns client keys, even after upstream changed the old visual editor to preserve YAML nodes.
 
+Re-run on 2026-11-23 for Upstream Sync run `45173373600`: searches for `provider workbench`, `quick access`, `快速接入`, and sponsor opt-outs found no supported switch. [#399](https://github.com/router-for-me/Cli-Proxy-API-Management-Center/pull/399) proposed another integrated provider and was closed unmerged, not an opt-out. Upstream removed the expired Kimi offer (`59088661`) and Double 11 card (`62225de5`), but other partner entry points remain. Keep the override without restoring the expired cards or their translation keys, and preserve upstream's native connection grouping (`425d7dab`) for Kimi and ordinary providers.
+
+The same sync exposed follow-on conflicts in `patch/openai-compat-model-discovery` and `patch/websocket-upstream-toggle`. Searches for auto-discovery/excluded models and the Codex upstream WebSocket switch found no equivalent panel work. Retain the discovery options inside the native member form wrappers (`4b908938`) and keep the settings path and UI tests for the WebSocket switch. Use the shared locale parity test (`a17a5c28`) instead of restoring the deleted configuration-localization suite.
+
+Upstream `8eba064b` removed a shared `Table` that this fork still used. No replacement shared component was found upstream. The client-key page, usage views, and fingerprint results now render native tables with feature-local styles; maintain those at their owning patches rather than restoring the removed shared component.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -93,9 +99,9 @@ Re-run on 2026-11-23 for Upstream Sync run `45078679367`: upstream `f3020c8f` re
    - **Scope**:
      - Remove `quickStartNavItem` (APIKEY.FUN) from `MainLayout.tsx` sidebar.
      - Remove the partner invitation and divider from `BrandTabs.tsx` and the featured partner cards from `ProviderPicker.tsx`. Keep both ordinary catalogue entry points: initial onboarding and the add-provider sheet.
-     - Drop the promotional brands (`apikeyFun`, `fennoAI`, `qiniuCloud`, `aiCodeMirror`) from `PROVIDER_BRAND_ORDER` and from the generic-group exclusion filters in `useProviderWorkbench.ts`, so a config on one of their endpoints still shows and stays editable in the generic Gemini/Codex/Claude/OpenAI-compatible group. The brand modules stay (Kimi shares the sponsor plumbing), but their affiliate URLs and `affiliateUrl` definitions are deleted.
-     - Delete `SponsorCampaignCard` and `SponsorQuickStartPanel` and stop mounting them in `ProvidersWorkbenchPage.tsx`. Leave upstream-deleted `ProviderCategoryList.tsx` and `ProviderResourcePanel.tsx` deleted; remove partner registration links from their replacement `BrandPanel.tsx`. When upstream edits a deleted promo file, keep the deletion.
-     - Kimi stays as a real vendor: its catalogue tile and brand panel link to the plain `platform.kimi.com/` and `platform.kimi.ai/` pages; neither renders the `kimiPromo` recharge line.
+     - Drop the promotional brands (`apikeyFun`, `fennoAI`, `qiniuCloud`, `aiCodeMirror`) from `PROVIDER_BRAND_ORDER`. Only brands in that order can claim native connections for a bundle, so former partner endpoints remain editable under their protocol. Keep upstream's bundle resolution for Kimi, which does not claim native pools or ambiguous singleton groups. The brand modules stay, but their affiliate URLs and `affiliateUrl` definitions are deleted.
+     - Delete `SponsorQuickStartPanel` and its entry points. Leave upstream-deleted `SponsorCampaignCard.tsx`, `ProviderCategoryList.tsx` and `ProviderResourcePanel.tsx` deleted; remove partner registration links from their replacement `BrandPanel.tsx`. When upstream edits a deleted promo file, keep the deletion.
+     - Kimi stays as a real vendor: its catalogue tile and brand panel link to the plain `platform.kimi.com/` and `platform.kimi.ai/` pages. Upstream removed the expired recharge offer and its locale strings.
      - Empty `SPONSORS` in `src/features/config/sponsors.ts` (BestProxy row under the proxy URL field).
      - Leave `MainRoutes.tsx` untouched: `patch/extract-client-api-keys` owns the `/quick-start` and `/api-keys` route lines.
      - Unrendered sponsor locale keys are left in place to avoid conflicts with the many patches that edit the locale files.
