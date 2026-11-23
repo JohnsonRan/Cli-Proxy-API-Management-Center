@@ -3,9 +3,9 @@ import { createInstance } from 'i18next';
 import en from '@/i18n/locales/en.json';
 import { normalizeConfigResponse } from '@/services/api/transformers';
 import {
-  APIKEY_FUN_CODEX_BASE_URL,
-  APIKEY_FUN_ANTHROPIC_BASE_URL,
-} from '@/features/providers/sponsor';
+  KIMI_OPENAI_BASE_URL,
+  KIMI_ANTHROPIC_BASE_URL,
+} from '@/features/providers/kimi';
 import { buildProviderGroups } from '@/features/providers/useProviderWorkbench';
 import { prepareSponsorWrite } from '@/features/providers/sponsorBundle';
 
@@ -68,11 +68,11 @@ const sponsorConfig = (codexKeys: string[][]) =>
   normalizeConfigResponse({
     'api-keys': {
       codex: codexKeys.map((keys) => ({
-        'base-url': APIKEY_FUN_CODEX_BASE_URL,
+        'base-url': KIMI_OPENAI_BASE_URL,
         keys: keys.map((key) => ({ 'api-key': key })),
       })),
       claude: [
-        { 'base-url': APIKEY_FUN_ANTHROPIC_BASE_URL, keys: [{ 'api-key': 'claude-fixture' }] },
+        { 'base-url': KIMI_ANTHROPIC_BASE_URL, keys: [{ 'api-key': 'claude-fixture' }] },
       ],
     },
   });
@@ -84,14 +84,14 @@ describe('sponsor write preflight', () => {
   test('rejects submissions containing an ambiguous protocol, including mixed submissions', () => {
     const config = sponsorConfig([['first'], ['second']]);
     const groups = buildProviderGroups(config);
-    expect(groups.find((group) => group.id === 'apikeyFun')?.ambiguousProtocols).toEqual(['codex']);
+    expect(groups.find((group) => group.id === 'kimi')?.ambiguousProtocols).toEqual(['codex']);
     expect(groups.find((group) => group.id === 'codex')?.nativeSections).toHaveLength(2);
-    expect(() => prepareSponsorWrite('apikeyFun', config, [{ protocol: 'codex' }], i18n.t)).toThrow(
+    expect(() => prepareSponsorWrite('kimi', config, [{ protocol: 'codex' }], i18n.t)).toThrow(
       'Multiple groups match'
     );
     expect(() =>
       prepareSponsorWrite(
-        'apikeyFun',
+        'kimi',
         config,
         [{ protocol: 'claude' }, { protocol: 'codex' }],
         i18n.t
@@ -99,7 +99,7 @@ describe('sponsor write preflight', () => {
     ).toThrow(en.providersPage.sponsor.protocols.codexResponses);
     // A different protocol can still be added; ambiguous native groups are not mutation targets.
     const raw = prepareSponsorWrite(
-      'apikeyFun',
+      'kimi',
       config,
       [{ protocol: 'openai' }, { protocol: 'claude' }],
       i18n.t
@@ -112,11 +112,11 @@ describe('sponsor write preflight', () => {
   test('counts only eligible singleton groups, not keys from native connection pools', () => {
     const entries = [{ protocol: 'codex' }] as const;
     const pool = ['pooled-a', 'pooled-b'];
-    expect(prepareSponsorWrite('apikeyFun', sponsorConfig([pool]), entries, i18n.t).codex).toEqual(
+    expect(prepareSponsorWrite('kimi', sponsorConfig([pool]), entries, i18n.t).codex).toEqual(
       []
     );
     const raw = prepareSponsorWrite(
-      'apikeyFun',
+      'kimi',
       sponsorConfig([pool, ['singleton']]),
       entries,
       i18n.t

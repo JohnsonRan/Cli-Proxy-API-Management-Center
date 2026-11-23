@@ -9,6 +9,7 @@ import {
   claudeToResource,
   fennoAIToResource,
   geminiToResource,
+  kimiToResource,
   openaiToResource,
 } from '@/features/providers/adapters';
 import { BrandTabs } from '@/features/providers/components/BrandTabs';
@@ -20,11 +21,12 @@ import {
   getConnectionFormTarget,
   getResourceDisplayName,
   matchesResourceFilter,
-  partitionProviderGroups,
   resolveResourceUsage,
   selectVisibleResources,
 } from '@/features/providers/resourceView';
+import { KIMI_INTERNATIONAL_AFFILIATE_URL } from '@/features/providers/kimi';
 import type { ProviderGroup, ProviderResource } from '@/features/providers/types';
+import { buildProviderGroups } from '@/features/providers/useProviderWorkbench';
 
 const i18n = createInstance();
 await i18n.init({ lng: 'en', resources: { en: { translation: en } } });
@@ -91,18 +93,6 @@ describe('resource view logic', () => {
       ).map((r) => r.name)
     ).toEqual(['beta']);
     expect(collectGroupModels(group('gemini', resources))).toEqual(['gemini-flash', 'gemini-pro']);
-  });
-
-  test('quick-fill partners are split out and ordered after regular providers', () => {
-    const { providers, quickFill } = partitionProviderGroups([
-      group('aiCodeMirror'),
-      group('gemini'),
-      group('fennoAI'),
-      group('kimi'),
-      group('qiniuCloud'),
-    ]);
-    expect(providers.map((g) => g.id)).toEqual(['gemini', 'kimi']);
-    expect(quickFill.map((g) => g.id)).toEqual(['fennoAI', 'qiniuCloud', 'aiCodeMirror']);
   });
 
   test('sponsor bundles carry no request health; others always resolve a status bar', () => {
@@ -188,95 +178,67 @@ describe('resource card', () => {
 });
 
 describe('brand tabs', () => {
-  test('list every brand and pin a quick-connect invitation for unconnected partners', () => {
+  test('keeps the official and custom brands as accessible tabs without the promo invitation', () => {
     const html = render(
       createElement(BrandTabs, {
-        groups: [group('gemini', [alpha, beta]), group('codex', [disabled]), group('fennoAI')],
+        groups: buildProviderGroups({ geminiApiKeys: [{ apiKey: 'fixture-gemini' }] }),
         activeBrand: 'gemini',
         onSelect: () => {},
         tabId: (brand: string) => `tab-${brand}`,
         panelId: 'panel',
-        onAdd: () => {},
-        partnerBrands: ['fennoAI', 'qiniuCloud'],
       })
     );
     expect(html).toContain('role="tablist"');
     const tabs = [...html.matchAll(/<button[^>]*role="tab"[^>]*>/g)].map((m) => m[0]);
-    expect(tabs).toHaveLength(3);
-    // Partners stay in the strip, after a labelled divider, without a zero badge.
-    expect(html.indexOf(en.providersPage.categories.quickFill)).toBeLessThan(
-      html.indexOf('id="tab-fennoAI"')
-    );
-    expect(html).not.toContain('>0</span>');
     const active = tabs.find((tab) => tab.includes('id="tab-gemini"'))!;
     expect(active).toContain('aria-selected="true"');
     expect(active).toContain('tabindex="0"');
     expect(active).toContain('aria-controls="panel"');
     expect(tabs.find((tab) => tab.includes('id="tab-codex"'))).toContain('tabindex="-1"');
-    const invite = new RegExp(
-      `<button[^>]*aria-label="${en.providersPage.picker.moreQuickConnect}"[^>]*>`
-    ).exec(html);
-    expect(invite).not.toBeNull();
-    expect(invite![0]).toContain('FennoAI');
-    // The invitation sits outside the tablist so it is not announced as a tab.
-    expect(html.indexOf('</div>')).toBeLessThan(html.indexOf(invite![0]));
-  });
-
-  test('omit the invitation once every partner is connected', () => {
-    const html = render(
-      createElement(BrandTabs, {
-        groups: [group('gemini', [alpha])],
-        activeBrand: 'gemini',
-        onSelect: () => {},
-        tabId: (brand: string) => `tab-${brand}`,
-        panelId: 'panel',
-        onAdd: () => {},
-      })
-    );
+    expect(html).toContain('id="tab-kimi"');
+    expect(html).toContain('id="tab-openaiCompatibility"');
+    expect(html).not.toContain('>0</span>');
+    expect(html).not.toContain(en.providersPage.categories.quickFill);
     expect(html).not.toContain(en.providersPage.picker.moreQuickConnect);
+    expect(html).not.toMatch(/id="tab-(apikeyFun|fennoAI|qiniuCloud|aiCodeMirror)"/);
   });
 });
 
 describe('provider picker', () => {
-  const catalogue = [
-    group('kimi'),
-    group('gemini', [alpha]),
-    group('codex'),
-    group('openaiCompatibility'),
-    group('fennoAI'),
-    group('qiniuCloud'),
-    group('aiCodeMirror'),
-  ];
-
-  test('features quick-connect partners first with connect and register actions', () => {
-    const html = render(createElement(ProviderPicker, { groups: catalogue, onPick: () => {} }));
-    const featured = html.indexOf(en.providersPage.picker.featured);
-    const official = html.indexOf(en.providersPage.picker.official);
-    expect(featured).toBeGreaterThanOrEqual(0);
-    expect(featured).toBeLessThan(official);
-    for (const name of ['FennoAI', en.providersPage.providerNames.qiniuCloud]) {
-      expect(html).toContain(`aria-label="${en.providersPage.picker.connect} ${name}"`);
-      expect(html.indexOf(name)).toBeLessThan(official);
-    }
-    const links = [...html.matchAll(/<a[^>]*target="_blank"[^>]*>/g)];
-    // Three partners plus the Kimi registration link.
-    expect(links).toHaveLength(4);
-    expect(html).toContain(en.providersPage.picker.oneKey.replace('{{count}}', '2'));
+  const catalogue = buildProviderGroups({
+    openaiCompatibility: [
+      { name: 'fixture', baseUrl: 'https://fixture.example.com/v1', apiKeyEntries: [] },
+    ],
   });
 
-  test('edits the full connected partner bundle but allows another ordinary connection', () => {
-    const bundle = fennoAIToResource({
+  for (const variant of ['page', 'sheet'] as const) {
+    test(`lists ordinary providers without promotions in the ${variant} catalogue`, () => {
+      const html = render(
+        createElement(ProviderPicker, { groups: catalogue, variant, onPick: () => {} })
+      );
+      for (const brand of ['gemini', 'kimi', 'openaiCompatibility'] as const) {
+        expect(html).toContain(en.providersPage.providerNames[brand]);
+      }
+      for (const brand of ['apikeyFun', 'fennoAI', 'qiniuCloud', 'aiCodeMirror'] as const) {
+        expect(html).not.toContain(en.providersPage.providerNames[brand]);
+      }
+      expect(html).not.toContain(en.providersPage.picker.featured);
+      const links = [...html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>/g)];
+      expect(links.map((link) => link[1])).toEqual([KIMI_INTERNATIONAL_AFFILIATE_URL]);
+    });
+  }
+
+  test('edits the full Kimi bundle but allows another ordinary connection', () => {
+    const bundle = kimiToResource({
       openai: [],
       gemini: [],
       claude: [{ config: { apiKey: 'fixture-claude' }, index: 0 }],
       codex: [{ config: { apiKey: 'fixture-codex' }, index: 0 }],
     })!;
-    const partner = group('fennoAI', [bundle]);
-    expect(getConnectionFormTarget(partner)).toEqual({ mode: 'edit', resource: bundle });
-    expect(getConnectionFormTarget(group('fennoAI'))).toEqual({ mode: 'create', resource: null });
+    const kimi = group('kimi', [bundle]);
+    expect(getConnectionFormTarget(kimi)).toEqual({ mode: 'edit', resource: bundle });
+    expect(getConnectionFormTarget(group('kimi'))).toEqual({ mode: 'create', resource: null });
     expect(getConnectionFormTarget(group('gemini', [alpha])).mode).toBe('create');
-    const html = render(createElement(ProviderPicker, { groups: [partner], onPick: () => {} }));
-    expect(html).toContain(`aria-label="${en.providersPage.actions.edit} FennoAI"`);
   });
 
   test('marks connected brands and keeps the custom entry last', () => {

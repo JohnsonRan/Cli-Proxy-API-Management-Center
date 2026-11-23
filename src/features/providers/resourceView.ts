@@ -24,27 +24,6 @@ import type {
   SponsorProviderRaw,
 } from './types';
 
-/** Brands that live in the "quick fill" partner section of the brand strip, in display order. */
-export const QUICK_FILL_BRAND_ORDER = ['fennoAI', 'qiniuCloud', 'aiCodeMirror'] as const;
-
-const QUICK_FILL_BRANDS: ReadonlySet<string> = new Set(QUICK_FILL_BRAND_ORDER);
-
-export const isQuickFillBrand = (brand: string): boolean => QUICK_FILL_BRANDS.has(brand);
-
-/** Splits groups into the regular provider strip and the quick-fill partner strip. */
-export const partitionProviderGroups = (
-  groups: ProviderGroup[]
-): { providers: ProviderGroup[]; quickFill: ProviderGroup[] } => ({
-  providers: groups.filter((group) => !isQuickFillBrand(group.id)),
-  quickFill: groups
-    .filter((group) => isQuickFillBrand(group.id))
-    .sort(
-      (left, right) =>
-        QUICK_FILL_BRAND_ORDER.indexOf(left.id as (typeof QUICK_FILL_BRAND_ORDER)[number]) -
-        QUICK_FILL_BRAND_ORDER.indexOf(right.id as (typeof QUICK_FILL_BRAND_ORDER)[number])
-    ),
-});
-
 /** Count the connections shown as cards, not the credentials inside each connection. */
 export const connectionCounts = (group: ProviderGroup) =>
   group.nativeSections
