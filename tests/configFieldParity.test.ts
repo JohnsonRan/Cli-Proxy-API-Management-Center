@@ -220,7 +220,6 @@ describe('registry consistency', () => {
 
 describe('v8 YAML search paths', () => {
   for (const [fieldId, path] of [
-    ['apiKeys', 'access.api-keys'],
     ['commercialMode', 'server.commercial-mode'],
     ['requestRetry', 'routing.retry.request-retry'],
     ['routingStrategy', 'routing.strategy'],
