@@ -37,6 +37,7 @@ export type VisualConfigFieldPath =
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
   | 'redisUsageQueueRetentionSeconds'
+  | 'quotaApiCacheTtlSeconds'
   | 'requestRetry'
   | 'maxRetryCredentials'
   | 'maxRetryInterval'
@@ -201,6 +202,7 @@ export type VisualConfigValues = {
   errorLogsMaxFiles: string;
   usageStatisticsEnabled: boolean;
   redisUsageQueueRetentionSeconds: string;
+  quotaApiCacheTtlSeconds: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
   passthroughHeaders: boolean;
@@ -309,6 +311,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   errorLogsMaxFiles: '',
   usageStatisticsEnabled: false,
   redisUsageQueueRetentionSeconds: '',
+  quotaApiCacheTtlSeconds: '',
   proxyUrl: '',
   forceModelPrefix: false,
   passthroughHeaders: false,
