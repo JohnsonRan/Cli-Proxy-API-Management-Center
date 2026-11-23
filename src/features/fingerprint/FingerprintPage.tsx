@@ -7,14 +7,6 @@ import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
 import { useAuthStore, useModelsStore } from '@/stores';
 import {
@@ -345,48 +337,61 @@ export function FingerprintPage() {
             desc={t('fingerprint.candidates_desc', { n: TOP_CANDIDATES })}
           />
           {candidates.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <tr>
-                  <TableHead>{t('fingerprint.candidate')}</TableHead>
-                  <TableHead alignRight>{t('fingerprint.score')}</TableHead>
-                  <TableHead alignRight>{t('fingerprint.probability')}</TableHead>
-                </tr>
-              </TableHeader>
-              <TableBody>
-                {candidates.map((item, index) => (
-                  <TableRow key={item.model}>
-                    <TableCell>
-                      <span className={styles.rankName}>
-                        <span className={styles.rank}>{index + 1}</span>
-                        <span className={styles.rankText}>
-                          <span className={styles.cellStrong}>
-                            {item.display_name || item.model}
+            <div className={styles.tableFrame}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table} aria-label={t('fingerprint.candidates_title')}>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('fingerprint.candidate')}</th>
+                      <th scope="col" className={styles.alignRight}>{t('fingerprint.score')}</th>
+                      <th scope="col" className={styles.alignRight}>
+                        {t('fingerprint.probability')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {candidates.map((item, index) => (
+                      <tr key={item.model}>
+                        <td>
+                          <span className={styles.rankName}>
+                            <span className={styles.rank}>{index + 1}</span>
+                            <span className={styles.rankText}>
+                              <span className={styles.cellStrong}>
+                                {item.display_name || item.model}
+                              </span>
+                              <span className={styles.cellSub}>
+                                {item.family_name || item.family}
+                              </span>
+                            </span>
                           </span>
-                          <span className={styles.cellSub}>{item.family_name || item.family}</span>
-                        </span>
-                      </span>
-                    </TableCell>
-                    <TableCell alignRight className={styles.numeric}>
-                      {item.score.toFixed(3)}
-                    </TableCell>
-                    <TableCell alignRight>
-                      <span className={styles.share}>
-                        <span className={styles.shareText}>{formatPercent(item.probability)}</span>
-                        <span className={styles.shareTrack} aria-hidden="true">
-                          <span
-                            className={styles.shareBar}
-                            style={{
-                              width: `${Math.min(100, Math.max(0, (item.probability ?? 0) * 100))}%`,
-                            }}
-                          />
-                        </span>
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        </td>
+                        <td className={`${styles.alignRight} ${styles.numeric}`}>
+                          {item.score.toFixed(3)}
+                        </td>
+                        <td className={styles.alignRight}>
+                          <span className={styles.share}>
+                            <span className={styles.shareText}>
+                              {formatPercent(item.probability)}
+                            </span>
+                            <span className={styles.shareTrack} aria-hidden="true">
+                              <span
+                                className={styles.shareBar}
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    Math.max(0, (item.probability ?? 0) * 100)
+                                  )}%`,
+                                }}
+                              />
+                            </span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <p className={styles.empty}>{emptyText}</p>
           )}
@@ -398,50 +403,56 @@ export function FingerprintPage() {
             desc={t('fingerprint.samples_desc')}
           />
           {samples.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <tr>
-                  <TableHead>#</TableHead>
-                  <TableHead>{t('fingerprint.sample_state')}</TableHead>
-                  <TableHead alignRight>{t('fingerprint.sample_numbers')}</TableHead>
-                  <TableHead>{t('fingerprint.response_model')}</TableHead>
-                </tr>
-              </TableHeader>
-              <TableBody>
-                {samples.map((sample, index) => (
-                  <TableRow key={index}>
-                    <TableCell className={styles.rank}>{index + 1}</TableCell>
-                    <TableCell>
-                      <span className={styles[`tone${STATE_TONE[sample.state] ?? 'Muted'}`]}>
-                        {t(`fingerprint.state_${sample.state}`, { defaultValue: sample.state })}
-                      </span>
-                      {sample.error && <span className={styles.errorText}>{sample.error}</span>}
-                    </TableCell>
-                    <TableCell alignRight>
-                      <span className={styles.share}>
-                        <span className={`${styles.shareText} ${styles.numeric}`}>
-                          {sample.count} / {sample.expected_count}
-                        </span>
-                        <span
-                          className={styles.shareTrack}
-                          role="progressbar"
-                          aria-label={t('fingerprint.sample_numbers')}
-                          aria-valuemin={0}
-                          aria-valuemax={sample.expected_count}
-                          aria-valuenow={Math.min(sample.count, sample.expected_count)}
-                        >
-                          <span
-                            className={styles.shareBar}
-                            style={{ width: `${sampleProgress(sample)}%` }}
-                          />
-                        </span>
-                      </span>
-                    </TableCell>
-                    <TableCell className={styles.mono}>{sample.response_model || '—'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className={styles.tableFrame}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table} aria-label={t('fingerprint.samples_title')}>
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">{t('fingerprint.sample_state')}</th>
+                      <th scope="col" className={styles.alignRight}>
+                        {t('fingerprint.sample_numbers')}
+                      </th>
+                      <th scope="col">{t('fingerprint.response_model')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {samples.map((sample, index) => (
+                      <tr key={index}>
+                        <td className={styles.rank}>{index + 1}</td>
+                        <td>
+                          <span className={styles[`tone${STATE_TONE[sample.state] ?? 'Muted'}`]}>
+                            {t(`fingerprint.state_${sample.state}`, { defaultValue: sample.state })}
+                          </span>
+                          {sample.error && <span className={styles.errorText}>{sample.error}</span>}
+                        </td>
+                        <td className={styles.alignRight}>
+                          <span className={styles.share}>
+                            <span className={`${styles.shareText} ${styles.numeric}`}>
+                              {sample.count} / {sample.expected_count}
+                            </span>
+                            <span
+                              className={styles.shareTrack}
+                              role="progressbar"
+                              aria-label={t('fingerprint.sample_numbers')}
+                              aria-valuemin={0}
+                              aria-valuemax={sample.expected_count}
+                              aria-valuenow={Math.min(sample.count, sample.expected_count)}
+                            >
+                              <span
+                                className={styles.shareBar}
+                                style={{ width: `${sampleProgress(sample)}%` }}
+                              />
+                            </span>
+                          </span>
+                        </td>
+                        <td className={styles.mono}>{sample.response_model || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <p className={styles.empty}>{emptyText}</p>
           )}

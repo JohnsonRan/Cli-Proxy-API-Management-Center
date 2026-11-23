@@ -228,10 +228,6 @@
   border-radius: 14px;
   background: var(--bg-primary);
   min-width: 0;
-
-  :global(th) {
-    white-space: nowrap;
-  }
 }
 
 .panelHeading {
@@ -259,6 +255,69 @@
   margin: 0;
   font-size: 12.5px;
   color: var(--text-secondary);
+}
+
+/* ---------- Tables ---------- */
+
+.tableFrame {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+
+  thead {
+    background: var(--muted-bg);
+  }
+
+  th {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tbody {
+    background: var(--bg-primary);
+  }
+
+  tbody tr {
+    transition: background-color $transition-fast;
+
+    &:hover td {
+      background: color-mix(in srgb, var(--accent-bg) 50%, transparent);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .alignRight {
+    text-align: right;
+  }
 }
 
 /* ---------- Table cells ---------- */
