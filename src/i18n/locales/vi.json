@@ -1329,11 +1329,13 @@
     "quota_value_model_line": "Ước tính mô hình",
     "quota_value_coeff_title": "Tỷ lệ tiêu hao hạn mức theo mô hình và loại token",
     "quota_value_coeff_desc": "Hệ số tiêu hao hạn mức của token so với tỷ lệ giá API: 1× khớp với giá, trên 1× tốn nhiều hạn mức hơn mức giá gợi ý. Được khớp từ mọi mẫu của thông tin xác thực này; cần dùng đa dạng để lệch khỏi 1×.",
-    "quota_value_kind_input": "Đầu vào",
-    "quota_value_kind_cache_read": "Đọc bộ nhớ đệm",
-    "quota_value_kind_cache_write": "Ghi bộ nhớ đệm",
-    "quota_value_kind_output": "Đầu ra",
-    "quota_value_kind_other": "Khác",
+    "quota_value_kind": {
+      "input": "Đầu vào",
+      "cache_read": "Đọc bộ nhớ đệm",
+      "cache_write": "Ghi bộ nhớ đệm",
+      "output": "Đầu ra",
+      "other": "Khác"
+    },
     "quota_value_model_values": "Nếu chỉ dùng mô hình này",
     "quota_value_model_insufficient": "Chưa đủ mẫu để khớp mô hình; hiển thị cửa sổ gần nhất.",
     "quota_value_col_kind": "Loại",

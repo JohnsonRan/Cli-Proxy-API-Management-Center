@@ -1373,11 +1373,13 @@
     "quota_value_model_line": "Model estimate",
     "quota_value_coeff_title": "Quota cost by model and token type",
     "quota_value_coeff_desc": "Multiplier of how much quota a token takes compared with its API price share: 1× matches the price, above 1× takes more quota than its price suggests. Fitted from all samples of this credential; needs varied usage to move away from 1×.",
-    "quota_value_kind_input": "Input",
-    "quota_value_kind_cache_read": "Cache read",
-    "quota_value_kind_cache_write": "Cache write",
-    "quota_value_kind_output": "Output",
-    "quota_value_kind_other": "Other",
+    "quota_value_kind": {
+      "input": "Input",
+      "cache_read": "Cache read",
+      "cache_write": "Cache write",
+      "output": "Output",
+      "other": "Other"
+    },
     "quota_value_model_values": "If only this model",
     "quota_value_model_insufficient": "Not enough samples for a model yet; showing the latest window.",
     "quota_value_col_kind": "Type",

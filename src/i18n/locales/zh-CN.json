@@ -1366,11 +1366,13 @@
     "quota_value_model_line": "模型估算",
     "quota_value_coeff_title": "各模型与 Token 类型的额度消耗率",
     "quota_value_coeff_desc": "Token 实际消耗额度与其 API 价格占比的比值：1× 表示与价格一致，高于 1× 表示消耗的额度高于价格占比。根据该凭证所有历史采样拟合，需多样化用量才能学出偏离 1× 的差异。",
-    "quota_value_kind_input": "输入",
-    "quota_value_kind_cache_read": "缓存读取",
-    "quota_value_kind_cache_write": "缓存写入",
-    "quota_value_kind_output": "输出",
-    "quota_value_kind_other": "其他",
+    "quota_value_kind": {
+      "input": "输入",
+      "cache_read": "缓存读取",
+      "cache_write": "缓存写入",
+      "output": "输出",
+      "other": "其他"
+    },
     "quota_value_model_values": "若仅使用此模型",
     "quota_value_model_insufficient": "样本尚不足以拟合模型，显示最新窗口估值。",
     "quota_value_col_kind": "类型",

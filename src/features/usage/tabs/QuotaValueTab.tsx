@@ -466,10 +466,10 @@ export function QuotaValueTab({
                         {p.model.features.map((f, i) => (
                           <tr key={i}>
                             <td className={styles.mono}>
-                              {f.model || t('usage_stats.quota_value_kind_other')}
+                              {f.model || t('usage_stats.quota_value_kind.other')}
                             </td>
                             <td>
-                              {t(`usage_stats.quota_value_kind_${f.kind}`, {
+                              {t(`usage_stats.quota_value_kind.${f.kind}`, {
                                 defaultValue: f.kind,
                               })}
                             </td>

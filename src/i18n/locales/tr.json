@@ -1373,11 +1373,13 @@
     "quota_value_model_line": "Model Tahmini",
     "quota_value_coeff_title": "Modele ve Belirteç Türüne Göre Kota Maliyeti",
     "quota_value_coeff_desc": "Bir Belirtecin API Fiyat Payına Göre Ne Kadar Kota Harcadığını Gösteren Çarpan: 1× Fiyatla Eşleşir, 1×'in Üstü Fiyatının Gösterdiğinden Fazla Kota Harcar. Bu Kimlik Bilgisinin Tüm Örneklerinden Hesaplanır; 1×'ten Uzaklaşması için Çeşitli Kullanım Gerekir.",
-    "quota_value_kind_input": "Giriş",
-    "quota_value_kind_cache_read": "Önbellek Okuma",
-    "quota_value_kind_cache_write": "Önbellek Yazma",
-    "quota_value_kind_output": "Çıkış",
-    "quota_value_kind_other": "Diğer",
+    "quota_value_kind": {
+      "input": "Giriş",
+      "cache_read": "Önbellek Okuma",
+      "cache_write": "Önbellek Yazma",
+      "output": "Çıkış",
+      "other": "Diğer"
+    },
     "quota_value_model_values": "Yalnızca Bu Model Olsaydı",
     "quota_value_model_insufficient": "Henüz Bir Model için Yeterli Örnek Yok; Son Pencere Gösteriliyor.",
     "quota_value_col_kind": "Tür",
