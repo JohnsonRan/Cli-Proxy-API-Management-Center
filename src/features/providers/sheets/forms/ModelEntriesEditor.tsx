@@ -105,6 +105,11 @@ export function ModelEntriesEditor({
                     {t('providersPage.form.modelBadgeRerank')}
                   </span>
                 ) : null}
+                {!oauthAliasOnly && supportsImage && !expanded && entry.systemone === true ? (
+                  <span className={styles.entryBadge}>
+                    {t('providersPage.form.modelBadgeSystemOne')}
+                  </span>
+                ) : null}
                 {!oauthAliasOnly && supportsThinking && !expanded && hasThinking ? (
                   <span className={styles.entryBadge}>
                     {t('providersPage.form.modelBadgeThinking')}
@@ -162,6 +167,13 @@ export function ModelEntriesEditor({
                       checked={entry.rerank === true}
                       disabled={mutating}
                       onChange={(checked) => onUpdate(idx, { rerank: checked })}
+                    />
+                    <CheckboxField
+                      label={t('providersPage.form.modelSystemOne')}
+                      hint={t('providersPage.form.modelSystemOneHint')}
+                      checked={entry.systemone === true}
+                      disabled={mutating}
+                      onChange={(checked) => onUpdate(idx, { systemone: checked })}
                     />
                   </>
                 ) : null}
