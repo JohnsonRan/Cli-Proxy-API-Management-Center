@@ -50,6 +50,8 @@ const editor = (providerKey: string): PrefixProxyEditorState => ({
   noteTouched: false,
   excludedModelsText: '',
   excludedModelsTouched: false,
+  allowedModelsText: '',
+  allowedModelsTouched: false,
   headersText: '',
   headersTouched: false,
   headersError: null,
