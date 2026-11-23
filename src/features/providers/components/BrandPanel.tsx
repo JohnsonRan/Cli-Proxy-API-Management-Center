@@ -5,7 +5,6 @@ import type { ProviderRecentUsageMap } from '@/components/providers/utils';
 import { connectionCardSummary } from '../connectionCardSummary';
 import { getKimiAffiliateUrl } from '../kimi';
 import { getConnectionFormTarget, resolveResourceUsage } from '../resourceView';
-import { getSponsorProviderDefinition } from '../sponsorDefinitions';
 import type {
   NativeSection,
   ProviderGroup,
@@ -58,14 +57,6 @@ interface BrandPanelProps {
   onToggleGroup: (section: NativeSection, disabled: boolean) => void;
 }
 
-const resolveRegistrationUrl = (group: ProviderGroup, language: string): string | null => {
-  if (group.id === 'kimi') return getKimiAffiliateUrl(language);
-  if (group.id === 'fennoAI' || group.id === 'qiniuCloud' || group.id === 'aiCodeMirror') {
-    return getSponsorProviderDefinition(group.id).affiliateUrl ?? null;
-  }
-  return null;
-};
-
 // Connection URLs may include userinfo or query-string credentials; don't put them in the DOM.
 function connectionEndpoint(value: string): string | null {
   try {
@@ -106,20 +97,15 @@ export function BrandPanel({
     return () => window.clearTimeout(timer);
   }, []);
   const providerName = t(`providersPage.providerNames.${group.id}`);
-  const registrationUrl = resolveRegistrationUrl(
-    group,
-    i18n.resolvedLanguage ?? i18n.language ?? ''
-  );
-  const registrationLabel = t(
-    group.id === 'kimi' ? 'providersPage.sponsor.registerNow' : 'providersPage.sponsor.registerLink'
-  );
+  const registrationUrl =
+    group.id === 'kimi' ? getKimiAffiliateUrl(i18n.resolvedLanguage ?? i18n.language ?? '') : null;
   const editBundle = getConnectionFormTarget(group).mode === 'edit';
   const hasResources = group.resources.length > 0 || Boolean(group.nativeSections?.length);
   const filtersActive = controls.filter.trim() !== '' || controls.selectedModels.size > 0;
 
   const registrationLink = registrationUrl ? (
     <a className={styles.linkPill} href={registrationUrl} target="_blank" rel="noreferrer">
-      <span>{registrationLabel}</span>
+      <span>{t('providersPage.sponsor.registerNow')}</span>
       <IconExternalLink size={13} aria-hidden="true" />
     </a>
   ) : null;
@@ -150,13 +136,10 @@ export function BrandPanel({
   return (
     <section id={id} role="tabpanel" aria-labelledby={labelledBy} className={styles.panel}>
       {registrationUrl ? (
-        <div className={`${styles.note} ${group.id === 'kimi' ? styles.noteKimi : ''}`}>
+        <div className={`${styles.note} ${styles.noteKimi}`}>
           <BrandLogo brand={group.id} size={28} />
           <div className={styles.noteText}>
             <span className={styles.noteTitle}>{providerName}</span>
-            {group.id === 'kimi' ? (
-              <span className={styles.noteBody}>{t('providersPage.sponsor.kimiPromo')}</span>
-            ) : null}
           </div>
           {registrationLink}
         </div>
