@@ -19,7 +19,6 @@ describe('v8 visual config contract', () => {
     expect(config.visualValues).toMatchObject({
       host: 'localhost',
       port: '8317',
-      apiKeysText: 'fixture-client',
       commercialMode: false,
       wsAuth: false,
       requestRetry: '0',
@@ -40,64 +39,29 @@ describe('v8 visual config contract', () => {
     expect(parseYaml(config.applyVisualChangesToYaml(fixture))).toEqual(parseYaml(fixture));
   });
 
-  test('client key writes and deletion never replace upstream provider groups', () => {
-    for (const apiKeysText of ['new-fixture-client', '']) {
-      const config = runVisualConfig(fixture, [{ apiKeysText }]);
-      const output = parseYaml(config.applyVisualChangesToYaml(fixture));
-      expect(output['api-keys']).toEqual(parseYaml(fixture)['api-keys']);
-      expect(output.access?.['api-keys']).toEqual(apiKeysText ? [apiKeysText] : undefined);
-    }
-    expect(runVisualConfig('api-keys:\n  codex: []\n').visualValues.apiKeysText).toBe('');
+  test('visual edits never touch client keys or upstream provider groups', () => {
+    const config = runVisualConfig(fixture, [{ host: 'fixture-host' }]);
+    const output = parseYaml(config.applyVisualChangesToYaml(fixture));
+    expect(output['api-keys']).toEqual(parseYaml(fixture)['api-keys']);
+    expect(output.access?.['api-keys']).toEqual(parseYaml(fixture).access?.['api-keys']);
   });
 
-  test('client key edits keep unchanged YAML lines and comments even when indices shift', () => {
+  test('unrelated visual edits preserve client key YAML comments, tags and aliases', () => {
     const before = [
+      'server:',
+      '  host: localhost',
       'access:',
       '  api-keys:',
-      '    # client list',
-      '    - "fixture-a" # first',
-      "    - 'fixture-b' # second",
-      '    - "fixture-c" # third',
-      '',
-    ].join('\n');
-    const apply = (keys: string[]) =>
-      runVisualConfig(before, [{ apiKeysText: keys.join('\n') }]).applyVisualChangesToYaml(before);
-    expect(apply(['fixture-a', 'fixture-new', 'fixture-c'])).toBe(
-      before.replace('fixture-b', 'fixture-new')
-    );
-    expect(apply(['fixture-b', 'fixture-c', 'fixture-new'])).toBe(
-      before.replace('    - "fixture-a" # first\n', '') + '    - fixture-new\n'
-    );
-  });
-
-  test('replacing a tagged non-string client key writes a string and retains its comment', () => {
-    const before = 'access:\n  api-keys:\n    - !!int 42 # changed\n    - !!str keep # unchanged\n';
-    const output = runVisualConfig(before, [{ apiKeysText: '123\nkeep' }]).applyVisualChangesToYaml(
-      before
-    );
-    expect(parseYaml(output).access['api-keys']).toEqual(['123', 'keep']);
-    expect(output).toContain('# changed');
-    expect(output).toContain('!!str keep # unchanged');
-  });
-
-  test('reordering client keys with repeated anchors preserves external alias targets', () => {
-    const before = [
-      'access:',
-      '  api-keys:',
-      '    - &client fixture-a # first',
+      '    - &client "fixture-a" # first',
       '    - *client',
-      '    - &client fixture-b # second',
+      '    - !!str "42" # tagged',
       'external: *client',
       '',
     ].join('\n');
-    const keys = ['fixture-b', 'fixture-a', 'fixture-a'];
-    const output = runVisualConfig(before, [
-      { apiKeysText: keys.join('\n') },
-    ]).applyVisualChangesToYaml(before);
-    expect(parseYaml(output)).toEqual({ access: { 'api-keys': keys }, external: 'fixture-b' });
-    expect(output).toContain('external: *client');
-    expect(output).toContain('# first');
-    expect(output).toContain('# second');
+    const output = runVisualConfig(before, [{ host: 'fixture-host' }]).applyVisualChangesToYaml(
+      before
+    );
+    expect(output).toBe(before.replace('localhost', 'fixture-host'));
   });
 
   test('OAuth edits stay OAuth-only and preserve unmoved routing and plugin fields', () => {
@@ -297,8 +261,7 @@ describe('v8 scalar read/write path parity', () => {
       const path = [...entry.yamlKeys!];
       if (field === 'tlsEnable') path.push('enable');
       if (field === 'pluginsEnabled') path.push('enabled');
-      const expected =
-        field === 'apiKeysText' ? [value] : numericFields.has(field) ? Number(value) : value;
+      const expected = numericFields.has(field) ? Number(value) : value;
       expect(
         path.reduce<unknown>(
           (node, key) => (node as Record<string, unknown>)[key],
