@@ -62,6 +62,8 @@ The same sync exposed follow-on conflicts in `patch/openai-compat-model-discover
 
 Upstream `8eba064b` removed a shared `Table` that this fork still used. No replacement shared component was found upstream. The client-key page, usage views, and fingerprint results now render native tables with feature-local styles; maintain those at their owning patches rather than restoring the removed shared component.
 
+Re-run on 2026-11-25 for Upstream Sync run `45526007321` and `patch/weak-etag-if-match`: upstream `15443055` updated locale copy across all 7 locales (especially `zh-CN.json` and `zh-TW.json`), causing adjacent-line conflicts on `patch/openai-compat-model-discovery`, `patch/upstream-quota`, and `patch/fingerprint-detector`; all three were merged with `upstream/main` (`3866a168`). Searches across open and closed issues and PRs in both `router-for-me/Cli-Proxy-API-Management-Center` and `router-for-me/CLIProxyAPI` for `precondition_failed`, `If-Match`, `ETag`, `weak`, `W/`, `412`, and `nginx` found only core issue [#6666](https://github.com/router-for-me/CLIProxyAPI/issues/6666) (CLOSED, which added v8 config `ETag`/`If-Match` and CORS exposure). Neither repository handles compression-weakened `W/"..."` ETags on native provider group writes, so `patch/weak-etag-if-match` stays downstream.
+
 ## Patch Branches
 
 1. **`patch/embeddings-and-rerank`**
@@ -247,6 +249,12 @@ Upstream `8eba064b` removed a shared `Table` that this fork still used. No repla
     - **Related Upstream Work**: None found (searched `fingerprint`, `lm-detector`, `model detection`, `模型检测` in both repositories on 2026-10-26). Live progress uses the `OnSample` callback of [Ikaleio/lm-detector#28](https://github.com/Ikaleio/lm-detector/pull/28) (merged, SDK v0.2.0), streamed by the core patch.
     - **Cross-repo**: Needs the core patch `patch/fingerprint-detector` (`POST /v8/management/observability/fingerprint/detect`). Ship the core side first.
 
+23. **`patch/weak-etag-if-match`**
+    - **Goal**: Prevent `412 precondition_failed` on native provider connection create/update/delete/disable operations when `GET /v8/management/config` returns a compression-weakened ETag (`W/"<sha256>"`).
+    - **Scope**: Add `normalizeConfigETag` in `src/services/api/providers.ts` and use it in `mutateNativeGroups` (reading `response.headers?.etag ?? response.headers?.ETag`) to unwrap a leading `W/` prefix from quoted entity tags (`W/"..."` -> `"..."`) before sending `If-Match`. Wildcards (`W/*`) and malformed tags are not rewritten, and blank/missing ETags still throw a conflict before writing. The core's v8 config `If-Match` check uses RFC 9110 strong comparison (`config_v8.go`) and rejects weak ETags produced by the core's `patch/http-compression` middleware or compressing reverse proxies (nginx, Cloudflare). Tests in `tests/weakEtagIfMatch.test.ts`.
+    - **Note**: Independent of other patches (edits only `mutateNativeGroups` in `providers.ts` plus its own test file); its position in the integration order does not matter.
+    - **Related Upstream Work**: None found in this repository (searched `precondition_failed`, `If-Match`, `ETag`, `weak`, `412`, `nginx` on 2026-11-25); core issue [#6666](https://github.com/router-for-me/CLIProxyAPI/issues/6666) (CLOSED) introduced `ETag`/`If-Match` on v8 config endpoints.
+
 ## Retired Patch Branches
 
 - **`patch/usage-exclude-embeddings`** (retired 2026-10-26): its config-page switch for `observability.usage.exclude-embeddings` moved into the usage settings tab of `patch/usage-store`, next to the other usage store switches. Removed from the sync; the branch is kept for history.
@@ -274,7 +282,7 @@ These pairs are not compatibility patches: the second branch descends from the f
 
 ```bash
 git fetch upstream main --tags
-git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/quota-api patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/auth-file-allowed-models patch/usage-store patch/modal-close-race patch/fingerprint-detector
+git fetch origin ci patch/embeddings-and-rerank patch/systemone-endpoint patch/fix-xai-quota-test patch/remove-promotional-sections patch/extract-client-api-keys patch/downstream-versioning patch/update-management-panel patch/client-api-key-models patch/button-icon-layout patch/secure-storage-stable-key patch/websocket-upstream-toggle patch/client-key-provider-scope patch/codex-app-keepalive patch/openai-compat-model-discovery patch/quota-api patch/config-auth-index patch/upstream-quota patch/plugin-iframe-no-flash patch/auth-file-allowed-models patch/usage-store patch/modal-close-race patch/fingerprint-detector patch/weak-etag-if-match
 
 git checkout -B main upstream/main
 
@@ -365,6 +373,9 @@ git commit -m "merge patch/modal-close-race branch"
 
 git merge --squash origin/patch/fingerprint-detector || bun .github/scripts/resolve-observe-nav.ts
 git commit -m "merge patch/fingerprint-detector branch"
+
+git merge --squash origin/patch/weak-etag-if-match
+git commit -m "merge patch/weak-etag-if-match branch"
 
 bun install --frozen-lockfile
 bun run type-check
