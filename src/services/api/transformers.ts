@@ -37,6 +37,7 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
       const image = normalizeBoolean(item.image);
       const embedding = normalizeBoolean(item.embedding);
       const rerank = normalizeBoolean(item.rerank);
+      const systemone = normalizeBoolean(item.systemone);
       const thinking = normalizeModelThinking(item.thinking);
       const entry: ModelAlias = { name: String(name), sourceIndex, ...normalizeModelOptions(item) };
       if (alias) {
@@ -56,6 +57,9 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
       }
       if (rerank !== undefined) {
         entry.rerank = rerank;
+      }
+      if (systemone !== undefined) {
+        entry.systemone = systemone;
       }
       if (thinking) {
         entry.thinking = thinking;
