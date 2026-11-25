@@ -113,6 +113,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   codexStreamBootstrapBuffering: ['codexStreamBootstrapBuffering'],
   codexStreamBootstrapTimeout: ['codexStreamBootstrapTimeout'],
   codexOptimizeMultiAgentV2: ['codexOptimizeMultiAgentV2'],
+  codexEnableWebsocketUpstream: ['codexEnableWebsocketUpstream'],
   codexOrphanDelegationCompatibility: ['codexOrphanDelegationCompatibility'],
   codexResponseSteering: ['codexResponseSteering'],
   antigravityConnectionPoolEnabled: ['antigravityConnectionPoolEnabled'],
