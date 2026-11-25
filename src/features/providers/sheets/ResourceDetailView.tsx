@@ -15,6 +15,7 @@ import {
 } from '../sponsorDefinitions';
 import type { ProviderResource, SponsorProviderRaw } from '../types';
 import statusBarStyles from '../components/providerStatusBar.module.scss';
+import { UpstreamQuotaPanels } from './UpstreamQuotaPanel';
 import styles from './ResourceDetailView.module.scss';
 
 interface ResourceDetailViewProps {
@@ -218,6 +219,8 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
           </ol>
         </DetailSection>
       ) : null}
+
+      <UpstreamQuotaPanels resources={[resource]} showMaskedKeys={apiKeyEntries.length > 1} />
 
       <DetailSection title={t('providersPage.detail.metadataTitle')}>
         <DetailList
