@@ -107,6 +107,18 @@ export function ResourceCard({
     chips.push(metric('models', t('providersPage.table.metrics.models'), resource.modelCount));
     if (resource.brand === 'openaiCompatibility') {
       chips.push(metric('keys', t('providersPage.table.metrics.keys'), resource.apiKeyEntryCount));
+      if (resource.excludedModelCount > 0) {
+        chips.push(
+          metric(
+            'excluded',
+            t('providersPage.detail.fields.excludedModels'),
+            resource.excludedModelCount
+          )
+        );
+      }
+      if (resource.flags.autoDiscoverModels) {
+        chips.push(tag('auto-discover', t('providersPage.table.autoDiscoverTag')));
+      }
     }
     chips.push(metric('headers', t('providersPage.table.metrics.headers'), resource.headerCount));
     if (resource.priority !== 0) {
