@@ -606,6 +606,20 @@ const findOpenAISource = (groups: Record<string, unknown>[], source?: ProviderSo
   return locateProviderGroup(groups, source);
 };
 
+/**
+ * Compression middleware (CLIProxyAPI response compression or reverse proxies like nginx and
+ * Cloudflare) weakens strong ETags `"<hash>"` to `W/"<hash>"`. The v8 config If-Match check uses
+ * RFC 9110 strong comparison and rejects weak tags with 412 precondition_failed, so unwrap a
+ * quoted weak validator while keeping strong hash verification intact.
+ */
+export const normalizeConfigETag = (raw: unknown): string | null => {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const weak = /^W\/("[^"]*")$/i.exec(trimmed);
+  return weak ? weak[1] : trimmed;
+};
+
 // All group editor operations replace a family list, never an array index path. Bind the
 // write to the exact config bytes just read so even a change after snapshot matching is safe.
 const mutateNativeGroups = async (
@@ -618,8 +632,8 @@ const mutateNativeGroups = async (
   const client = apiClient.captureConnection();
   const response = await client.getRaw('/config');
   assertConnection();
-  const etag: unknown = response.headers.etag;
-  if (typeof etag !== 'string' || !etag) throw conflict();
+  const etag = normalizeConfigETag(response.headers?.etag ?? response.headers?.ETag);
+  if (!etag) throw conflict();
   const groups = change(readProviderGroups(response.data, family));
   await putGroups(family, groups, etag, client);
   assertConnection();
